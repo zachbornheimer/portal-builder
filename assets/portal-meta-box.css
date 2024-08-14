@@ -1,0 +1,99 @@
+.portal-meta-box .form-group {
+    margin-bottom: 15px;
+}
+
+.portal-meta-box {
+    padding: 15px 0px ;
+}
+
+.portal-meta-box label {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.portal-meta-box .form-control {
+    width: 100%;
+    padding: 6px 12px;
+    font-size: 14px;
+    line-height: 1.5;
+    color: #495057;
+    background-color: #fff;
+    background-clip: padding-box;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.portal-meta-box .form-check {
+    margin-bottom: 10px;
+}
+
+.portal-meta-box .form-switch {
+    display: flex;
+    align-items: center;
+}
+
+.portal-meta-box .form-check-label {
+    margin-left: 10px;
+    font-weight: normal;
+}
+
+:root {
+    --switch-bg-off: #ccc;
+    --switch-bg-on: rgb(22, 101, 52); /* Your success green */
+    --slider-bg: #fff;
+    --switch-width: 40px;
+    --switch-height: 22px;
+    --slider-diameter: 18px;
+    --slider-margin: 1px;
+  }
+  
+  /* Target only switches with form-check and form-switch classes */
+  .form-check.form-switch .form-check-input {
+    width: var(--switch-width);
+    height: var(--switch-height);
+    background-color: var(--switch-bg-off);
+    border-radius: 34px;
+    position: relative;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    outline: none;
+    cursor: pointer;
+    transition: background-color 0.1s;
+    align-items:center;
+    display:flex;
+    box-shadow: unset;
+  }
+  .form-check.form-switch {
+    box-shadow: unset;
+  }
+
+  
+  /* The circle inside the switch */
+  .form-check.form-switch .form-check-input::before {
+    content: "";
+    position: absolute;
+    height: calc(var(--slider-diameter) - var(--slider-margin));
+    width: calc(var(--slider-diameter) - var(--slider-margin));
+    left: var(--slider-margin);
+    background-color: var(--slider-bg);
+    border-radius: 50%;
+    transition: transform 0.1s;
+    border: 1px solid var(--switch-bg-off);
+    margin:0px;
+    padding:0px;
+  }
+  
+  /* When the switch is checked */
+  .form-check.form-switch .form-check-input:checked {
+    background-color: var(--switch-bg-on);
+    border-color:transparent;
+  }
+  
+  /* Move the circle to the right when checked */
+  .form-check.form-switch .form-check-input:checked::before {
+    transform: translateX(calc(var(--switch-width) - var(--slider-diameter) - 4px));
+
+  }

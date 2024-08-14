@@ -1,0 +1,43 @@
+.monospace {
+    font-family: 'Courier New', Courier, monospace;
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 10px;
+}
+
+.data-table th,
+.data-table td {
+    padding: 8px;
+    border: 1px solid #ccc;
+    text-align: left;
+}
+
+.data-table .reference-id {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.data-table .sheet-id {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.data-table .delete-row {
+    background-color: rgba(185, 28, 28, 0.9)!important;
+    color: white!important;
+    border: none;
+    padding: 5px 10px;
+    cursor: pointer;
+    border-radius: 3px;
+}
+
+.data-table .delete-row:hover {
+    background-color: #c9302c;
+}
+
+.data-table input {
+    width: 100%;
+}

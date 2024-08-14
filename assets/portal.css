@@ -1,0 +1,96 @@
+.portal-group .form-grid {
+    display: grid;
+    grid-template-columns: 2fr 3fr; /* Equal-width columns for labels and inputs */
+    gap: 10px 20px; /* 10px row gap, 20px column gap */
+    align-items: center; /* Vertically center-aligns labels with inputs */
+}
+
+.portal-group .form-group {
+    display: contents; /* Allows grid items to span without creating an extra wrapper */
+}
+
+.portal-group label {
+    grid-column: 1 / 2; /* Labels occupy the first column */
+    font-weight: 600;
+    margin-bottom: 0; /* Remove any bottom margin */
+    text-align: right; /* Right align the labels */
+    padding-right: 10px; /* Add padding to labels for spacing */
+}
+
+.portal-group input,
+.portal-group select {
+    grid-column: 2 / 3; /* Inputs occupy the second column */
+    width: 100%; /* Ensure inputs take up 100% of the available width */
+    padding: 8px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box; /* Ensure padding is included in the element's total width */
+}
+
+/* Responsive adjustments for mobile */
+@media (max-width: 768px) {
+    .portal-group .form-grid {
+        grid-template-columns: 1fr; /* Single column layout */
+    }
+
+    .portal-group label {
+        grid-column: 1 / 2; /* Labels take up the full width */
+        text-align: left; /* Align labels to the left */
+        padding-right: 0; /* Remove padding on mobile */
+        margin-bottom: 5px; /* Add some space below the label */
+    }
+
+    .portal-group input,
+    .portal-group select {
+        grid-column: 1 / 2; /* Inputs also take up the full width */
+        width: 100%; /* Ensure inputs take up full width in mobile view */
+    }
+}
+
+.caption {
+    opacity: .7;
+    font-weight: 400;
+    font-size: 14px;
+
+}
+
+.reviewable, .reviewable-blank {
+    padding: 5px 10px;
+    border-bottom: 1px solid #ddd;
+
+}
+
+.reviewable-blank::before {
+    content: 'N/A';
+    color: black;
+    opacity: 0.35;
+}
+
+.full-span {
+    grid-column: 1 / -1;
+}
+
+fieldset fieldset {
+    margin-top: 20px;
+    margin-bottom: 20px;
+}
+
+div.pb-group-contents fieldset {
+    margin-top: 20px;
+    margin-bottom: 20px;
+}
+
+fieldset {
+    margin-bottom: 20px;
+}
+
+.reviewable-file {
+    font-style: italic;
+}
+
+.instructions {
+    font-size: 14px;
+    font-weight: 500;
+    font-style: italic;
+}

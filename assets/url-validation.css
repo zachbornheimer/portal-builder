@@ -1,0 +1,20 @@
+
+.url-validation {
+    margin-top: 5px;
+    font-size: 12px;
+    width: 100%;
+}
+
+
+.monospace-url {
+    font-family: 'Courier New', Courier, monospace;
+}
+
+
+.url-validation {
+    --font-size: 12px;
+    margin-bottom: -21px
+}
+.url-validation.empty {
+    display: none;
+}

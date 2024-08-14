@@ -1,0 +1,127 @@
+:root {
+    --pb-border-color-default: #ccc;
+    --pb-border-color-success: rgb(22, 101, 52);
+    --pb-background-color-default: #f1f1f1;
+    --pb-background-color-focus: #fff;
+    --pb-blur-effect: 1.75px;
+    --pb-padding: 4px;
+    --pb-border-radius: 5px; /* Border radius for the wrapper */
+    --pb-font-family: 'Courier New', Courier, monospace;
+}
+
+.pb-protected-wrapper {
+    border: 1px solid var(--pb-border-color-default);
+    padding: var(--pb-padding);
+    width: 100%;
+    box-sizing: border-box;
+    border-radius: var(--pb-border-radius);
+    transition: border-color 0.3s ease, background-color 0.3s ease;
+}
+
+.pb-protected-code-field {
+    font-family: var(--pb-font-family);
+    width: 100%;
+    box-sizing: border-box;
+    filter: none;
+    border: none;
+    outline: none; /* No focus ring */
+    resize: none; /* Optional: prevents resizing */
+    border-radius: 0; /* Removes any border radius from the textarea */
+    background: transparent;
+}
+
+.pb-protected-wrapper.blurred {
+    border-color: var(--pb-border-color-success);
+}
+
+.pb-protected-code-field:focus {
+    border-color: transparent;
+    box-shadow: unset;
+}
+
+.pb-protected-code-field.blurred {
+    filter: blur(var(--pb-blur-effect));
+}
+
+.pb-protected-wrapper:focus-within {
+    border-color: var(--pb-border-color-success);
+    background-color: var(--pb-background-color-focus);
+}
+
+input[type=url] {
+    width: 100%;
+}
+
+
+
+
+/* Container for the tags and input field */
+.columns-tag-container {
+    border: 1px solid #ccc;
+    padding: 5px;
+    border-radius: 4px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    background-color: #f9f9f9;
+    margin-top: 10px; /* Space between the tag container and other form elements */
+}
+
+/* Individual tag styling */
+.columns-tag-container .tag {
+    background-color: var(--tag-bg-color, #e0e0e0);
+    border: 1px solid var(--tag-border-color, #b3b3b3);
+    border-radius: 3px;
+    padding: 2px 8px;
+    display: flex;
+    align-items: center;
+    font-size: 14px;
+    color: var(--tag-text-color, #333);
+    cursor: move; /* Shows that the tag is draggable */
+    user-select: none; /* Prevents text selection */
+}
+
+/* Close button inside each tag */
+.columns-tag-container .tag .close-button {
+    cursor: pointer;
+    margin-left: 8px;
+    font-weight: bold;
+    color: var(--close-button-color, #888);
+}
+
+/* Input field for adding new tags */
+.columns-tag-container .tag-input {
+    flex-grow: 1;
+    border: none;
+    padding: 5px;
+    font-size: 14px;
+    min-width: 150px;
+    background: transparent;
+    color: var(--tag-input-color, #333);
+}
+
+/* Remove focus outline from input field */
+.columns-tag-container .tag-input:focus {
+    outline: none;
+}
+
+/* Hover effect for the close button */
+.columns-tag-container .tag .close-button:hover {
+    color: var(--close-button-hover-color, #ff4d4d);
+}
+
+/* Style for the entire tag container when it is focused */
+.columns-tag-container:focus-within {
+    border-color: var(--tag-container-focus-border-color, #0073aa);
+    background-color: var(--tag-container-focus-bg-color, #f0f8ff);
+}
+
+/* Style for sortable placeholder (if visible during drag and drop) */
+.columns-tag-container .ui-sortable-placeholder {
+    border: 1px dashed var(--tag-border-color, #b3b3b3);
+    background-color: var(--tag-bg-color, #e0e0e0);
+    visibility: visible !important;
+    width: 100px; /* Placeholder width */
+    height: 25px; /* Placeholder height */
+    margin: 2px 0;
+}
