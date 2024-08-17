@@ -4,20 +4,16 @@
 require_once plugin_dir_path( __FILE__ ) . 'shortcodes.php';
 
 // Redirect to the appropriate template based on theme type
+// Load custom template for single portal post
 function portal_template_redirect( $template ) {
-	// Check if the current theme is a block-based theme
-	if ( wp_is_block_theme() ) {
-		// For block themes, look for an HTML template
-		if ( is_singular( 'portal' ) ) {
-			$block_template = plugin_dir_path( __FILE__ ) . 'templates/single-portal.block.php';
+	if ( is_singular( 'portal' ) ) {
+		// Check if the theme is block-based or classic
+		if ( wp_is_block_theme() ) {
+			$block_template = plugin_dir_path( __FILE__ ) . '../templates/single-portal.block.php';
 			if ( file_exists( $block_template ) ) {
 				return $block_template;
 			}
-			return $template;
-		}
-	} else {
-		// For classic themes, fall back to the PHP template
-		if ( is_singular( 'portal' ) ) {
+		} else {
 			$plugin_template = plugin_dir_path( __FILE__ ) . 'templates/single-portal.php';
 			if ( file_exists( $plugin_template ) ) {
 				return $plugin_template;
@@ -26,7 +22,7 @@ function portal_template_redirect( $template ) {
 	}
 	return $template;
 }
-//add_filter( 'template_include', 'portal_template_redirect' );
+add_filter( 'template_include', 'portal_template_redirect' );
 
 function register_portal_application_title_block() {
 	register_block_type(
@@ -286,8 +282,8 @@ function render_portal_application_file_review_block( $attributes, $content ) {
 			<span class="instructions">Please review your files to ensure that they have been processed correctly. Each link opens in a new tab</span>
 			<ul>
 				<?php
-
-				foreach ( array_keys( PB_FILE_HANDLER->stored_file_paths ) as $key ) {
+				$file_handler = PB_FILE_HANDLER;
+				foreach ( array_keys( $file_handler->stored_file_paths ) as $key ) {
 					$file       = $_FILES[ $key ];
 					$file_name  = basename( $file['tmp_name'] );
 					$file_size  = $file['size'];
@@ -308,7 +304,7 @@ function render_portal_application_file_review_block( $attributes, $content ) {
 								$extension = '';
 								break;
 						}
-						$url = site_url( PB_RELATIVE_TMP_UPLOADS_DIR . '/' . PB_FILE_HANDLER->stored_file_paths[ $key ] );
+						$url = site_url( PB_RELATIVE_TMP_UPLOADS_DIR . '/' . $file_handler->stored_file_paths[ $key ] );
 						echo '<li><a href="' . $url . '" target="_blank" data-display-label-override="1" data-display-label="' . $key . '">' . esc_html( $file_name ) . '</a></li>';
 					}
 				}

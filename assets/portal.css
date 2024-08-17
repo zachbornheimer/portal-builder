@@ -94,3 +94,21 @@ fieldset {
     font-weight: 500;
     font-style: italic;
 }
+
+.single-portal #main {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.single-portal fieldset, .single-portal form  {
+	max-width: 600px;
+}
+
+.single-portal form {
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	align-items: center;
+	margin: 0 auto;
+}

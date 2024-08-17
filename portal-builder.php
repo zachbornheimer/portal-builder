@@ -50,6 +50,23 @@ require_once plugin_dir_path( __FILE__ ) . 'gsuite-filestore/zysys-file-store.cl
 // include composer's autoload file
 require_once plugin_dir_path( __FILE__ ) . 'vendor/autoload.php';
 
+// Function to run on plugin activation
+function portal_plugin_activate() {
+	// Flush rewrite rules to regenerate them
+	flush_rewrite_rules();
+}
+
+// Function to run on plugin deactivation
+function portal_plugin_deactivate() {
+	// Flush rewrite rules to regenerate them
+	flush_rewrite_rules();
+}
+
+// Register the activation and deactivation hooks
+register_activation_hook( __FILE__, 'portal_plugin_activate' );
+register_deactivation_hook( __FILE__, 'portal_plugin_deactivate' );
+
+
 // @TODO add some sort of cron for tmp file cleanup
 
 // Initialize the plugin

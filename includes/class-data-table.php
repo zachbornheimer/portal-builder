@@ -47,10 +47,18 @@ if ( ! class_exists( 'Data_Table' ) ) {
 			}
 	
 			// Decode the JSON string into an array
-			$values = json_decode( $values, true );
-			# keep decoding until we get an array
-			while ( ! is_array( $values ) ) {
+			if ( $values ) {
 				$values = json_decode( $values, true );
+				# keep decoding until we get an array
+				$max_iterations  = 20;
+				$iteration_count = 0;
+				while ( ! is_array( $values ) ) {
+					$values = json_decode( $values, true );
+					++$iteration_count;
+					if ( $iteration_count >= $max_iterations ) {
+						break;
+					}
+				}
 			}
 	
 			// If decoding failed or resulted in something other than an array, reset to a default sample row
