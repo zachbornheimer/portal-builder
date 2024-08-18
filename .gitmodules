@@ -1,3 +1,0 @@
-[submodule "gsuite-filestore"]
-	path = gsuite-filestore
-	url = git@github.com:zachbornheimer/gsuite-filestore.git
