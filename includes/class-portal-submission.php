@@ -61,15 +61,16 @@ if ( ! class_exists( 'Portal_Submission' ) ) {
 					$this->backup_to_s3( $data );
 				}
 
-				// Example: Send Email
-				if ( $this->should_send_email( $data ) ) {
-					$this->send_email( $data );
-				}
-
 				// Example: File Storage Logic
 				$this->store_files( $data );
 				$this->store_records( $data );
 				$this->permanently_store_temp();
+
+
+				// Example: Send Email
+				if ( $this->should_send_email( $data ) ) {
+					$this->send_email( $data );
+				}
 			} catch ( Exception $e ) {
 				// Handle exceptions (logging, showing error messages, etc.)
 				if ( WP_DEBUG ) {
@@ -152,6 +153,7 @@ if ( ! class_exists( 'Portal_Submission' ) ) {
 				'$portal_name'                   => $portal_name,
 				'$portalName'                    => $portal_name,
 				'$application_notification_date' => $application_notification_date,
+				'$date_received'                 => date( 'M d, Y' ),
 			);
 
 			$receiptSubject = $this->mustache_replace( $receiptSubject, $allowedSubstitutions );

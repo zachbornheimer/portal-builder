@@ -8,40 +8,53 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-get_header(); ?>
+get_header();
 
-<main class="wp-block-group alignfull">
-	<div class="wp-block-group" style="padding-top:var(--wp--preset--spacing--50); margin-bottom:var(--wp--preset--spacing--40);">
-		<?php echo do_shortcode( '[portal-application-title]' ); ?>
-	</div>
+// Ensure the loop is properly initialized
+if ( have_posts() ) :
+	while ( have_posts() ) :
+		the_post(); ?>
 
-	<div class="wp-block-group">
-		<?php echo do_shortcode( '[portal-application-formstart]' ); ?>
-		
-		<?php if ( isset( $_POST['review_nonce'] ) ) : ?>
-			<?php echo do_shortcode( '[portal-application-file-review]' ); ?>
-		<?php endif; ?>
+		<main class="wp-block-group alignfull">
+			<div class="wp-block-group" style="padding-top:var(--wp--preset--spacing--50); margin-bottom:var(--wp--preset--spacing--40);">
+				<?php echo do_shortcode( '[portal-application-title]' ); ?>
+			</div>
 
-		<div class="wp-block-group alignfull" style="padding-top:var(--wp--preset--spacing--50); margin-bottom:var(--wp--preset--spacing--40);">
-			<?php the_content(); ?>
-		</div>
+			<div class="wp-block-group">
+				<?php echo do_shortcode( '[portal-application-formstart]' ); ?>
+				
+				<?php if ( isset( $_POST['review_nonce'] ) ) : ?>
+					<?php echo do_shortcode( '[portal-application-file-review]' ); ?>
+				<?php endif; ?>
 
-		<?php echo do_shortcode( '[portal-application-agreements]' ); ?>
-		<?php echo do_shortcode( '[portal-application-upload-notes]' ); ?>
-		<?php echo do_shortcode( '[portal-application-formend]' ); ?>
-	</div>
+				<div class="wp-block-group alignfull" style="padding-top:var(--wp--preset--spacing--50); margin-bottom:var(--wp--preset--spacing--40);">
+					<?php the_content(); ?>
+				</div>
 
-	<div class="wp-block-group" style="margin-top:var(--wp--preset--spacing--40); padding-bottom:var(--wp--preset--spacing--50);">
-		<div class="wp-block-group">
-			<?php the_terms( get_the_ID(), 'post_tag', '<div class="is-style-pill">', '  ', '</div>' ); ?>
-		</div>
+				<?php echo do_shortcode( '[portal-application-agreements]' ); ?>
+				<?php echo do_shortcode( '[portal-application-upload-notes]' ); ?>
+				<?php echo do_shortcode( '[portal-application-formend]' ); ?>
+			</div>
 
-		<div class="wp-block-group">
-			<div style="height:var(--wp--preset--spacing--40)" aria-hidden="true" class="wp-block-spacer"></div>
-			<hr class="wp-block-separator has-text-color has-contrast-3-color has-alpha-channel-opacity has-contrast-3-background-color has-background is-style-wide" style="margin-bottom:var(--wp--preset--spacing--40)"/>
-			<?php comments_template(); ?>
-		</div>
-	</div>
-</main>
+			<div class="wp-block-group" style="margin-top:var(--wp--preset--spacing--40); padding-bottom:var(--wp--preset--spacing--50);">
+				<div class="wp-block-group">
+					<?php the_terms( get_the_ID(), 'post_tag', '<div class="is-style-pill">', '  ', '</div>' ); ?>
+				</div>
 
-<?php get_footer(); ?>
+				<div class="wp-block-group">
+					<div style="height:var(--wp--preset--spacing--40)" aria-hidden="true" class="wp-block-spacer"></div>
+					<hr class="wp-block-separator has-text-color has-contrast-3-color has-alpha-channel-opacity has-contrast-3-background-color has-background is-style-wide" style="margin-bottom:var(--wp--preset--spacing--40)"/>
+					<?php comments_template(); ?>
+				</div>
+			</div>
+		</main>
+
+		<?php
+	endwhile; // End of the loop.
+
+else :
+	// If no content, display a message
+	echo '<p>No content available for this portal.</p>';
+endif;
+
+get_footer();

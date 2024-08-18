@@ -103,6 +103,13 @@ if ( ! class_exists( 'Portal_Settings' ) ) {
 				'portal-default-settings',
 				'pb_google_api_section'
 			);
+			add_settings_field(
+				'pb_google_access_key',
+				__( 'Google Access Key', 'portal-builder' ),
+				array( $this, 'render_google_access_key_field' ),
+				'portal-default-settings',
+				'pb_google_api_section'
+			);
 
 			// Add a section for the JS URL
 			add_settings_section(
@@ -257,6 +264,11 @@ if ( ! class_exists( 'Portal_Settings' ) ) {
 		public function render_google_secret_key_field() {
 			$value = get_option( 'pb_google_secret_key', '' );
 			echo '<div class="pb-protected-wrapper"><textarea name="pb_google_secret_key" id="pb_google_secret_key" class="pb-protected-code-field" rows="10" cols="50">' . esc_textarea( $value ) . '</textarea></div>';
+		}
+
+		public function render_google_access_key_field() {
+			$value = get_option( 'pb_google_access_key', '' );
+			echo '<div class="pb-protected-wrapper"><textarea name="pb_google_access_key" id="pb_google_access_key" class="pb-protected-code-field" rows="10" cols="50">' . esc_textarea( $value ) . '</textarea></div>';
 		}
 
 		public function render_county_region_script_field() {

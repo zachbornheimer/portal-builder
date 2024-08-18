@@ -481,7 +481,7 @@ function render_portal_application_agreements_block( $attributes, $content ) {
 		<?php if ( ! $readonly ) : ?>
 			[portal-recaptcha] <?php endif; ?>
 		&nbsp;
-		<p class="sub_submit_container"><input class="btn btn-primary sub_submit" name="sub_submit" type="submit" value="<?php echo $readonly ? 'Submit' : 'Continue'; ?>" /></p>
+		<p class="sub_submit_container"><input class="btn btn-primary sub_submit" name="sub_submit" type="submit" value="<?php echo ( $readonly ? 'Submit' : 'Continue' ); ?>" /></p>
 	</div>
 		<?php
 

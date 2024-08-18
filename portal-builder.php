@@ -227,6 +227,7 @@ function handle_submissions() {
 				'anonymize' => get_post_meta( $_POST['post_id'], '_portal_anonymize', true ),
 			);
 
+			global $pb_file_handler;
 			$file_handler = new Portal_File_Handler( $_FILES, $file_handler_settings, '', $_POST['post_id'] );
 			$file_handler->set_local_temp_dir( PB_TMP_UPLOADS_DIR );
 			$file_handler->process_temp_files();
