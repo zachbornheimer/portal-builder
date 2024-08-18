@@ -7,7 +7,7 @@
  * Version:     0.0.2a
  * Author:      Z. Bornheimer (ZYSYS)
  * Author URI:  https://zysys.org/
- * License:     GPL-2.0+
+ * License:     GPLv2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain: portal-builder
  * Domain Path: /languages
