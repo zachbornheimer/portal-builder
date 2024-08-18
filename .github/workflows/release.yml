@@ -5,11 +5,14 @@ on:
     branches:
       - main
     tags:
-      - 'v*.*.*'
+      - 'v*.*.*'   # Matches v1.0.0, v1.0.1-beta, etc.
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
+    env:
+      PLUGIN_NAME: portal-builder 
 
     steps:
     - name: Checkout code
@@ -31,40 +34,62 @@ jobs:
     - name: Build Plugin
       run: make release
 
+    - name: Upload build artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{ env.PLUGIN_NAME }}
+        path: dist/
+
   release:
     needs: build
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')
 
+    env:
+      PLUGIN_NAME: portal-builder 
+
     steps:
-    - name: Checkout code (to get correct commit hash)
+
+    - name: Checkout code
       uses: actions/checkout@v3
 
-    - name: Draft Release Notes
-      id: draft_release
-      uses: release-drafter/release-drafter@v5
+    - name: Download build artifact
+      uses: actions/download-artifact@v3
       with:
-        config-name: release-drafter.yml
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        name: ${{ env.PLUGIN_NAME }}
+        path: ./
+
+    - name: Get current date and short commit hash
+      id: vars
+      run: |
+        echo "DATE=$(date +'%y-%m-%d')" >> $GITHUB_ENV
+        echo "COMMIT_HASH=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
 
     - name: Create GitHub Release
       id: create_release
       uses: actions/create-release@v1
-      with:
-        tag_name: ${{ github.ref_name == 'refs/heads/main' && 'rolling-release' || github.ref_name }}
-        release_name: ${{ github.ref_name == 'refs/heads/main' && 'Rolling Release' || github.ref_name }}
-        body: ${{ steps.draft_release.outputs.changelog }}
-        draft: false
-        prerelease: ${{ github.ref == 'refs/heads/main' }}
-        token: ${{ secrets.GITHUB_TOKEN }}
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref_name == 'main' && format('rolling-release-{0}-{1}', env.DATE, env.COMMIT_HASH) || github.ref_name }}
+        release_name: ${{ github.ref_name == 'main' && format('Rolling Release - {0}-{1}', env.DATE, env.COMMIT_HASH) || github.ref_name }}
+        draft: false
+        prerelease: ${{ github.ref_name == 'main' || startsWith(github.ref, 'refs/tags/') }}
 
-    - name: Upload Release Asset
+    - name: Upload release asset
       uses: actions/upload-release-asset@v1
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: dist/*.zip
-        asset_name: $(PLUGIN_NAME)-$(VERSION).zip
+        asset_path: ${{ env.PLUGIN_NAME }}.zip
+        asset_name: ${{ env.PLUGIN_NAME }}.zip
         asset_content_type: application/zip
+
+
+  changelog:
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+    - name: Release Drafter
+      uses: release-drafter/release-drafter@v5
+      with:
+        config-name: release-drafter.yml
