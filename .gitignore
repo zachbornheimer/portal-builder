@@ -1,0 +1,64 @@
+# Node modules (if you use Node.js for asset management)
+node_modules/
+
+# Composer dependencies (except the specific files we want to track)
+/vendor/
+!composer.json
+!composer.lock
+
+# WordPress specific files
+/wp-content/
+wp-config.php
+.htaccess
+.svn/
+.idea/
+.DS_Store
+Thumbs.db
+*.log
+
+# Ignore build and distribution directories
+/build/
+/dist/
+
+# Ignore OS generated files
+.DS_Store
+Thumbs.db
+
+# Ignore IDE specific files
+/.idea/
+/.vscode/
+
+# Ignore miscellaneous binary files
+*.swp
+*.swo
+*.bak
+*.tmp
+
+# Ignore logs and temp files
+*.log
+*.tmp
+*.temp
+*.pid
+*.seed
+
+# Ignore hidden files and folders
+.*
+!.gitmodules
+!.gitignore
+!.gitattributes
+
+# Ignore files related to linting, code style checks, and code quality, but keep phpcs.xml
+/.phpcs.cache
+
+# Ignore any other temporary files
+/tmp/
+/temp/
+
+# Ignore the .env file if you're using environment variables
+.env
+.env.local
+
+# Do not ignore the Makefile and phpcs.xml (ensure these are tracked)
+!.phpcs.xml
+!phpcs.xml
+!Makefile

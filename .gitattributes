@@ -1,0 +1,40 @@
+# Exclude unnecessary files from export for production builds
+/.gitignore                export-ignore
+/.gitattributes            export-ignore
+/tests/                    export-ignore
+/.github/                  export-ignore
+/.git/                     export-ignore
+/.gitmodules               export-ignore
+/.editorconfig             export-ignore
+/.travis.yml               export-ignore
+/.circleci/                export-ignore
+/.scrutinizer.yml          export-ignore
+/.codeclimate.yml          export-ignore
+/.env                      export-ignore
+/.env.example              export-ignore
+
+# Composer dev dependencies should be ignored in the production build, but not during development
+/vendor/composer/installed.json export-ignore
+/vendor/bin/ export-ignore
+
+# include vendor folder
+/vendor/                   export-include
+
+# Optional: Exclude assets not needed for production (uncomment if necessary)
+/assets/src/               export-ignore
+
+# Exclude documentation, readme files, and other non-critical assets for production
+/readme.md                 export-ignore
+/README.md                 export-ignore
+/docs/                     export-ignore
+/CHANGELOG.md              export-ignore
+
+# Development file for dev-side installs
+/composer.json             export-ignore
+/composer.lock             export-ignore
+/phpcs.xml                 export-ignore
+/phpunit.xml               export-ignore
+/Makefile                  export-ignore
+
+# Exclude other build artifacts if they exist
+/build/                    export-ignore
