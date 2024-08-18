@@ -4,7 +4,7 @@
  * Plugin Name: Portal Builder
  * Plugin URI:  https://example.com/portal-builder
  * Description: A plugin to build portals for accepting applications and managing submissions with Google Sheets and Google Drive integration.
- * Version:     1.0.0
+ * Version:     0.0.2a
  * Author:      Z. Bornheimer (ZYSYS)
  * Author URI:  https://zysys.org/
  * License:     GPL-2.0+
