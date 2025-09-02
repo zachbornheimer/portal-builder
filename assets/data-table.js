@@ -318,11 +318,33 @@ jQuery(document).ready(function ($) {
     $('button.add-row').on('click', function () {
         let $table = $(this).siblings('.data-table');
         let $lastRow = $table.find('tbody tr:last-child');
-        let $newRow = $lastRow.clone();
-        $newRow.find('.tag').remove();
-        $newRow.find('input').val('');
-        $lastRow.after($newRow);
-        initializeTableRow($newRow);
+        
+        if ($lastRow.length === 0) {
+            // If no rows exist, create a new empty row with the same structure
+            let $newRow = $('<tr>');
+            let columnCount = $table.find('thead th').length - 1; // -1 for Action column
+            
+            // Create cells for each column
+            for (let i = 0; i < columnCount; i++) {
+                let $cell = $('<td>');
+                let $input = $('<input type="text" />');
+                $cell.append($input);
+                $newRow.append($cell);
+            }
+            
+            // Add action buttons cell
+            let $actionCell = $('<td><button type="button" class="button copy-row">Copy</button> <button type="button" class="button delete-row">Delete</button></td>');
+            $newRow.append($actionCell);
+            
+            $table.find('tbody').append($newRow);
+        } else {
+            // Clone the last row and clear its contents
+            let $newRow = $lastRow.clone();
+            $newRow.find('.tag').remove();
+            $newRow.find('input').val('');
+            $lastRow.after($newRow);
+            initializeTableRow($newRow);
+        }
     });
 
     const tagContainers = document.querySelectorAll(".columns-tag-container");
