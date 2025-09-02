@@ -40,7 +40,19 @@ jQuery(document).ready(function ($) {
         input.addEventListener("keypress", function (event) {
             if (event.key === "Enter" && input.value.trim() !== "") {
                 event.preventDefault();
-                createTag(container, "{{ " + input.value.trim() + " }}");
+                let inputValue = input.value.trim();
+
+                // Check if input contains commas (multiple tags)
+                if (inputValue.includes(',')) {
+                    createTagsFromCommaSeparated(container, inputValue);
+                } else {
+                    // Single tag - add {{ }} wrapper if not already present
+                    if (!inputValue.match(/^\s*\{\{\s*.*\s*\}\}\s*$/)) {
+                        inputValue = "{{ " + inputValue + " }}";
+                    }
+                    createTag(container, inputValue);
+                }
+
                 input.value = "";
             }
         });
@@ -73,10 +85,15 @@ jQuery(document).ready(function ($) {
     }
 
     function createTag(container, value) {
-        if (!value) return updateTableValues($table);;
+        if (!value) return;
+
+        // Clean the value: remove {{ }} wrappers and trim
+        let cleanValue = value.replace(/^\s*\{\{\s*|\s*\}\}\s*$/g, '').trim();
+        if (!cleanValue) return;
+
         let tag = document.createElement("span");
         tag.className = "tag";
-        tag.textContent = value;
+        tag.textContent = cleanValue;
 
         let closeButton = document.createElement("span");
         closeButton.className = "close-button";
@@ -96,6 +113,22 @@ jQuery(document).ready(function ($) {
         updateHiddenField(container);
         let $table = $(container).closest('.data-table');
         updateTableValues($table);
+    }
+
+    function createTagsFromCommaSeparated(container, inputValue) {
+        if (!inputValue) return;
+
+        // Split by comma and process each part
+        let parts = inputValue.split(',').map(part => part.trim()).filter(part => part.length > 0);
+
+        parts.forEach(part => {
+            // For comma-separated input, we want to preserve the {{ }} wrappers
+            // but clean up any extra whitespace
+            let cleanPart = part.replace(/^\s*\{\{\s*/, '{{ ').replace(/\s*\}\}\s*$/, ' }}').trim();
+            if (cleanPart && cleanPart !== '{{ }}') {
+                createTag(container, cleanPart);
+            }
+        });
     }
 
     function updateHiddenField(container) {
@@ -196,6 +229,69 @@ jQuery(document).ready(function ($) {
             updateTableValues($table);
         }
     });
+
+    $('.data-table').on('click', '.copy-row', function () {
+        let $row = $(this).closest('tr');
+        let currentTags = [];
+
+        // Collect all tags from the row
+        $row.find('.tag').each(function () {
+            currentTags.push($(this).text().replace('×', '').trim());
+        });
+
+        if (currentTags.length > 0) {
+            // Join tags with commas and copy to clipboard
+            let tagsText = currentTags.join(',');
+
+            // Use modern clipboard API if available
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(tagsText).then(function () {
+                    // Show success feedback
+                    let $button = $(this);
+                    let originalText = $button.text();
+                    $button.text('Copied!').css('background-color', '#28a745');
+                    setTimeout(() => {
+                        $button.text(originalText).css('background-color', '');
+                    }, 1000);
+                }.bind(this)).catch(function (err) {
+                    console.error('Failed to copy: ', err);
+                    fallbackCopyTextToClipboard(tagsText, this);
+                });
+            } else {
+                // Fallback for older browsers
+                fallbackCopyTextToClipboard(tagsText, this);
+            }
+        }
+    });
+
+    // Fallback copy function for older browsers
+    function fallbackCopyTextToClipboard(text, buttonElement) {
+        let textArea = document.createElement("textarea");
+        textArea.value = text;
+        textArea.style.top = "0";
+        textArea.style.left = "0";
+        textArea.style.position = "fixed";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+
+        try {
+            let successful = document.execCommand('copy');
+            if (successful) {
+                // Show success feedback
+                let $button = $(buttonElement);
+                let originalText = $button.text();
+                $button.text('Copied!').css('background-color', '#28a745');
+                setTimeout(() => {
+                    $button.text(originalText).css('background-color', '');
+                }, 1000);
+            }
+        } catch (err) {
+            console.error('Fallback: Oops, unable to copy', err);
+        }
+
+        document.body.removeChild(textArea);
+    }
 
     $('button.add-row').on('click', function () {
         let $table = $(this).siblings('.data-table');

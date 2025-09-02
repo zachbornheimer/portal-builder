@@ -178,7 +178,7 @@ function pb_register_meta_boxes( $portal_meta ) {
 				'id'         => '_portal_record_keeping',
 				'label'      => sprintf( $label, 'Sheet(s)' ),
 				'type'       => 'data-table',
-				'columns'    => array( 'Reference ID', 'Google Sheet ID', 'Columns' ), // Add 'Columns' column
+				'columns'    => array( 'Google Sheet Name (For Identification Purposes)', 'Google Sheet ID', 'Columns' ), // Add 'Columns' column
 				'extraction' => array( 1 => 'google-sheet' ),
 				'options'    => array(
 					0 => array( 'block' => true ), // Enable block display
@@ -199,7 +199,7 @@ function pb_register_meta_boxes( $portal_meta ) {
 				'id'         => '_portal_file_backups',
 				'label'      => sprintf( $label, 'Drive Folder(s)' ),
 				'type'       => 'data-table',
-				'columns'    => array( 'Reference ID', 'Google Drive Folder ID' ),
+				'columns'    => array( 'Google Drive Folder Name (For Identification Purposes)', 'Google Drive Folder ID' ),
 				'extraction' => array( 1 => 'google-drive' ),
 			),
 		),

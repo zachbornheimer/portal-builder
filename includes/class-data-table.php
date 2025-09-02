@@ -119,7 +119,7 @@ if ( ! class_exists( 'Data_Table' ) ) {
 					}
 					$row_html .= '
                             <input type="text" class="tag-input" placeholder="Add a tag" />
-							<span class="caption"> (do not enter {{ or }}).  <code>Alt Shift A</code> adds all names from the content.  <code>Enter</code> to add your tag. Other tag options: <code>receipt_link</code>, <code>drive_link</code>, <code>app_id</code>.</span>
+							<span class="caption"> <code>Enter</code> to add your tag. Use commas to add multiple tags at once. <code>Alt Shift A</code> adds all names from the content. Tag options: <code>receipt_link</code>, <code>drive_link</code>, <code>app_id</code>. {{ }} wrappers are automatically added/removed.</span>
                             <input type="hidden" class="tag-hidden-field" name="' . esc_attr( $this->meta_key ) . '[' . $index . ']" value="' . esc_attr( $value ) . '" />
                         </div>
                     </td>';
@@ -127,7 +127,7 @@ if ( ! class_exists( 'Data_Table' ) ) {
 					$row_html .= '<td style="' . $block . '">' . $block_heading . '<input type="text" class="' . esc_attr( $class ) . '" ' . $data_type . ' value="' . esc_attr( $value ) . '" /></td>';
 				}
 			}
-			$row_html .= '<td><button type="button" class="button delete-row">Delete</button></td>';
+			$row_html .= '<td><button type="button" class="button copy-row">Copy</button> <button type="button" class="button delete-row">Delete</button></td>';
 			$row_html .= '</tr>';
 
 			return $row_html;

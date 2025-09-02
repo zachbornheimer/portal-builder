@@ -38,6 +38,20 @@
     background-color: #c9302c;
 }
 
+.data-table .copy-row {
+    background-color: rgba(34, 139, 34, 0.9)!important;
+    color: white!important;
+    border: none;
+    padding: 5px 10px;
+    cursor: pointer;
+    border-radius: 3px;
+    margin-right: 5px;
+}
+
+.data-table .copy-row:hover {
+    background-color: #228b22;
+}
+
 .data-table input {
     width: 100%;
 }
