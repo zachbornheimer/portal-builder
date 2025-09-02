@@ -207,8 +207,15 @@ if ( ! class_exists( 'Portal_Submission' ) ) {
 		private function store_files( $data ) {
 			$file_backups = json_decode( get_post_meta( $data['post_id'], '_portal_file_backups', true ), true );
 			$index        = 0;
+			$drive_folder_ids = array();
+			
 			foreach ( $file_backups as $backup ) {
-				$id = $backup[1];
+				$id = trim( $backup[1] );
+				
+				// Skip if the Google Drive folder ID is blank
+				if ( empty( $id ) ) {
+					continue;
+				}
 
 				$this->file_store->drive_parent( $id );
 				$this->file_store->create_drive_subfolder( $this->file_handler->get_appId(), true );
@@ -221,6 +228,7 @@ if ( ! class_exists( 'Portal_Submission' ) ) {
 				}
 
 				$drive_folder_ids[ $index ] = $this->file_store->get_drive_parent_id();
+				$index++;
 			}
 
 			$this->drive_folder_ids = $drive_folder_ids;
