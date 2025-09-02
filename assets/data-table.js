@@ -93,7 +93,7 @@ jQuery(document).ready(function ($) {
 
         let tag = document.createElement("span");
         tag.className = "tag";
-        tag.textContent = cleanValue;
+        tag.textContent = "{{ " + cleanValue + " }}";
 
         let closeButton = document.createElement("span");
         closeButton.className = "close-button";
@@ -126,7 +126,29 @@ jQuery(document).ready(function ($) {
             // but clean up any extra whitespace
             let cleanPart = part.replace(/^\s*\{\{\s*/, '{{ ').replace(/\s*\}\}\s*$/, ' }}').trim();
             if (cleanPart && cleanPart !== '{{ }}') {
-                createTag(container, cleanPart);
+                // Create tag directly to preserve the {{ }} wrappers
+                let tag = document.createElement("span");
+                tag.className = "tag";
+                tag.textContent = cleanPart;
+
+                let closeButton = document.createElement("span");
+                closeButton.className = "close-button";
+                closeButton.textContent = "×";
+                closeButton.addEventListener("click", function () {
+                    if (container.contains(tag)) {
+                        container.removeChild(tag);
+                        updateHiddenField(container);
+                        let $table = $(container).closest('.data-table');
+                        updateTableValues($table);
+                    }
+                });
+
+                tag.appendChild(closeButton);
+                container.insertBefore(tag, container.querySelector(".tag-input"));
+                enableDragAndDrop(tag, container);
+                updateHiddenField(container);
+                let $table = $(container).closest('.data-table');
+                updateTableValues($table);
             }
         });
     }
