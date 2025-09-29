@@ -1,6 +1,6 @@
-# Portal Builder
+# DragonGate Portals
 
-Portal Builder is a WordPress plugin designed to create and manage portals for accepting applications and managing submissions with Google Sheets and Google Drive integration.
+DragonGate Portals is a WordPress plugin designed to create and manage portals for accepting applications and managing submissions with Google Sheets and Google Drive integration.
 
 Created by Z. Bornheimer (ZYSYS).
 Learn more at [allintersections.com](https://allintersections.com) or [zysys.org](https://zysys.org)
@@ -27,23 +27,27 @@ Learn more at [allintersections.com](https://allintersections.com) or [zysys.org
 ## Installation
 
 1. **Download the Plugin:**
+
    - Download the latest release from the [Releases](https://github.com/zachbornheimer/portal-builder/releases) page.
 
 2. **Upload to WordPress:**
+
    - Navigate to `Plugins > Add New > Upload Plugin`.
    - Select the downloaded ZIP file and click `Install Now`.
 
 3. **Activate the Plugin:**
-   - After installation, click `Activate` to enable the Portal Builder plugin.
+   - After installation, click `Activate` to enable the DragonGate Portals plugin.
 
 ## Usage
 
-1. **Create a Portal:**
-   - Navigate to the `Portals` menu in the WordPress admin.
+1. **Create a DragonGate Portal:**
+
+   - Navigate to the `DragonGate Portals` menu in the WordPress admin.
    - Click `Add New` to create a new portal.
    - Fill in the required details, including integration settings for Google Sheets and Google Drive.
 
 2. **Manage Applications:**
+
    - Once a portal is created, applications can be submitted through the front-end.
    - View and manage submissions from the WordPress admin panel.
 
@@ -68,6 +72,7 @@ Learn more at [allintersections.com](https://allintersections.com) or [zysys.org
    ```
 
 2. **Install Dependencies:**
+
    - For production:
      ```sh
      make install-prod
@@ -94,7 +99,7 @@ Learn more at [allintersections.com](https://allintersections.com) or [zysys.org
 
 ## Contributing
 
-We welcome contributions to the Portal Builder plugin! Please follow the guidelines below:
+We welcome contributions to the DragonGate Portals plugin! Please follow the guidelines below:
 
 1. Fork the repository.
 2. Create a new branch (`git checkout -b feature-branch`).

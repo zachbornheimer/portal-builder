@@ -1,17 +1,17 @@
 <?php
 
 /**
- * Plugin Name: Portal Builder
- * Plugin URI:  https://example.com/portal-builder
+ * Plugin Name: DragonGate Portals
+ * Plugin URI:  https://dragongateportals.com
  * Description: A plugin to build portals for accepting applications and managing submissions with Google Sheets and Google Drive integration.
  * Version:     0.0.3a
  * Author:      Z. Bornheimer (ZYSYS)
  * Author URI:  https://zysys.org/
  * License:     GPLv2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
- * Text Domain: portal-builder
+ * Text Domain: dragongate-portals
  * Domain Path: /languages
- *
+ * 
  * Copyright (c) 2024 Zachary Bornheimer - All Rights Reserved.
  */
 
@@ -563,7 +563,7 @@ add_filter( 'the_content', 'replace_content_if_deadline_passed' );
 function pb_duplicate_success_notice() {
 	if ( isset( $_GET['duplicated'] ) && $_GET['duplicated'] == '1' ) {
 		echo '<div class="notice notice-success is-dismissible">';
-		echo '<p><strong>' . __( 'Portal duplicated successfully!', 'portal-builder' ) . '</strong> ' . __( 'You are now editing the duplicate.', 'portal-builder' ) . '</p>';
+		echo '<p><strong>' . __( 'DragonGate Portal duplicated successfully!', 'dragongate-portals' ) . '</strong> ' . __( 'You are now editing the duplicate.', 'dragongate-portals' ) . '</p>';
 		echo '</div>';
 	}
 }

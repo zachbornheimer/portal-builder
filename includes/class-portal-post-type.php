@@ -12,32 +12,33 @@ if ( ! class_exists( 'Portal_Post_Type' ) ) {
 		}
 
 		public function create_post_type() {
-			$labels = array(
-				'name'               => _x( 'Portals', 'Post Type General Name', 'portal-builder' ),
-				'singular_name'      => _x( 'Portal', 'Post Type Singular Name', 'portal-builder' ),
-				'menu_name'          => __( 'Portals', 'portal-builder' ),
-				'name_admin_bar'     => __( 'Portal', 'portal-builder' ),
-				'add_new'            => __( 'Add New Portal', 'portal-builder' ),
-				'add_new_item'       => __( 'Add New Portal', 'portal-builder' ),
-				'edit_item'          => __( 'Edit Portal', 'portal-builder' ),
-				'new_item'           => __( 'New Portal', 'portal-builder' ),
-				'view_item'          => __( 'View Portal', 'portal-builder' ),
-				'all_items'          => __( 'All Portals', 'portal-builder' ),
-				'search_items'       => __( 'Search Portals', 'portal-builder' ),
-				'not_found'          => __( 'No Portals found.', 'portal-builder' ),
-				'not_found_in_trash' => __( 'No Portals found in Trash.', 'portal-builder' ),
-			);
+		$labels = array(
+			'name'               => _x( 'DragonGate Portals', 'Post Type General Name', 'dragongate-portals' ),
+			'singular_name'      => _x( 'DragonGate Portal', 'Post Type Singular Name', 'dragongate-portals' ),
+			'menu_name'          => __( 'Portals', 'dragongate-portals' ),
+			'name_admin_bar'     => __( 'DragonGate Portal', 'dragongate-portals' ),
+			'add_new'            => __( 'Add New Portal', 'dragongate-portals' ),
+			'add_new_item'       => __( 'Add New DragonGate Portal', 'dragongate-portals' ),
+			'edit_item'          => __( 'Edit DragonGate Portal', 'dragongate-portals' ),
+			'new_item'           => __( 'New DragonGate Portal', 'dragongate-portals' ),
+			'view_item'          => __( 'View DragonGate Portal', 'dragongate-portals' ),
+			'all_items'          => __( 'All DragonGate Portals', 'dragongate-portals' ),
+			'search_items'       => __( 'Search DragonGate Portals', 'dragongate-portals' ),
+			'not_found'          => __( 'No DragonGate Portals found.', 'dragongate-portals' ),
+			'not_found_in_trash' => __( 'No DragonGate Portals found in Trash.', 'dragongate-portals' ),
+		);
 
-			$args = array(
-				'labels'          => $labels,
-				'public'          => true,
-				'has_archive'     => true,
-				'show_in_menu'    => true,
-				'menu_icon'       => plugins_url( '../assets/icon.svg', __FILE__ ),
-				'supports'        => array( 'title', 'editor', 'thumbnail' ),
-				'capability_type' => 'post',
-				'rewrite'         => array( 'slug' => 'portal' ),
-			);
+		$args = array(
+			'labels'          => $labels,
+			'public'          => true,
+			'has_archive'     => true,
+			'show_in_menu'    => true,
+			'menu_icon'       => plugins_url( '../assets/icon.svg', __FILE__ ),
+			'supports'        => array( 'title', 'editor', 'thumbnail' ),
+			'capability_type' => 'post',
+			'rewrite'         => array( 'slug' => 'portal' ),
+			'description'     => __( 'DragonGate Portals - Simply collect data, save it locally, and sync across Google Sheets and Drive. Build custom forms that automatically organize submissions and streamline your data workflow.', 'dragongate-portals' ),
+		);
 
 			register_post_type( 'portal', $args );
 		}
@@ -71,7 +72,7 @@ if ( ! class_exists( 'Portal_Post_Type' ) ) {
 					'<a href="%s" class="duplicate-portal" data-post-id="%d">%s</a>',
 					esc_url( $duplicate_url ),
 					$post->ID,
-					__( 'Duplicate', 'portal-builder' )
+					__( 'Duplicate', 'dragongate-portals' )
 				);
 			}
 
@@ -84,19 +85,19 @@ if ( ! class_exists( 'Portal_Post_Type' ) ) {
 		public function duplicate_portal_ajax() {
 			// Verify nonce
 			if ( ! isset( $_GET['duplicate_nonce'] ) || ! wp_verify_nonce( $_GET['duplicate_nonce'], 'duplicate_portal_' . $_GET['post_id'] ) ) {
-				wp_die( __( 'Security check failed', 'portal-builder' ) );
+				wp_die( __( 'Security check failed', 'dragongate-portals' ) );
 			}
 
 			// Check permissions
 			if ( ! current_user_can( 'edit_posts' ) ) {
-				wp_die( __( 'You do not have permission to duplicate posts', 'portal-builder' ) );
+				wp_die( __( 'You do not have permission to duplicate posts', 'dragongate-portals' ) );
 			}
 
 			$original_post_id = intval( $_GET['post_id'] );
 			$original_post    = get_post( $original_post_id );
 
 			if ( ! $original_post || $original_post->post_type !== 'portal' ) {
-				wp_die( __( 'Invalid post', 'portal-builder' ) );
+				wp_die( __( 'Invalid post', 'dragongate-portals' ) );
 			}
 
 			// Create the duplicate post
@@ -107,13 +108,13 @@ if ( ! class_exists( 'Portal_Post_Type' ) ) {
 				wp_send_json_success(
 					array(
 						'redirect_url' => admin_url( 'post.php?post=' . $duplicate_post_id . '&action=edit&duplicated=1' ),
-						'message'      => __( 'Portal duplicated successfully!', 'portal-builder' ),
+						'message'      => __( 'DragonGate Portal duplicated successfully!', 'dragongate-portals' ),
 					)
 				);
 			} else {
 				wp_send_json_error(
 					array(
-						'message' => __( 'Failed to duplicate post', 'portal-builder' ),
+						'message' => __( 'Failed to duplicate DragonGate Portal', 'dragongate-portals' ),
 					)
 				);
 			}

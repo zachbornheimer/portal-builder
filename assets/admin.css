@@ -145,3 +145,8 @@ input[type="url"] {
   color: #999;
   text-decoration: none;
 }
+
+#menu-posts-portal img {
+  height: 25px;
+  padding: 5px;
+}
