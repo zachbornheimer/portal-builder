@@ -33,7 +33,7 @@ if ( ! class_exists( 'Portal_Post_Type' ) ) {
 				'public'          => true,
 				'has_archive'     => true,
 				'show_in_menu'    => true,
-				'menu_icon'       => plugins_url( '../assets/icon.png', __FILE__ ),
+				'menu_icon'       => plugins_url( '../assets/icon.svg', __FILE__ ),
 				'supports'        => array( 'title', 'editor', 'thumbnail' ),
 				'capability_type' => 'post',
 				'rewrite'         => array( 'slug' => 'portal' ),
