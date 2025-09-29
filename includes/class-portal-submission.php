@@ -5,10 +5,10 @@ require_once plugin_dir_path( __FILE__ ) . '../vendor/autoload.php';
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
-
 if ( ! class_exists( 'Portal_Submission' ) ) {
 
 	class Portal_Submission {
+
 		private $nonce;
 		private $file_store;
 		private $file_handler;
@@ -42,6 +42,7 @@ if ( ! class_exists( 'Portal_Submission' ) ) {
 
 		public function process_submission( $data ) {
 			$this->raw_file_data = $data;
+
 			try {
 				// Validate nonce
 				$this->validate_nonce();
@@ -65,7 +66,6 @@ if ( ! class_exists( 'Portal_Submission' ) ) {
 				$this->store_files( $data );
 				$this->store_records( $data );
 				$this->permanently_store_temp();
-
 
 				// Example: Send Email
 				if ( $this->should_send_email( $data ) ) {
@@ -122,6 +122,7 @@ if ( ! class_exists( 'Portal_Submission' ) ) {
 		// Example method to determine if an email should be sent
 		private function should_send_email( $data ) {
 			return true;
+
 			return isset( $data['send_email'] ) && $data['send_email'] === 'yes';
 		}
 
@@ -129,11 +130,11 @@ if ( ! class_exists( 'Portal_Submission' ) ) {
 		private function send_email( $data ) {
 			// Use wp_mail or another email method to send the email
 			// Example: wp_mail($data['email'], 'Subject', 'Message');
-			# get the post title from the id
+			// get the post title from the id
 			$portal_name = get_the_title( $data['post_id'] );
 
 			$raw_notification_date = get_post_meta( $data['post_id'], '_portal_applicant_notification_date', true );
-			# turn the raw date into a human readable date like Monday, June 15, 2021
+			// turn the raw date into a human readable date like Monday, June 15, 2021
 			$application_notification_date = date( 'l, F j, Y', strtotime( $raw_notification_date ) );
 
 			$link = $this->generate_receipt_link();
@@ -146,7 +147,7 @@ if ( ! class_exists( 'Portal_Submission' ) ) {
 
 			$mail = new PHPMailer( true );
 
-			# substitute any mustache variables
+			// substitute any mustache variables
 			$allowedSubstitutions = array(
 				'$receiptLink'                   => $link,
 				'$link'                          => $link,
@@ -160,19 +161,19 @@ if ( ! class_exists( 'Portal_Submission' ) ) {
 			$receiptBody    = $this->mustache_replace( $receiptBody, $allowedSubstitutions );
 			$receiptAltBody = $this->mustache_replace( $receiptAltBody, $allowedSubstitutions );
 
-			# transform tinymce stripped html into actual HTML (ex. convert newlines to <br>)
+			// transform tinymce stripped html into actual HTML (ex. convert newlines to <br>)
 			$receiptBody = wpautop( $receiptBody );
 
 			try {
 				$mail->setFrom( $fromEmail, $portal_name . ' Application Automated Receipt' );
 				$mail->addAddress( $data['sub_email'] );
-				#$mail->addAttachment($outdir . 'Application_' . $appId . '.pdf');     
+				// $mail->addAttachment($outdir . 'Application_' . $appId . '.pdf');
 				$mail->Subject = $receiptSubject;
 				$mail->Body    = $receiptBody;
 				$mail->AltBody = $receiptAltBody;
 				$mail->send();
 			} catch ( Exception $e ) {
-				echo $e->getMessage(); //Boring error messages from anything else!
+				echo $e->getMessage(); // Boring error messages from anything else!
 			}
 		}
 
@@ -184,11 +185,11 @@ if ( ! class_exists( 'Portal_Submission' ) ) {
 				$local_regex = $mustache_regex;
 				$local_regex = str_replace( '$var', $var, $local_regex );
 
-				# handle the $ version
+				// handle the $ version
 				$local_regex = str_replace( '$', '\\$', $local_regex );
 				$i           = preg_replace( $local_regex, $allowed[ $var ], $i );
 
-				# now handle the no-dollar version
+				// now handle the no-dollar version
 				$local_regex = str_replace( '\\$', '', $local_regex );
 				$i           = preg_replace( $local_regex, $allowed[ $var ], $i );
 			}
@@ -200,18 +201,19 @@ if ( ! class_exists( 'Portal_Submission' ) ) {
 			$mustache_regex = '/\{\s*\{\s*$var\s*\}\s*\}/';
 
 			$mustache_regex = str_replace( '$var', '([\w\$_\-]+)', $mustache_regex );
+
 			return preg_replace( $mustache_regex, '', $input );
 		}
 
 		// Example method to handle file storage logic
 		private function store_files( $data ) {
-			$file_backups = json_decode( get_post_meta( $data['post_id'], '_portal_file_backups', true ), true );
-			$index        = 0;
+			$file_backups     = json_decode( get_post_meta( $data['post_id'], '_portal_file_backups', true ), true );
+			$index            = 0;
 			$drive_folder_ids = array();
-			
+
 			foreach ( $file_backups as $backup ) {
 				$id = trim( $backup[1] );
-				
+
 				// Skip if the Google Drive folder ID is blank
 				if ( empty( $id ) ) {
 					continue;
@@ -228,7 +230,7 @@ if ( ! class_exists( 'Portal_Submission' ) ) {
 				}
 
 				$drive_folder_ids[ $index ] = $this->file_store->get_drive_parent_id();
-				$index++;
+				++$index;
 			}
 
 			$this->drive_folder_ids = $drive_folder_ids;
@@ -268,11 +270,10 @@ if ( ! class_exists( 'Portal_Submission' ) ) {
 				);
 			}
 
-			
 			$allowed_replacements = array_merge( $allowed_replacements, $data );
 			$skip_header          = get_post_meta( $data['post_id'], '_portal_skip_header', true );
 
-			# @TODO need to make sure that we get the headers / cells for each sheet and upload properly
+			// @TODO need to make sure that we get the headers / cells for each sheet and upload properly
 			foreach ( $record_keeping as $record ) {
 				if ( ! $record[1] ) {
 					continue;
@@ -283,10 +284,10 @@ if ( ! class_exists( 'Portal_Submission' ) ) {
 				} else {
 					$starting = 1;
 				}
-				$this->file_store->gsheet_row( 'Sheet1', 'A' . $starting ); // skip header row
+				$this->file_store->gsheet_row( 'Raw Data', 'A' . $starting ); // skip header row
 
-				# split at /\s*}\s*{\s*,/ to get each cell
-				$cells = preg_split( '/\s*}\s*}\s*,/', $record[2] . ',' ); # add a trailing , for splitting purposes
+				// split at /\s*}\s*{\s*,/ to get each cell
+				$cells = preg_split( '/\s*}\s*}\s*,/', $record[2] . ',' ); // add a trailing , for splitting purposes
 
 				// add the }} to each cell
 				$cells = array_map(
@@ -295,19 +296,19 @@ if ( ! class_exists( 'Portal_Submission' ) ) {
 							return '';
 						}
 						$cell = preg_replace( '/\s*}\s*}\s*$/', '', $cell );
+
 						return $cell . '}}';
 					},
-					$cells 
+					$cells
 				);
 
-				# replace each cell with the allowed replacements
+				// replace each cell with the allowed replacements
 				$cells = array_map(
 					function ( $cell ) use ( $allowed_replacements ) {
 						return $this->remove_mustache( $this->mustache_replace( $cell, $allowed_replacements ) );
 					},
-					$cells 
+					$cells
 				);
-
 
 				$this->file_store->add_row( ...$cells );
 			}
@@ -316,6 +317,7 @@ if ( ! class_exists( 'Portal_Submission' ) ) {
 
 		private function drive_id_to_link( $id ) {
 			$drive_link = 'https://drive.google.com/drive/folders/' . $id;
+
 			return $drive_link;
 		}
 
@@ -348,17 +350,17 @@ if ( ! class_exists( 'Portal_Submission' ) ) {
 			if ( defined( 'PB_FILE_LABELS' ) ) {
 				$args_for_url['file_labels'] = json_encode( PB_FILE_LABELS );
 			}
-			
-			# remove null values
+
+			// remove null values
 			$args_for_url = array_filter( $args_for_url );
 
 			$receipt_generator = get_option( 'pb_receipt_generator', '' );
 			$link              = $receipt_generator . '?' . http_build_query( $args_for_url, '', '&', PHP_QUERY_RFC3986 );
 
-
 			if ( $receipt_generator ) {
 				$this->receipt_link = $link;
 			}
+
 			return $link;
 		}
 	}

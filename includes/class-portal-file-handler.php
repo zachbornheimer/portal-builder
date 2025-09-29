@@ -51,11 +51,11 @@ if ( ! class_exists( 'Portal_File_Handler' ) ) {
 
 		private function maybe_get_file_suffix_from_content( $name ) {
 
-			# get the post's content
+			// get the post's content
 
 			$content = get_post_field( 'post_content', $this->post_id );
 
-			# identify if there's a pb_file shortcode with a file_suffix attribute
+			// identify if there's a pb_file shortcode with a file_suffix attribute
 			$pattern = '/\[pb_file[^\]]*name=[\'"]' . $name . '[\'"][^\]]*file_suffix=[\'"]([^\'"]+)[\'"][^\]]*\]/s';
 
 			if ( preg_match( $pattern, $content, $match ) ) {
@@ -64,7 +64,6 @@ if ( ! class_exists( 'Portal_File_Handler' ) ) {
 
 			return '';
 		}
-
 
 		public function set_local_temp_dir( $path ) {
 			$this->local_temp_dir = $path;
@@ -86,7 +85,6 @@ if ( ! class_exists( 'Portal_File_Handler' ) ) {
 				mkdir( $permanent_dir, 0777, true );
 			}
 
-
 			$files = glob( $this->local_temp_dir . '/' . $this->appId . '/*' );
 
 			foreach ( $files as $file ) {
@@ -100,7 +98,7 @@ if ( ! class_exists( 'Portal_File_Handler' ) ) {
 		}
 
 		private function store_temp_file( $type, $tmp_name, $file_key, $suffix = '' ) {
-			# if anonymize
+			// if anonymize
 
 			switch ( $type ) {
 				case 'application/pdf':
@@ -155,7 +153,6 @@ if ( ! class_exists( 'Portal_File_Handler' ) ) {
 				throw new Exception( 'shell_exec is disabled' );
 			}
 
-
 			$path   = $this->store_pdf( $tmp_name, $file_key, $suffix );
 			$target = escapeshellarg( $path );
 
@@ -165,7 +162,7 @@ if ( ! class_exists( 'Portal_File_Handler' ) ) {
 			shell_exec( $exiftool_path . " -overwrite_original -all= $target 2>&1 3>&1" );
 			shell_exec( $qpdf_path . " --linearize $target $target.new" );
 
-			# remove any wrapping quotes from target
+			// remove any wrapping quotes from target
 			$target = trim( $target, "'" );
 			$target = trim( $target, '"' );
 
@@ -184,7 +181,6 @@ if ( ! class_exists( 'Portal_File_Handler' ) ) {
 			$original_altTarget = $original_target . '.alt.mp3';
 			$target             = escapeshellarg( $original_target );
 			$altTarget          = escapeshellarg( $original_altTarget );
-
 
 			$exiftool_path = $this->binary_tool( 'exiftool' );
 			$lame_path     = $this->binary_tool( 'lame' );
@@ -215,10 +211,10 @@ if ( ! class_exists( 'Portal_File_Handler' ) ) {
 			$path = get_option( 'pb_' . $tool . '_path', '/usr/local/bin/' . $tool );
 			$path = escapeshellarg( $path );
 
-			#remove surrounding quotes
+			// remove surrounding quotes
 			$path = substr( $path, 1, -1 );
 
-			# are these paths valid?
+			// are these paths valid?
 			if ( ! file_exists( $path ) ) {
 				throw new Exception( 'Invalid path to ' . $tool );
 			}

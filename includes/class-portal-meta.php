@@ -45,9 +45,8 @@ if ( ! class_exists( 'Portal_Meta' ) ) {
 				$meta_value  = get_post_meta( $post->ID, $field['id'], true );
 				$placeholder = isset( $field['placeholder'] ) ? esc_attr( $field['placeholder'] ) : '';
 				$label       = isset( $field['label'] ) ? esc_html( $field['label'] ) : '';
-				# replace `(.*?)` with <code>\1</code> tags
+				// replace `(.*?)` with <code>\1</code> tags
 				$label = preg_replace( '/`(.*?)`/', '<code class="copyable">\1</code>', $label );
-
 
 				switch ( $field['type'] ) {
 					case 'switch':
@@ -141,8 +140,8 @@ if ( ! class_exists( 'Portal_Meta' ) ) {
 
 		public function enqueue_scripts() {
 			wp_enqueue_style( 'portal-meta-box-styles', plugins_url( '../assets/portal-meta-box.css', __FILE__ ) );
-			wp_enqueue_script( 'portal-meta-box-script', plugins_url( '../assets/portal-meta-box.js', __FILE__ ), array( 'jquery' ), null, true );
-			wp_enqueue_script( 'pb-url-validation', plugins_url( '../assets/url-validation.js', __FILE__ ), array( 'jquery' ), null, true );
+			wp_enqueue_script( 'portal-meta-box-script', plugins_url( '../assets/portal-meta-box.js', __FILE__ ), [ 'jquery' ], null, true );
+			wp_enqueue_script( 'pb-url-validation', plugins_url( '../assets/url-validation.js', __FILE__ ), [ 'jquery' ], null, true );
 		}
 
 		public function validate_url_callback() {
@@ -150,26 +149,26 @@ if ( ! class_exists( 'Portal_Meta' ) ) {
 			$response = wp_remote_get( $url );
 
 			if ( is_wp_error( $response ) ) {
-				wp_send_json_error( array( 'message' => 'Invalid URL' ) );
+				wp_send_json_error( [ 'message' => 'Invalid URL' ] );
 			}
 
 			$status_code = wp_remote_retrieve_response_code( $response );
 
 			if ( $status_code === 200 ) {
-				wp_send_json_success( array( 'message' => 'Valid URL' ) );
+				wp_send_json_success( [ 'message' => 'Valid URL' ] );
 			} else {
-				wp_send_json_error( array( 'message' => 'Invalid URL' ) );
+				wp_send_json_error( [ 'message' => 'Invalid URL' ] );
 			}
 		}
 
-		private function render_data_table( $meta_key, $columns, $extraction, $post_id, $options = array() ) {
+		private function render_data_table( $meta_key, $columns, $extraction, $post_id, $options = [] ) {
 			$data_table = new Data_Table( $meta_key, $meta_key, $columns, array_fill( 0, count( $columns ), '' ), $extraction, $options );
 			$data_table->render( get_post( $post_id ) );
 
 			if ( $options ) {
 				foreach ( $options as $column_index => $column_options ) {
 					if ( isset( $column_options['tags'] ) && $column_options['tags'] === true ) {
-					
+
 					}
 				}
 			}

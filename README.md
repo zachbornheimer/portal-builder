@@ -1,7 +1,3 @@
-Here's the updated README with the PHP 8 requirement:
-
----
-
 # Portal Builder
 
 Portal Builder is a WordPress plugin designed to create and manage portals for accepting applications and managing submissions with Google Sheets and Google Drive integration.
@@ -31,11 +27,9 @@ Learn more at [allintersections.com](https://allintersections.com) or [zysys.org
 ## Installation
 
 1. **Download the Plugin:**
-
    - Download the latest release from the [Releases](https://github.com/zachbornheimer/portal-builder/releases) page.
 
 2. **Upload to WordPress:**
-
    - Navigate to `Plugins > Add New > Upload Plugin`.
    - Select the downloaded ZIP file and click `Install Now`.
 
@@ -45,13 +39,11 @@ Learn more at [allintersections.com](https://allintersections.com) or [zysys.org
 ## Usage
 
 1. **Create a Portal:**
-
    - Navigate to the `Portals` menu in the WordPress admin.
    - Click `Add New` to create a new portal.
    - Fill in the required details, including integration settings for Google Sheets and Google Drive.
 
 2. **Manage Applications:**
-
    - Once a portal is created, applications can be submitted through the front-end.
    - View and manage submissions from the WordPress admin panel.
 
@@ -76,7 +68,6 @@ Learn more at [allintersections.com](https://allintersections.com) or [zysys.org
    ```
 
 2. **Install Dependencies:**
-
    - For production:
      ```sh
      make install-prod

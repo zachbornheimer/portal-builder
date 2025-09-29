@@ -7,6 +7,8 @@ if ( ! class_exists( 'Portal_Post_Type' ) ) {
 		public function register_post_type() {
 			add_action( 'init', array( $this, 'create_post_type' ) );
 			add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
+			add_filter( 'post_row_actions', array( $this, 'add_duplicate_action' ), 10, 2 );
+			add_action( 'wp_ajax_duplicate_portal', array( $this, 'duplicate_portal_ajax' ) );
 		}
 
 		public function create_post_type() {
@@ -48,6 +50,122 @@ if ( ! class_exists( 'Portal_Post_Type' ) ) {
 			// Enqueue data table specific scripts and styles
 			wp_enqueue_script( 'pb-data-table-js', plugins_url( '../assets/data-table.js', __FILE__ ), array( 'jquery' ), null, true );
 			wp_enqueue_style( 'pb-data-table-css', plugins_url( '../assets/data-table.css', __FILE__ ) );
+		}
+
+		/**
+		 * Add duplicate action to portal post row actions
+		 *
+		 * @param array   $actions Existing row actions
+		 * @param WP_Post $post The post object
+		 * @return array Modified row actions
+		 */
+		public function add_duplicate_action( $actions, $post ) {
+			if ( $post->post_type === 'portal' && current_user_can( 'edit_post', $post->ID ) ) {
+				$duplicate_url = wp_nonce_url(
+					admin_url( 'admin-ajax.php?action=duplicate_portal&post_id=' . $post->ID ),
+					'duplicate_portal_' . $post->ID,
+					'duplicate_nonce'
+				);
+
+				$actions['duplicate'] = sprintf(
+					'<a href="%s" class="duplicate-portal" data-post-id="%d">%s</a>',
+					esc_url( $duplicate_url ),
+					$post->ID,
+					__( 'Duplicate', 'portal-builder' )
+				);
+			}
+
+			return $actions;
+		}
+
+		/**
+		 * Handle AJAX request to duplicate a portal
+		 */
+		public function duplicate_portal_ajax() {
+			// Verify nonce
+			if ( ! isset( $_GET['duplicate_nonce'] ) || ! wp_verify_nonce( $_GET['duplicate_nonce'], 'duplicate_portal_' . $_GET['post_id'] ) ) {
+				wp_die( __( 'Security check failed', 'portal-builder' ) );
+			}
+
+			// Check permissions
+			if ( ! current_user_can( 'edit_posts' ) ) {
+				wp_die( __( 'You do not have permission to duplicate posts', 'portal-builder' ) );
+			}
+
+			$original_post_id = intval( $_GET['post_id'] );
+			$original_post    = get_post( $original_post_id );
+
+			if ( ! $original_post || $original_post->post_type !== 'portal' ) {
+				wp_die( __( 'Invalid post', 'portal-builder' ) );
+			}
+
+			// Create the duplicate post
+			$duplicate_post_id = $this->duplicate_portal( $original_post_id );
+
+			if ( $duplicate_post_id ) {
+				// Return JSON response with redirect URL
+				wp_send_json_success(
+					array(
+						'redirect_url' => admin_url( 'post.php?post=' . $duplicate_post_id . '&action=edit&duplicated=1' ),
+						'message'      => __( 'Portal duplicated successfully!', 'portal-builder' ),
+					)
+				);
+			} else {
+				wp_send_json_error(
+					array(
+						'message' => __( 'Failed to duplicate post', 'portal-builder' ),
+					)
+				);
+			}
+		}
+
+		/**
+		 * Duplicate a portal post with all its meta data
+		 *
+		 * @param int $post_id The ID of the post to duplicate
+		 * @return int|false The ID of the new post or false on failure
+		 */
+		private function duplicate_portal( $post_id ) {
+			$original_post = get_post( $post_id );
+
+			if ( ! $original_post ) {
+				return false;
+			}
+
+			// Create new post data
+			$new_post_data = array(
+				'post_title'   => $original_post->post_title . ' (Copy)',
+				'post_content' => $original_post->post_content,
+				'post_status'  => 'draft',
+				'post_type'    => $original_post->post_type,
+				'post_author'  => get_current_user_id(),
+			);
+
+			// Insert the new post
+			$new_post_id = wp_insert_post( $new_post_data );
+
+			if ( is_wp_error( $new_post_id ) ) {
+				return false;
+			}
+
+			// Copy all meta fields
+			$meta_fields = get_post_meta( $post_id );
+			foreach ( $meta_fields as $key => $values ) {
+				foreach ( $values as $value ) {
+					add_post_meta( $new_post_id, $key, maybe_unserialize( $value ) );
+				}
+			}
+
+			// Copy taxonomies
+			$taxonomies = get_object_taxonomies( $original_post->post_type );
+			foreach ( $taxonomies as $taxonomy ) {
+				$terms = wp_get_object_terms( $post_id, $taxonomy, array( 'fields' => 'slugs' ) );
+				if ( ! is_wp_error( $terms ) && ! empty( $terms ) ) {
+					wp_set_object_terms( $new_post_id, $terms, $taxonomy );
+				}
+			}
+
+			return $new_post_id;
 		}
 	}
 

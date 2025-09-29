@@ -4,14 +4,14 @@
  * Plugin Name: Portal Builder
  * Plugin URI:  https://example.com/portal-builder
  * Description: A plugin to build portals for accepting applications and managing submissions with Google Sheets and Google Drive integration.
- * Version:     0.0.2a
+ * Version:     0.0.3a
  * Author:      Z. Bornheimer (ZYSYS)
  * Author URI:  https://zysys.org/
  * License:     GPLv2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain: portal-builder
  * Domain Path: /languages
- * 
+ *
  * Copyright (c) 2024 Zachary Bornheimer - All Rights Reserved.
  */
 
@@ -85,6 +85,7 @@ function pb_initialize_plugin() {
 	// Register meta boxes only on admin side
 	if ( is_admin() ) {
 		pb_register_meta_boxes( $portal_meta );
+		add_action( 'admin_notices', 'pb_duplicate_success_notice' );
 	}
 
 	handle_submissions();
@@ -211,18 +212,17 @@ function pb_register_meta_boxes( $portal_meta ) {
 // Function to handle form submissions
 function handle_submissions() {
 
-
 	try {
 
 		if ( $_SERVER['REQUEST_METHOD'] === 'POST' && isset( $_POST['review_nonce'] ) ) {
-			# filter the content to change inputs to spans with the class 'reviewable'
+			// filter the content to change inputs to spans with the class 'reviewable'
 
-			# quickly verify the nonce
+			// quickly verify the nonce
 			if ( ! wp_verify_nonce( $_POST['review_nonce'], 'review_nonce' ) ) {
 				throw new Exception( 'Invalid nonce.  Likely data corruption.' );
 			}
 
-			# check the anonymize setting
+			// check the anonymize setting
 			$file_handler_settings = array(
 				'anonymize' => get_post_meta( $_POST['post_id'], '_portal_anonymize', true ),
 			);
@@ -232,11 +232,10 @@ function handle_submissions() {
 			$file_handler->set_local_temp_dir( PB_TMP_UPLOADS_DIR );
 			$file_handler->process_temp_files();
 
-			# encrypt the appid and the 
+			// encrypt the appid and the
 			$_POST['appId']  = $file_handler->get_appId();
 			$_POST['eappId'] = pb_encrypt_str( 'APPID_' . $_POST['appId'] );
 			$_POST['efiles'] = pb_encrypt_str( json_encode( $file_handler->stored_file_paths ) );
-
 
 			if ( ! defined( 'PB_FILE_HANDLER' ) ) {
 				define( 'PB_FILE_HANDLER', $file_handler );
@@ -251,14 +250,13 @@ function handle_submissions() {
 			foreach ( $stored_file_paths as $key => $path ) {
 				$labels[ $key ] = get_label_for_pb_file_name( $_POST['post_id'], $key );
 			}
-			# has it been modified? ensure that APPID_ is at the beginning and remove it
+			// has it been modified? ensure that APPID_ is at the beginning and remove it
 			if ( substr( $appId, 0, 6 ) != 'APPID_' ) {
 				throw new Exception( 'App ID has been tampered with.  Likely data corruption.' );
 			}
 			$_POST['APPID'] = substr( $appId, 6 );
 
-
-			# ensure that $_POST['post_id'] is set
+			// ensure that $_POST['post_id'] is set
 			if ( ! isset( $_POST['post_id'] ) ) {
 				throw new Exception( 'Portal ID is missing.  Likely data corruption.' );
 			}
@@ -267,7 +265,7 @@ function handle_submissions() {
 			$slug         = $post->post_name;
 			$post_content = $post->post_content;
 
-			# check the anonymize setting
+			// check the anonymize setting
 			$file_handler_settings = array(
 				'anonymize'     => get_post_meta( $_POST['post_id'], '_portal_anonymize', true ),
 				'permanent_dir' => PB_PERMANENT_UPLOADS_DIR . '/' . $slug,
@@ -281,16 +279,14 @@ function handle_submissions() {
 
 			$submission = new Portal_Submission( 'ready_to_submit_nonce', $file_handler );
 
-
 			$submission->process_submission( $_POST );
 
 			define( 'PB_RECEIPT_LINK', $submission->get_receipt_link() );
 
 			$raw_notification_date = get_post_meta( $_POST['post_id'], '_portal_applicant_notification_date', true );
-			# turn the raw date into a human readable date like Monday, June 15, 2021
+			// turn the raw date into a human readable date like Monday, June 15, 2021
 			$application_notification_date = date( 'l, F j, Y', strtotime( $raw_notification_date ) );
 			define( 'PB_APPLICATION_NOTIFICATION_DATE', $application_notification_date );
-
 
 			add_filter( 'the_content', 'pb_post_submitted_content_filter', 10, 1 );
 		}
@@ -305,11 +301,11 @@ function handle_submissions() {
 }
 
 function get_label_for_pb_file_name( $post_id, $name ) {
-	# get the post's content
+	// get the post's content
 
 	$content = get_post_field( 'post_content', $post_id );
 
-	# identify if there's a pb_file shortcode with a file_suffix attribute
+	// identify if there's a pb_file shortcode with a file_suffix attribute
 	$pattern = '/\[pb_file[^\]]*name=[\'"]' . $name . '[\'"][^\]]*label=[\'"]([^\'"]+)[\'"][^\]]*\]/s';
 
 	if ( preg_match( $pattern, $content, $match ) ) {
@@ -320,7 +316,7 @@ function get_label_for_pb_file_name( $post_id, $name ) {
 	if ( preg_match( $pattern, $content, $match ) ) {
 		return $match[1];
 	}
-	
+
 	return '';
 }
 
@@ -387,12 +383,10 @@ function pb_reviewable_content_filter( $c ) {
 			// Retrieve the submitted value
 			$value = isset( $submitted_data[ $name ] ) ? htmlspecialchars( $submitted_data[ $name ] ) : '';
 
-
-
 			$class = 'reviewable';
 
 			$html = '';
-			# has the file been uploaded? check the $_FILES array
+			// has the file been uploaded? check the $_FILES array
 			if ( isset( $_FILES[ $name ] ) && $_FILES[ $name ]['error'] == 0 ) {
 				$class = 'reviewable reviewable-file';
 				$html .= '<a href="#" class="' . $class . '">See top of the page.</a>';
@@ -400,7 +394,6 @@ function pb_reviewable_content_filter( $c ) {
 				$class = 'reviewable-blank';
 				$html .= '<span class="' . $class . '">&nbsp;</span>';
 			}
-
 
 			// Construct the span and hidden input
 
@@ -410,7 +403,6 @@ function pb_reviewable_content_filter( $c ) {
 		},
 		$content
 	);
-
 
 	// Process textarea fields
 	$content = preg_replace_callback(
@@ -494,7 +486,7 @@ function pb_post_submitted_content_filter( $c ) {
 }
 
 function pb_encrypt_str( $string ) {
-	# encrypt the $string using the NONCE_SALT as the key
+	// encrypt the $string using the NONCE_SALT as the key
 	$key       = NONCE_SALT;
 	$method    = 'aes-256-cbc';
 	$iv        = openssl_random_pseudo_bytes( openssl_cipher_iv_length( $method ) );
@@ -503,7 +495,7 @@ function pb_encrypt_str( $string ) {
 }
 
 function pb_decrypt_str( $string ) {
-	# decrypt the $string using the NONCE_SALT as the key
+	// decrypt the $string using the NONCE_SALT as the key
 	$key       = NONCE_SALT;
 	$method    = 'aes-256-cbc';
 	$data      = base64_decode( $string );
@@ -564,3 +556,14 @@ function replace_content_if_deadline_passed( $content ) {
 	return $content; // Return the original content if the deadline hasn't passed
 }
 add_filter( 'the_content', 'replace_content_if_deadline_passed' );
+
+/**
+ * Display success notice when a portal is duplicated
+ */
+function pb_duplicate_success_notice() {
+	if ( isset( $_GET['duplicated'] ) && $_GET['duplicated'] == '1' ) {
+		echo '<div class="notice notice-success is-dismissible">';
+		echo '<p><strong>' . __( 'Portal duplicated successfully!', 'portal-builder' ) . '</strong> ' . __( 'You are now editing the duplicate.', 'portal-builder' ) . '</p>';
+		echo '</div>';
+	}
+}

@@ -11,17 +11,17 @@ if ( ! class_exists( 'Data_Table' ) ) {
 		private $extraction_rules;
 		private $column_options;
 		private $is_option;
-	
+
 		/**
 		 * Constructor
 		 *
 		 * @param string $table_id
 		 * @param string $meta_key
-		 * @param array $columns
-		 * @param array $sample_row
-		 * @param array $extraction_rules
-		 * @param array $column_options
-		 * @param bool $is_option  // New argument to indicate if it's for options
+		 * @param array  $columns
+		 * @param array  $sample_row
+		 * @param array  $extraction_rules
+		 * @param array  $column_options
+		 * @param bool   $is_option  // New argument to indicate if it's for options
 		 */
 		public function __construct( $table_id, $meta_key, $columns = array(), $sample_row = array(), $extraction_rules = array(), $column_options = array(), $is_option = false ) {
 			$this->table_id         = $table_id;
@@ -32,11 +32,11 @@ if ( ! class_exists( 'Data_Table' ) ) {
 			$this->column_options   = $column_options;
 			$this->is_option        = $is_option;
 		}
-	
+
 		/**
 		 * Render the data table
 		 *
-		 * @param WP_Post|NULL $post  // Adjusted to accept null if rendering for an option
+		 * @param WP_Post|null $post  // Adjusted to accept null if rendering for an option
 		 */
 		public function render( $post = null ) {
 			// Retrieve the stored data based on context (post meta or option)
@@ -45,11 +45,11 @@ if ( ! class_exists( 'Data_Table' ) ) {
 			} else {
 				$values = get_post_meta( $post->ID, $this->meta_key, true );
 			}
-	
+
 			// Decode the JSON string into an array
 			if ( $values ) {
 				$values = json_decode( $values, true );
-				# keep decoding until we get an array
+				// keep decoding until we get an array
 				$max_iterations  = 20;
 				$iteration_count = 0;
 				while ( ! is_array( $values ) ) {
@@ -60,18 +60,18 @@ if ( ! class_exists( 'Data_Table' ) ) {
 					}
 				}
 			}
-	
+
 			// If decoding failed or resulted in something other than an array, reset to a default sample row
 			if ( ! is_array( $values ) ) {
 				$values = array( $this->sample_row );
 			}
-	
+
 			if ( isset( $this->column_options[0]['block'] ) ) {
 				$block_style = 'style="border-collapse: separate;border-spacing: 0px 1rem;"';
 			} else {
 				$block_style = '';
 			}
-	
+
 			echo '<table id="' . esc_attr( $this->table_id ) . '" class="data-table" ' . $block_style . '>';
 			if ( ! isset( $this->column_options[0]['block'] ) ) {
 				echo '<thead><tr>';
@@ -80,7 +80,7 @@ if ( ! class_exists( 'Data_Table' ) ) {
 				}
 				echo '<th>Action</th></tr></thead>';
 			}
-	
+
 			echo '<tbody>';
 			foreach ( $values as $row ) {
 				echo $this->render_row( $row );
@@ -88,7 +88,7 @@ if ( ! class_exists( 'Data_Table' ) ) {
 			echo '</tbody>';
 			echo '</table>';
 			echo '<button type="button" id="add-row-' . esc_attr( $this->table_id ) . '" class="button add-row">Add Row</button>';
-	
+
 			// Store the data based on context (post meta or option)
 			echo '<input type="hidden" name="' . esc_attr( $this->meta_key ) . '" id="' . esc_attr( $this->meta_key ) . '" value="' . esc_attr( json_encode( $values ) ) . '" />';
 		}
@@ -104,7 +104,7 @@ if ( ! class_exists( 'Data_Table' ) ) {
 
 			$row_html = '<tr>';
 			foreach ( $this->columns as $index => $column ) {
-				$value     = isset( $row[ $index ] ) ? $row[ $index ] : '';
+				$value     = $row[ $index ] ?? '';
 				$class     = isset( $this->extraction_rules[ $index ] ) ? 'extract-url' : '';
 				$data_type = isset( $this->extraction_rules[ $index ] ) ? 'data-extraction-type="' . esc_attr( $this->extraction_rules[ $index ] ) . '"' : '';
 

@@ -8,6 +8,11 @@
 	<arg name="cache" value=".phpcs-cache"/>
 	<arg name="colors"/>
 
+	<!-- ✅ Base WordPress rules -->
+  <rule ref="WordPress-Core"/>
+  <rule ref="WordPress-Docs"/>
+  <rule ref="WordPress-Extra"/>
+
 	<exclude-pattern>*/.git/*</exclude-pattern>
 	<exclude-pattern>.github/</exclude-pattern>
 	<exclude-pattern>*/vendor/*</exclude-pattern>
@@ -25,7 +30,6 @@
 	<file>.</file>
 
 	<!-- WordPress -->
-	<rule ref="WordPressVIPMinimum"/>
 	<rule ref="WordPress-Extra"/>
 	<rule ref="PSR2.Methods.FunctionClosingBrace"/>
 </ruleset>
