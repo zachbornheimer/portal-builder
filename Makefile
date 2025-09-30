@@ -42,7 +42,22 @@ update-submodules:
 
 # Build the plugin including submodules using git-archive-all
 build: clean setup install-prod install-git-archive-all update-submodules
-	git-archive-all -9 $(shell find vendor -type f | sed 's/^/--include="/;s/$$/"/') $(OUTPUT_FILE)
+	git-archive-all -9 \
+		--exclude="gsuite-filestore/vendor" \
+		--exclude="gsuite-filestore/get-credentials/vendor" \
+		--exclude="gsuite-filestore/get-credentials/composer.lock" \
+		--exclude="gsuite-filestore/composer.lock" \
+		--exclude=".git" \
+		--exclude=".gitmodules" \
+		--exclude="node_modules" \
+		--exclude="*.log" \
+		--exclude=".DS_Store" \
+		--exclude="Thumbs.db" \
+		--exclude="*.swp" \
+		--exclude="*.swo" \
+		--exclude="*.bak" \
+		--exclude="*.tmp" \
+		$(OUTPUT_FILE)
 
 # Install composer dependencies (for dev)
 install-dev:

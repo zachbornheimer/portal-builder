@@ -44,6 +44,7 @@ require_once plugin_dir_path( __FILE__ ) . 'includes/class-portal-meta.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-portal-submission.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-portal-file-handler.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-data-table.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/class-portal-about.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/templates.php';
 require_once plugin_dir_path( __FILE__ ) . 'gsuite-filestore/zysys-file-store.class.php';
 
@@ -81,6 +82,10 @@ function pb_initialize_plugin() {
 	// Initialize Meta Fields
 	$portal_meta = new Portal_Meta();
 	$portal_meta->init();
+
+	// Initialize About Page
+	$portal_about = new Portal_About();
+	$portal_about->init();
 
 	// Register meta boxes only on admin side
 	if ( is_admin() ) {

@@ -22,7 +22,7 @@ if ( ! class_exists( 'Portal_Post_Type' ) ) {
 			'edit_item'          => __( 'Edit DragonGate Portal', 'dragongate-portals' ),
 			'new_item'           => __( 'New DragonGate Portal', 'dragongate-portals' ),
 			'view_item'          => __( 'View DragonGate Portal', 'dragongate-portals' ),
-			'all_items'          => __( 'All DragonGate Portals', 'dragongate-portals' ),
+			'all_items'          => __( 'All Portals', 'dragongate-portals' ),
 			'search_items'       => __( 'Search DragonGate Portals', 'dragongate-portals' ),
 			'not_found'          => __( 'No DragonGate Portals found.', 'dragongate-portals' ),
 			'not_found_in_trash' => __( 'No DragonGate Portals found in Trash.', 'dragongate-portals' ),

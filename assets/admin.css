@@ -148,5 +148,5 @@ input[type="url"] {
 
 #menu-posts-portal img {
   height: 25px;
-  padding: 5px;
+  padding: 5px !important;
 }

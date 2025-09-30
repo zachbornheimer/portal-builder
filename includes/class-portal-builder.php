@@ -16,6 +16,10 @@ if ( ! class_exists( 'Portal_Builder' ) ) {
 			// Initialize portal meta
 			$portal_meta = new Portal_Meta();
 			$portal_meta->init();
+
+			// Initialize about page
+			$portal_about = new Portal_About();
+			$portal_about->init();
 		}
 	}
 
