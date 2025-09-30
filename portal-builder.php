@@ -83,10 +83,6 @@ function pb_initialize_plugin() {
 	$portal_meta = new Portal_Meta();
 	$portal_meta->init();
 
-	// Initialize About Page
-	$portal_about = new Portal_About();
-	$portal_about->init();
-
 	// Register meta boxes only on admin side
 	if ( is_admin() ) {
 		pb_register_meta_boxes( $portal_meta );
