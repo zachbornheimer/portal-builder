@@ -106,7 +106,8 @@ if ( ! class_exists( 'Portal_Meta' ) ) {
 					case 'data-table':
 						echo '<div class="form-group">';
 						echo '<label>' . $label . '</label>';
-						$this->render_data_table( $field['id'], $field['columns'], $field['extraction'], $post->ID, $field['options'] ?? array() );
+						$disclosure = isset( $field['disclosure'] ) ? $field['disclosure'] : '';
+						$this->render_data_table( $field['id'], $field['columns'], $field['extraction'], $post->ID, $field['options'] ?? array(), $disclosure );
 						echo '</div>';
 						break;
 
@@ -139,7 +140,14 @@ if ( ! class_exists( 'Portal_Meta' ) ) {
 		}
 
 		public function enqueue_scripts() {
-			wp_enqueue_style( 'portal-meta-box-styles', plugins_url( '../assets/portal-meta-box.css', __FILE__ ), array(), PB_VERSION );
+			// Enqueue Tailwind CSS from CDN
+			wp_enqueue_style( 'tailwind-css', 'https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css', array(), '2.2.19' );
+			
+			// Enqueue Dashicons for trash icon
+			wp_enqueue_style( 'dashicons' );
+			
+			// Enqueue existing styles after Tailwind
+			wp_enqueue_style( 'portal-meta-box-styles', plugins_url( '../assets/portal-meta-box.css', __FILE__ ), array( 'tailwind-css' ), PB_VERSION );
 			wp_enqueue_script( 'portal-meta-box-script', plugins_url( '../assets/portal-meta-box.js', __FILE__ ), [ 'jquery' ], PB_VERSION, true );
 			wp_enqueue_script( 'pb-url-validation', plugins_url( '../assets/url-validation.js', __FILE__ ), [ 'jquery' ], PB_VERSION, true );
 		}
@@ -161,8 +169,8 @@ if ( ! class_exists( 'Portal_Meta' ) ) {
 			}
 		}
 
-		private function render_data_table( $meta_key, $columns, $extraction, $post_id, $options = [] ) {
-			$data_table = new Data_Table( $meta_key, $meta_key, $columns, array_fill( 0, count( $columns ), '' ), $extraction, $options );
+		private function render_data_table( $meta_key, $columns, $extraction, $post_id, $options = [], $disclosure = '' ) {
+			$data_table = new Data_Table( $meta_key, $meta_key, $columns, array_fill( 0, count( $columns ), '' ), $extraction, $options, false, $disclosure );
 			$data_table->render( get_post( $post_id ) );
 
 			if ( $options ) {

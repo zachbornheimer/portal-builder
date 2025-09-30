@@ -1,24 +1,32 @@
 jQuery(document).ready(function ($) {
+    // Debug: Check if delete buttons are present
+    console.log('Data table script loaded');
+    console.log('Delete buttons found:', $('.delete-row').length);
+    console.log('Data tables found:', $('.data-table').length);
+    console.log('Row elements found:', $('div[id*="-row-"]').length);
 
     function updateTableValues($table) {
         let rowsData = [];
-        $table.find('tbody tr').each(function () {
-            let rowData = [];
-            $(this).find('td').each(function () {
-                let $inputs = $(this).find('input');
+        let $rows = $table.find('div[id*="-row-"]');
+        console.log('Found rows:', $rows.length); // Debug log
 
-                if ($inputs.filter('.tag-hidden-field').length > 0) {
-                    let value = $inputs.filter('.tag-hidden-field').val().trim();
-                    rowData.push(value);
-                } else if ($inputs.filter('.tag-input').length === 0) {
-                    $inputs.each(function () {
-                        let value = $(this).val().trim();
-                        rowData.push(value);
-                    });
-                }
+        $rows.each(function () {
+            let rowData = [];
+            $(this).find('input[type="text"]:not(.tag-input)').each(function () {
+                let value = $(this).val().trim();
+                rowData.push(value);
             });
+
+            // Handle tag fields
+            $(this).find('.tag-hidden-field').each(function () {
+                let value = $(this).val().trim();
+                rowData.push(value);
+            });
+
             rowsData.push(rowData);
         });
+
+        console.log('Updated table data:', rowsData); // Debug log
         $table.siblings('input[type=hidden]').val(JSON.stringify(rowsData));
     }
 
@@ -244,26 +252,47 @@ jQuery(document).ready(function ($) {
         }
     });
 
-    $('.data-table').on('click', '.delete-row', function () {
-        let $table = $(this).closest('.data-table');
+    // Use document delegation to ensure it works for dynamically added elements
+    $(document).on('click', '.data-table .delete-row, .data-table .delete-row span', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('Delete button clicked'); // Debug log
+        let $button = $(this).closest('.delete-row');
+        let $table = $button.closest('.data-table');
+        console.log('Button found:', $button.length, 'Table found:', $table.length);
         if (confirm('Are you sure you want to delete this row?')) {
-            $(this).closest('tr').remove();
-            updateTableValues($table);
+            // Find the row container by looking for the closest div with an ID that starts with the table ID
+            let $row = $button.closest('div[id*="-row-"]');
+            console.log('Deleting row:', $row, 'Row ID:', $row.attr('id')); // Debug log
+            if ($row.length > 0) {
+                $row.remove();
+                updateTableValues($table);
+                console.log('Row deleted successfully');
+            } else {
+                console.error('Could not find row to delete');
+            }
         }
     });
 
-    $('.data-table').on('click', '.copy-row', function () {
-        let $row = $(this).closest('tr');
-        let currentTags = [];
+    console.log('Delete event handler bound');
 
-        // Collect all tags from the row
-        $row.find('.tag').each(function () {
-            currentTags.push($(this).text().replace('×', '').trim());
+    $('.data-table').on('click', '.copy-columns', function () {
+        let $table = $(this).closest('.data-table');
+        let allTags = [];
+
+        // Collect all tags from all rows in the Columns column
+        $table.find('div[id*="-row-"]').each(function () {
+            let $row = $(this);
+            // Find the Columns field (3rd column, index 2)
+            let $columnsField = $row.find('.columns-tag-container');
+            $columnsField.find('.tag').each(function () {
+                allTags.push($(this).text().replace('×', '').trim());
+            });
         });
 
-        if (currentTags.length > 0) {
+        if (allTags.length > 0) {
             // Join tags with commas and copy to clipboard
-            let tagsText = currentTags.join(',');
+            let tagsText = allTags.join(',');
 
             // Use modern clipboard API if available
             if (navigator.clipboard && window.isSecureContext) {
@@ -317,33 +346,46 @@ jQuery(document).ready(function ($) {
 
     $('button.add-row').on('click', function () {
         let $table = $(this).siblings('.data-table');
-        let $lastRow = $table.find('tbody tr:last-child');
+        let $lastRow = $table.find('div[id*="-row-"]:last-child');
 
         if ($lastRow.length === 0) {
-            // If no rows exist, create a new empty row with the same structure
-            let $newRow = $('<tr>');
-            let columnCount = $table.find('thead th').length - 1; // -1 for Action column
-
-            // Create cells for each column
-            for (let i = 0; i < columnCount; i++) {
-                let $cell = $('<td>');
-                let $input = $('<input type="text" />');
-                $cell.append($input);
-                $newRow.append($cell);
-            }
-
-            // Add action buttons cell
-            let $actionCell = $('<td><button type="button" class="button copy-row">Copy</button> <button type="button" class="button delete-row">Delete</button></td>');
-            $newRow.append($actionCell);
-
-            $table.find('tbody').append($newRow);
+            // If no rows exist, we can't create a proper structure without knowing the field configuration
+            // The PHP should always create at least one empty row, so this shouldn't happen
+            console.warn('No existing rows found to clone. This may indicate a configuration issue.');
+            return;
         } else {
             // Clone the last row and clear its contents
             let $newRow = $lastRow.clone();
+
+            // Generate a new unique ID for the cloned row
+            let tableId = $table.attr('id');
+            let newRowIndex = $table.find('div[id*="-row-"]').length;
+            $newRow.attr('id', tableId + '-row-' + newRowIndex);
+
+            // Clear all input values
+            $newRow.find('input[type="text"]').val('');
+            $newRow.find('input[type="hidden"]').val('');
+
+            // Remove any existing tags
             $newRow.find('.tag').remove();
-            $newRow.find('input').val('');
+
+            // Clear any tag containers and reset them properly
+            $newRow.find('.columns-tag-container').each(function () {
+                let $container = $(this);
+                // Keep the structure but clear tags and reset input
+                $container.find('.tag').remove();
+                $container.find('.tag-input').val('');
+                $container.find('.tag-hidden-field').val('');
+            });
+
+            // Insert the new row after the last row
             $lastRow.after($newRow);
+
+            // Initialize the new row (for tag functionality, etc.)
             initializeTableRow($newRow);
+
+            // Update table values
+            updateTableValues($table);
         }
     });
 

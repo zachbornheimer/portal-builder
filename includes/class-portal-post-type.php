@@ -94,13 +94,19 @@ if ( ! class_exists( 'Portal_Post_Type' ) ) {
 		}
 
 		public function enqueue_assets() {
+			// Enqueue Tailwind CSS from CDN
+			wp_enqueue_style( 'tailwind-css', 'https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css', array(), '2.2.19' );
+			
+			// Enqueue Dashicons for trash icon
+			wp_enqueue_style( 'dashicons' );
+			
 			// Enqueue general admin scripts and styles
 			wp_enqueue_script( 'pb-admin-js', plugins_url( '../assets/admin.js', __FILE__ ), array( 'jquery' ), PB_VERSION, true );
-			wp_enqueue_style( 'pb-admin-css', plugins_url( '../assets/admin.css', __FILE__ ), array(), PB_VERSION );
+			wp_enqueue_style( 'pb-admin-css', plugins_url( '../assets/admin.css', __FILE__ ), array( 'tailwind-css' ), PB_VERSION );
 
 			// Enqueue data table specific scripts and styles
 			wp_enqueue_script( 'pb-data-table-js', plugins_url( '../assets/data-table.js', __FILE__ ), array( 'jquery' ), PB_VERSION, true );
-			wp_enqueue_style( 'pb-data-table-css', plugins_url( '../assets/data-table.css', __FILE__ ), array(), PB_VERSION );
+			wp_enqueue_style( 'pb-data-table-css', plugins_url( '../assets/data-table.css', __FILE__ ), array( 'tailwind-css' ), PB_VERSION );
 		}
 
 		/**

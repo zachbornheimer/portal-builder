@@ -28,6 +28,40 @@ jQuery(document).ready(function ($) {
         });
     });
 
+    // Handle completion tracking for pb_group shortcodes
+    $('.completion-tracker').each(function () {
+        var $tracker = $(this);
+        var $group = $tracker.closest('.portal-group');
+        var $inputs = $group.find('input, select, textarea');
+        var completeValue = $tracker.data('complete-value');
+        var incompleteValue = $tracker.data('incomplete-value');
+
+        function checkCompletion() {
+            var isComplete = true;
+            $inputs.each(function () {
+                var $input = $(this);
+                // Skip the completion tracker itself
+                if ($input.hasClass('completion-tracker')) {
+                    return;
+                }
+                // Check if required fields are filled
+                if ($input.attr('required') && $input.val().trim() === '') {
+                    isComplete = false;
+                    return false; // break out of each loop
+                }
+            });
+            $tracker.val(isComplete ? completeValue : incompleteValue);
+        }
+
+        // Check completion on any input change
+        $inputs.on('change input', function () {
+            checkCompletion();
+        });
+
+        // Initial check
+        checkCompletion();
+    });
+
 });
 
 

@@ -183,7 +183,7 @@ function pb_register_meta_boxes( $portal_meta ) {
 		array(
 			array(
 				'id'         => '_portal_record_keeping',
-				'label'      => sprintf( $label, 'Sheet(s)' ),
+				'label'      => 'Google Sheets Configuration',
 				'type'       => 'data-table',
 				'columns'    => array( 'Google Sheet Name (For Identification Purposes)', 'Google Sheet ID', 'Columns' ), // Add 'Columns' column
 				'extraction' => array( 1 => 'google-sheet' ),
@@ -191,6 +191,7 @@ function pb_register_meta_boxes( $portal_meta ) {
 					0 => array( 'block' => true ), // Enable block display
 					2 => array( 'tags' => true ), // Enable tag handling for the third column (index 2)
 				),
+				'disclosure' => $label ? sprintf( $label, 'Sheet(s)' ) : '', // Add disclosure text
 			),
 		),
 		'normal',
@@ -204,10 +205,11 @@ function pb_register_meta_boxes( $portal_meta ) {
 		array(
 			array(
 				'id'         => '_portal_file_backups',
-				'label'      => sprintf( $label, 'Drive Folder(s)' ),
+				'label'      => 'Google Drive Configuration',
 				'type'       => 'data-table',
 				'columns'    => array( 'Google Drive Folder Name (For Identification Purposes)', 'Google Drive Folder ID' ),
 				'extraction' => array( 1 => 'google-drive' ),
+				'disclosure' => $label ? sprintf( $label, 'Drive Folder(s)' ) : '', // Add disclosure text
 			),
 		),
 		'normal',
