@@ -36,6 +36,11 @@ if ( ! defined( 'PB_PERMANENT_UPLOADS_DIR' ) ) {
 	define( 'PB_PERMANENT_UPLOADS_DIR', ABSPATH . PB_RELATIVE_PERMANENT_UPLOADS_DIR );
 }
 
+// Define plugin version constant
+if ( ! defined( 'PB_VERSION' ) ) {
+	define( 'PB_VERSION', '0.0.4a' );
+}
+
 // Include the necessary files
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-portal-builder.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-portal-post-type.php';

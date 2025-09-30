@@ -45,12 +45,12 @@ if ( ! class_exists( 'Portal_Post_Type' ) ) {
 
 		public function enqueue_assets() {
 			// Enqueue general admin scripts and styles
-			wp_enqueue_script( 'pb-admin-js', plugins_url( '../assets/admin.js', __FILE__ ), array( 'jquery' ), null, true );
-			wp_enqueue_style( 'pb-admin-css', plugins_url( '../assets/admin.css', __FILE__ ) );
+			wp_enqueue_script( 'pb-admin-js', plugins_url( '../assets/admin.js', __FILE__ ), array( 'jquery' ), PB_VERSION, true );
+			wp_enqueue_style( 'pb-admin-css', plugins_url( '../assets/admin.css', __FILE__ ), array(), PB_VERSION );
 
 			// Enqueue data table specific scripts and styles
-			wp_enqueue_script( 'pb-data-table-js', plugins_url( '../assets/data-table.js', __FILE__ ), array( 'jquery' ), null, true );
-			wp_enqueue_style( 'pb-data-table-css', plugins_url( '../assets/data-table.css', __FILE__ ) );
+			wp_enqueue_script( 'pb-data-table-js', plugins_url( '../assets/data-table.js', __FILE__ ), array( 'jquery' ), PB_VERSION, true );
+			wp_enqueue_style( 'pb-data-table-css', plugins_url( '../assets/data-table.css', __FILE__ ), array(), PB_VERSION );
 		}
 
 		/**

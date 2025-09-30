@@ -592,7 +592,7 @@ function enqueue_portal_county_region_script()
         $script_url = get_portal_county_region_script_url($post->ID);
 
         if (! empty($script_url)) {
-            wp_enqueue_script('portal-county-region-script', $script_url, array( 'jquery', 'jquery-ui-core' ), null, true);
+            wp_enqueue_script('portal-county-region-script', $script_url, array( 'jquery', 'jquery-ui-core' ), PB_VERSION, true);
         }
     }
 }
@@ -606,7 +606,7 @@ function enqueue_recaptcha_script()
         $script_url = 'https://www.google.com/recaptcha/api.js';
 
         if (! empty($script_url)) {
-            wp_enqueue_script('recaptcha', $script_url, array(), null, true);
+            wp_enqueue_script('recaptcha', $script_url, array(), PB_VERSION, true);
         }
     }
 }
@@ -625,10 +625,10 @@ function portal_enqueue_styles()
 {
     // Check if we are on a single portal post
     if (is_singular('portal')) {
-        wp_enqueue_style('portal-styles', plugins_url('../assets/portal.css', __FILE__));
+        wp_enqueue_style('portal-styles', plugins_url('../assets/portal.css', __FILE__), array(), PB_VERSION);
 
         // enqueue portal.js
-        wp_enqueue_script('portal-js', plugins_url('../assets/portal.js', __FILE__), array( 'jquery' ), null, true);
+        wp_enqueue_script('portal-js', plugins_url('../assets/portal.js', __FILE__), array( 'jquery' ), PB_VERSION, true);
     }
 }
 add_action('wp_enqueue_scripts', 'portal_enqueue_styles');

@@ -139,9 +139,9 @@ if ( ! class_exists( 'Portal_Meta' ) ) {
 		}
 
 		public function enqueue_scripts() {
-			wp_enqueue_style( 'portal-meta-box-styles', plugins_url( '../assets/portal-meta-box.css', __FILE__ ) );
-			wp_enqueue_script( 'portal-meta-box-script', plugins_url( '../assets/portal-meta-box.js', __FILE__ ), [ 'jquery' ], null, true );
-			wp_enqueue_script( 'pb-url-validation', plugins_url( '../assets/url-validation.js', __FILE__ ), [ 'jquery' ], null, true );
+			wp_enqueue_style( 'portal-meta-box-styles', plugins_url( '../assets/portal-meta-box.css', __FILE__ ), array(), PB_VERSION );
+			wp_enqueue_script( 'portal-meta-box-script', plugins_url( '../assets/portal-meta-box.js', __FILE__ ), [ 'jquery' ], PB_VERSION, true );
+			wp_enqueue_script( 'pb-url-validation', plugins_url( '../assets/url-validation.js', __FILE__ ), [ 'jquery' ], PB_VERSION, true );
 		}
 
 		public function validate_url_callback() {

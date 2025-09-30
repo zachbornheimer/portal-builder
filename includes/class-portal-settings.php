@@ -434,9 +434,9 @@ if (! class_exists('Portal_Settings')) {
         public function enqueue_admin_scripts()
         {
             // Enqueue CSS and JS for protected code fields and URL validation
-            wp_enqueue_style('pb-admin-css', plugins_url('../assets/admin.css', __FILE__));
-            wp_enqueue_script('pb-admin-js', plugins_url('../assets/admin.js', __FILE__), array( 'jquery' ), null, true);
-            wp_enqueue_script('pb-admin-js', plugins_url('../assets/url-validation.js', __FILE__), array( 'jquery' ), null, true);
+            wp_enqueue_style('pb-admin-css', plugins_url('../assets/admin.css', __FILE__), array(), PB_VERSION);
+            wp_enqueue_script('pb-admin-js', plugins_url('../assets/admin.js', __FILE__), array( 'jquery' ), PB_VERSION, true);
+            wp_enqueue_script('pb-url-validation-js', plugins_url('../assets/url-validation.js', __FILE__), array( 'jquery' ), PB_VERSION, true);
 
             // Localize the script with some data for translation or other dynamic values
             wp_localize_script(
