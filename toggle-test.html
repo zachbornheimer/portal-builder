@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Toggle Component Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      /* Custom styles to match the toggle component */
+      .toggle-container {
+        position: relative;
+        display: inline-flex;
+        width: 2.75rem;
+        flex-shrink: 0;
+        border-radius: 9999px;
+        background-color: rgb(229 231 235);
+        padding: 0.125rem;
+        outline-offset: 2px;
+        outline-color: rgb(79 70 229);
+        box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+        transition-property: color, background-color, border-color,
+          text-decoration-color, fill, stroke;
+        transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+        transition-duration: 200ms;
+      }
+
+      .toggle-container:has(:checked) {
+        background-color: rgb(79 70 229);
+      }
+
+      .toggle-container:has(:focus-visible) {
+        outline: 2px solid transparent;
+        outline-offset: 2px;
+      }
+
+      .toggle-knob {
+        height: 1.25rem;
+        width: 1.25rem;
+        border-radius: 9999px;
+        background-color: white;
+        box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+        box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+        transition-property: transform;
+        transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+        transition-duration: 200ms;
+      }
+
+      .toggle-container:has(:checked) .toggle-knob {
+        transform: translateX(1.25rem);
+      }
+
+      .toggle-input {
+        position: absolute;
+        inset: 0;
+        appearance: none;
+      }
+
+      .toggle-input:focus {
+        outline: none;
+      }
+    </style>
+  </head>
+  <body class="bg-gray-50 p-8">
+    <div class="max-w-md mx-auto bg-white rounded-lg shadow-sm p-6">
+      <h1 class="text-xl font-semibold text-gray-900 mb-6">
+        Toggle Component Test
+      </h1>
+
+      <div class="space-y-4">
+        <div class="flex items-center justify-between">
+          <label class="text-sm font-medium text-gray-700"
+            >Enable Notifications</label
+          >
+          <div class="toggle-container">
+            <span class="toggle-knob"></span>
+            <input
+              type="checkbox"
+              class="toggle-input"
+              name="notifications"
+              aria-label="Enable Notifications"
+            />
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between">
+          <label class="text-sm font-medium text-gray-700">Dark Mode</label>
+          <div class="toggle-container">
+            <span class="toggle-knob"></span>
+            <input
+              type="checkbox"
+              class="toggle-input"
+              name="darkMode"
+              aria-label="Dark Mode"
+              checked
+            />
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between">
+          <label class="text-sm font-medium text-gray-700">Auto Save</label>
+          <div class="toggle-container">
+            <span class="toggle-knob"></span>
+            <input
+              type="checkbox"
+              class="toggle-input"
+              name="autoSave"
+              aria-label="Auto Save"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-6 p-3 bg-gray-100 rounded-md">
+        <h3 class="text-sm font-medium text-gray-900 mb-2">
+          Current Settings:
+        </h3>
+        <pre class="text-xs text-gray-600" id="settings-output">
+Check the toggles to see changes...</pre
+        >
+      </div>
+    </div>
+
+    <script>
+      // Simple JavaScript to demonstrate the toggle functionality
+      const toggles = document.querySelectorAll(".toggle-input");
+      const output = document.getElementById("settings-output");
+
+      function updateSettings() {
+        const settings = {};
+        toggles.forEach((toggle) => {
+          settings[toggle.name] = toggle.checked;
+        });
+        output.textContent = JSON.stringify(settings, null, 2);
+      }
+
+      toggles.forEach((toggle) => {
+        toggle.addEventListener("change", updateSettings);
+      });
+
+      // Initial update
+      updateSettings();
+    </script>
+  </body>
+</html>
+

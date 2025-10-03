@@ -437,6 +437,16 @@ if (! class_exists('Portal_Settings')) {
             wp_enqueue_style('pb-admin-css', plugins_url('../assets/admin.css', __FILE__), array(), PB_VERSION);
             wp_enqueue_script('pb-admin-js', plugins_url('../assets/admin.js', __FILE__), array( 'jquery' ), PB_VERSION, true);
             wp_enqueue_script('pb-url-validation-js', plugins_url('../assets/url-validation.js', __FILE__), array( 'jquery' ), PB_VERSION, true);
+            
+            // Enqueue Svelte columns manager
+            wp_enqueue_script('columns-manager', plugins_url('../assets/dist/columns-manager.js', __FILE__), array(), PB_VERSION, true);
+            // Add type="module" attribute
+            add_filter( 'script_loader_tag', function( $tag, $handle ) {
+                if ( 'columns-manager' === $handle ) {
+                    return str_replace( '<script ', '<script type="module" ', $tag );
+                }
+                return $tag;
+            }, 10, 2 );
 
             // Localize the script with some data for translation or other dynamic values
             wp_localize_script(

@@ -344,50 +344,7 @@ jQuery(document).ready(function ($) {
         document.body.removeChild(textArea);
     }
 
-    $('button.add-row').on('click', function () {
-        let $table = $(this).siblings('.data-table');
-        let $lastRow = $table.find('div[id*="-row-"]:last-child');
-
-        if ($lastRow.length === 0) {
-            // If no rows exist, we can't create a proper structure without knowing the field configuration
-            // The PHP should always create at least one empty row, so this shouldn't happen
-            console.warn('No existing rows found to clone. This may indicate a configuration issue.');
-            return;
-        } else {
-            // Clone the last row and clear its contents
-            let $newRow = $lastRow.clone();
-
-            // Generate a new unique ID for the cloned row
-            let tableId = $table.attr('id');
-            let newRowIndex = $table.find('div[id*="-row-"]').length;
-            $newRow.attr('id', tableId + '-row-' + newRowIndex);
-
-            // Clear all input values
-            $newRow.find('input[type="text"]').val('');
-            $newRow.find('input[type="hidden"]').val('');
-
-            // Remove any existing tags
-            $newRow.find('.tag').remove();
-
-            // Clear any tag containers and reset them properly
-            $newRow.find('.columns-tag-container').each(function () {
-                let $container = $(this);
-                // Keep the structure but clear tags and reset input
-                $container.find('.tag').remove();
-                $container.find('.tag-input').val('');
-                $container.find('.tag-hidden-field').val('');
-            });
-
-            // Insert the new row after the last row
-            $lastRow.after($newRow);
-
-            // Initialize the new row (for tag functionality, etc.)
-            initializeTableRow($newRow);
-
-            // Update table values
-            updateTableValues($table);
-        }
-    });
+    // Old "Add Row" functionality removed - now handled by segmented control "Add New" button
 
     const tagContainers = document.querySelectorAll(".columns-tag-container");
 
