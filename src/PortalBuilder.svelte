@@ -5,15 +5,26 @@
   import { SheetManager } from './SheetManager.js';
   import { globalStore } from './stores/GlobalStore.js';
   
-  export let columns = [];
-  export let initialData = [];
-  export let type = 'sheets';
-  export let metaKey = ''; // Configuration type: 'sheets' or 'drive'
+  /**
+   * @typedef {Object} Props
+   * @property {any} [columns]
+   * @property {any} [initialData]
+   * @property {string} [type]
+   * @property {string} [metaKey] - Configuration type: 'sheets' or 'drive'
+   */
+
+  /** @type {Props} */
+  let {
+    columns = [],
+    initialData = [],
+    type = 'sheets',
+    metaKey = ''
+  } = $props();
   
-  let sheetManager;
-  let tabs = [];
-  let activeSheet = null;
-  let sheets = [];
+  let sheetManager = $state();
+  let tabs = $state([]);
+  let activeSheet = $state(null);
+  let sheets = $state([]);
   
   onMount(() => {
     // Initialize sheet manager

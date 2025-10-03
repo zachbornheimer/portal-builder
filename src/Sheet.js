@@ -63,6 +63,17 @@ export class Sheet {
         this.store.set(this);
     }
 
+    moveColumn(startIndex, endIndex) {
+        console.log('moveColumn', startIndex, endIndex);
+        let columnA = this.columns[startIndex];
+        let columnB = this.columns[endIndex];
+
+        this.columns[startIndex] = columnB;
+        this.columns[endIndex] = columnA;
+
+        this.store.set(this);
+    }
+
     updateSheetId(sheetId) {
         this.sheetId = sheetId;
         this.store.set(this);

@@ -226,6 +226,43 @@ export class SheetManager {
         });
     }
 
+    moveColumn(sheetId, startIndex, endIndex) {
+        console.log(`🔄 moveColumn: moving column from ${startIndex} to ${endIndex} for sheet ${sheetId}`);
+        this.sheets.update(sheets => {
+            return sheets.map(sheet => {
+                if (sheet.id === sheetId) {
+                    sheet.moveColumn(startIndex, endIndex);
+    
+                    console.log(`✅ Moved column from ${startIndex} to ${endIndex}, columns now: ${sheet.columns}`);
+                    sheet.store.set(sheet);
+                    return sheet;
+                } else {
+                    console.log(`❌ Sheet ${sheet.id} does not match ${sheetId}`);
+                }
+                return sheet;
+            });
+        });
+    }
+
+    updateSheetColumns(sheetId, columns) {
+        console.log(`🔄 updateSheetColumns: updating columns for sheet ${sheetId}`);
+        this.sheets.update(sheets => {
+            return sheets.map(sheet => {
+                if (sheet.id === sheetId) {
+                    console.log(`✅ Found matching sheet: ${sheet.id}`);
+                    // Use the sheet's updateColumns method
+                    sheet.updateColumns(columns);
+                    console.log(`✅ Updated columns, new count: ${columns.length}`);
+                    sheet.store.set(sheet);
+                    return sheet;
+                } else {
+                    console.log(`❌ Sheet ${sheet.id} does not match ${sheetId}`);
+                }
+                return sheet;
+            });
+        });
+    }
+
     // Export data for form submission
     exportData() {
         return this.getSheets().map(sheet => {

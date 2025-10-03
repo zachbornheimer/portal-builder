@@ -2,13 +2,19 @@
   import { createEventDispatcher } from 'svelte';
   import DeleteConfirmModal from '../DeleteConfirmModal.svelte';
   
-  export let field;
-  export let value = '';
-  export let hasDeleteButton = false;
+  /**
+   * @typedef {Object} Props
+   * @property {any} field
+   * @property {string} [value]
+   * @property {boolean} [hasDeleteButton]
+   */
+
+  /** @type {Props} */
+  let { field, value = '', hasDeleteButton = false } = $props();
   
   const dispatch = createEventDispatcher();
   
-  let showDeleteModal = false;
+  let showDeleteModal = $state(false);
   
   function handleInput(event) {
     const newValue = event.target.value;
@@ -36,7 +42,7 @@
       <button 
         type="button" 
         class="delete-row bg-transparent text-gray-400 hover:text-red-600 border-none p-2 cursor-pointer rounded-md transition-colors duration-200"
-        on:click={handleDeleteClick}
+        onclick={handleDeleteClick}
         title="Delete row"
       >
         <span class="dashicons dashicons-trash"></span>
@@ -47,7 +53,7 @@
     type="text" 
     class="form-control w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-zysys-blue-500"
     {value}
-    on:input={handleInput}
+    oninput={handleInput}
   />
 </div>
 

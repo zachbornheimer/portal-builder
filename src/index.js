@@ -1,5 +1,6 @@
 import PortalBuilder from './PortalBuilder.svelte';
 import './styles.css';
+import { mount } from "svelte";
 
 // Initialize portal builder for each instance
 function initPortalBuilder() {
@@ -82,15 +83,15 @@ function initPortalBuilder() {
         });
 
         // Create the main portal builder component
-        const app = new PortalBuilder({
-            target: container,
-            props: {
-                columns,
-                initialData: initialData.length > 0 ? initialData : undefined,
-                type,
-                metaKey
-            }
-        });
+        const app = mount(PortalBuilder, {
+                    target: container,
+                    props: {
+                        columns,
+                        initialData: initialData.length > 0 ? initialData : undefined,
+                        type,
+                        metaKey
+                    }
+                });
 
         // Store reference for cleanup
         container._svelteApp = app;

@@ -2,44 +2,35 @@
   import { createEventDispatcher } from 'svelte';
   import { onMount } from 'svelte';
   
+  
+
   /**
-   * @component Combobox
-   * @fileoverview
-   * A reusable combobox component for searchable dropdown selections.
-   *
-   * Responsibilities:
-   * - Provides searchable dropdown functionality
-   * - Handles keyboard navigation and accessibility
-   * - Supports custom display values and filtering
-   * - Manages focus and blur states
-   *
-   * @example
-   * <Combobox 
-   *   options={people} 
-   *   selected={selectedPerson} 
-   *   on:change={(e) => setSelectedPerson(e.detail)}
-   *   displayValue={(person) => person?.name}
-   *   filterBy={(option, query) => option.name.toLowerCase().includes(query.toLowerCase())}
-   * />
-   *
-   * @returns {JSX.Element} Rendered combobox component
-   *
-   * @see TagsField
-   * @see FieldFactory
+   * @typedef {Object} Props
+   * @property {any} [options]
+   * @property {any} [selected]
+   * @property {string} [placeholder]
+   * @property {string} [label]
+   * @property {any} [displayValue]
+   * @property {any} [filterBy]
+   * @property {boolean} [allowCustom]
+   * @property {boolean} [disabled]
    */
 
-  export let options = [];
-  export let selected = null;
-  export let placeholder = 'Search...';
-  export let label = '';
-  export let displayValue = (item) => item?.name || '';
-  export let filterBy = (option, query) => {
+  /** @type {Props} */
+  let {
+    options = [],
+    selected = $bindable(null),
+    placeholder = 'Search...',
+    label = '',
+    displayValue = (item) => item?.name || '',
+    filterBy = (option, query) => {
     if (!query) return true;
     const searchText = displayValue(option).toLowerCase();
     return searchText.includes(query.toLowerCase());
-  };
-  export let allowCustom = false;
-  export let disabled = false;
+  },
+    allowCustom = false,
+    disabled = false
+  } = $props();
 
   const dispatch = createEventDispatcher();
   
@@ -49,17 +40,17 @@
     selected = null;
   }
   
-  let query = '';
-  let isOpen = false;
-  let inputElement;
-  let optionsElement;
-  let focusedIndex = -1;
+  let query = $state('');
+  let isOpen = $state(false);
+  let inputElement = $state();
+  let optionsElement = $state();
+  let focusedIndex = $state(-1);
   let inputId = `combobox-${Math.random().toString(36).substr(2, 9)}`;
 
   // Filter options based on query
-  $: filteredOptions = query === '' 
+  let filteredOptions = $derived(query === '' 
     ? options 
-    : options.filter(option => filterBy(option, query));
+    : options.filter(option => filterBy(option, query)));
 
   // Handle input changes
   function handleInput(event) {
@@ -166,17 +157,17 @@
       class="block w-full rounded-md bg-white py-1.5 pl-3 pr-12 text-base text-gray-900 outline outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6 {disabled ? 'opacity-50 cursor-not-allowed' : ''}"
       placeholder={placeholder}
       value={query || displayValue(selected)}
-      on:input={handleInput}
-      on:focus={handleFocus}
-      on:blur={handleBlur}
-      on:keydown={handleKeydown}
+      oninput={handleInput}
+      onfocus={handleFocus}
+      onblur={handleBlur}
+      onkeydown={handleKeydown}
       {disabled}
     />
     
     <button
       type="button"
       class="absolute inset-y-0 right-0 flex items-center rounded-r-md px-2 focus:outline-none {disabled ? 'cursor-not-allowed' : ''}"
-      on:click={() => isOpen = !isOpen}
+      onclick={() => isOpen = !isOpen}
       {disabled}
     >
       <svg 
@@ -199,8 +190,8 @@
           <button
             type="button"
             class="w-full text-left cursor-default select-none px-3 py-2 text-gray-900 hover:bg-indigo-600 hover:text-white focus:bg-indigo-600 focus:text-white focus:outline-none {focusedIndex === -1 ? 'bg-indigo-600 text-white' : ''}"
-            on:click={handleCustomOption}
-            on:mouseenter={() => focusedIndex = -1}
+            onclick={handleCustomOption}
+            onmouseenter={() => focusedIndex = -1}
           >
             Create "{query}"
           </button>
@@ -210,8 +201,8 @@
           <button
             type="button"
             class="w-full text-left cursor-default select-none px-3 py-2 text-gray-900 hover:bg-indigo-600 hover:text-white focus:bg-indigo-600 focus:text-white focus:outline-none {focusedIndex === index ? 'bg-indigo-600 text-white' : ''}"
-            on:click={() => selectOption(option)}
-            on:mouseenter={() => focusedIndex = index}
+            onclick={() => selectOption(option)}
+            onmouseenter={() => focusedIndex = index}
           >
             <div class="flex flex-col">
               <span class="block truncate">{displayValue(option)}</span>
