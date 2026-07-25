@@ -22,13 +22,17 @@ if ( have_posts() ) :
 
 			<div class="wp-block-group">
 				<?php echo do_shortcode( '[portal-application-formstart]' ); ?>
-				
-				<?php if ( isset( $_POST['review_nonce'] ) ) : ?>
+
+				<?php if ( isset( $_POST['review_nonce'] ) ) : // phpcs:ignore WordPress.Security.NonceVerification.Missing ?>
 					<?php echo do_shortcode( '[portal-application-file-review]' ); ?>
 				<?php endif; ?>
 
 				<div class="wp-block-group alignfull" style="padding-top:var(--wp--preset--spacing--50); margin-bottom:var(--wp--preset--spacing--40);">
-					<?php the_content(); ?>
+					<?php
+					// Definition-backed portals: renderer via the_content filter (priority 9).
+					// Classic shortcode bodies still work when no _portal_definition meta.
+					the_content();
+					?>
 				</div>
 
 				<?php echo do_shortcode( '[portal-application-agreements]' ); ?>
