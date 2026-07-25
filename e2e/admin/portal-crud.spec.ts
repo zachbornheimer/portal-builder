@@ -144,16 +144,19 @@ test.describe('portal admin CRUD matrix', () => {
 			{ timeout: UI_TIMEOUT_MS },
 		);
 
-		// TRASH via list row action href (nonce-bearing submitdelete)
-		await listRow.hover();
+		// TRASH via list row action href (nonce-bearing submitdelete).
+		// Do not hover — under LocalWP load rows can sit outside the viewport and
+		// hover stalls; the href is already in the DOM.
 		const trashHref = await page.evaluate((id) => {
 			const row = document.querySelector(
 				`#post-${id} a.submitdelete`,
 			) as HTMLAnchorElement | null;
-			return row?.href ?? null;
+			return row?.getAttribute('href') ?? row?.href ?? null;
 		}, portalId);
 		expect(trashHref, 'trash row action href missing').toBeTruthy();
-		await gotoWithRetry(page, trashHref!);
+		// Relative href → absolute for goto
+		const trashUrl = new URL(trashHref!, env.baseUrl).toString();
+		await gotoWithRetry(page, trashUrl);
 
 		// Confirm in trash list
 		await gotoWithRetry(page, PORTAL_TRASH_LIST);
