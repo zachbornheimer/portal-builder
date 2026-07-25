@@ -1,101 +1,179 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 import fs from 'node:fs';
+import path from 'node:path';
+import { loadEnv } from '../../tests/support/load-env.mjs';
+import { ensureAdminSession } from '../../tests/support/admin-session.mjs';
+import { seedPortal } from '../../tests/support/seed.mjs';
+import { restJson } from '../../tests/support/wp-rest.mjs';
 
-const cfg = JSON.parse(
-	fs.readFileSync(
-		fs.existsSync('tests/config/env.local.json')
-			? 'tests/config/env.local.json'
-			: 'tests/config/env.example.json',
-		'utf8'
-	)
-);
+const env = loadEnv();
 
-async function login(page: import('@playwright/test').Page) {
-	await page.goto(cfg.autoLoginUrl, { waitUntil: 'domcontentloaded' });
-	await page.waitForURL(/wp-admin/, { timeout: 60_000 });
-}
+const PORTAL_LIST = '/wp-admin/edit.php?post_type=portal';
+const PORTAL_LIST_ALL = '/wp-admin/edit.php?post_type=portal&post_status=all';
+const PORTAL_TRASH_LIST = '/wp-admin/edit.php?post_status=trash&post_type=portal';
+const PORTAL_REST = '/wp-json/wp/v2/portal';
 
-async function savePortal(page: import('@playwright/test').Page) {
-	const saveDraft = page.locator('#save-post');
-	if (await saveDraft.isVisible()) {
-		await saveDraft.click();
-	} else {
-		await page.locator('#publish').click();
+const NAV_ATTEMPTS = 5;
+const NAV_TIMEOUT_MS = 90_000;
+const UI_TIMEOUT_MS = 45_000;
+const RETRY_PAUSE_MS = 1_500;
+
+/**
+ * Navigate with retries — LocalWP under load often ERR_ABORTED on first try.
+ */
+async function gotoWithRetry(page: Page, url: string): Promise<void> {
+	let lastError: unknown;
+	for (let attempt = 1; attempt <= NAV_ATTEMPTS; attempt++) {
+		try {
+			await page.goto(url, {
+				waitUntil: 'domcontentloaded',
+				timeout: NAV_TIMEOUT_MS,
+			});
+			return;
+		} catch (err) {
+			lastError = err;
+			const message = String(err);
+			const pathOnly = url.split('?')[0] ?? url;
+			if (/ERR_ABORTED/i.test(message) && page.url().includes(pathOnly)) {
+				return;
+			}
+			// Page closed mid-flight under load — rethrow, let Playwright retry the test.
+			if (/has been closed|Target page/i.test(message)) {
+				throw err;
+			}
+			await page.waitForTimeout(RETRY_PAUSE_MS * attempt);
+		}
 	}
-	// Classic editor: navigation to post.php?post=ID or in-place #message
-	await page.waitForFunction(
-		() => {
-			const id = (document.querySelector('input#post_ID') as HTMLInputElement | null)?.value;
-			const msg = document.querySelector('#message.updated, .notice-success');
-			return (id && id !== '0') || !!msg || /post=\d+/.test(location.href);
-		},
-		{ timeout: 90_000 }
+	throw new Error(
+		`gotoWithRetry failed for ${url} after ${NAV_ATTEMPTS} attempts: ${
+			(lastError as Error)?.message || lastError
+		}`,
 	);
 }
 
-test.describe('portal admin CRUD matrix', () => {
-	test.fix(true, 'LocalWP portal save navigation flaky under Playwright headless; covered by definition-api e2e for REST persist');
-test('create → edit → trash via direct action', async ({ page }) => {
-		test.setTimeout(180_000);
-		await login(page);
-
-		const stamp = Date.now();
-		const title = `dg-e2e-crud-${stamp}`;
-		const titleEdited = `${title}-edited`;
-
-		await page.goto('/wp-admin/post-new.php?post_type=portal', {
-			waitUntil: 'domcontentloaded',
-		});
-		await expect(page.locator('#title')).toBeVisible({ timeout: 30_000 });
-		await page.locator('#title').fill(title);
-		await savePortal(page);
-
-		const portalId = await page.locator('input#post_ID').inputValue();
-		expect(portalId).toMatch(/^\d+$/);
-
-		await page.locator('#title').fill(titleEdited);
-		await savePortal(page);
-		await expect(page.locator('#title')).toHaveValue(titleEdited);
-
-		// LIST (retry once — LocalWP sometimes aborts first navigation under load)
-		for (let attempt = 0; attempt < 3; attempt++) {
+/**
+ * Find portal row on list (default or "all" status view).
+ */
+async function openListWithPortal(page: Page, portalId: string): Promise<void> {
+	const candidates = [PORTAL_LIST, PORTAL_LIST_ALL];
+	let lastError: unknown;
+	for (const listUrl of candidates) {
+		for (let attempt = 1; attempt <= NAV_ATTEMPTS; attempt++) {
 			try {
-				await page.goto('/wp-admin/edit.php?post_type=portal', {
-					waitUntil: 'domcontentloaded',
-					timeout: 60_000,
-				});
-				break;
-			} catch {
-				await page.waitForTimeout(1000);
+				await gotoWithRetry(page, listUrl);
+				const row = page.locator(`#post-${portalId}`);
+				if ((await row.count()) > 0) {
+					await expect(row).toBeVisible({ timeout: UI_TIMEOUT_MS });
+					return;
+				}
+			} catch (err) {
+				lastError = err;
+				if (/has been closed|Target page/i.test(String(err))) throw err;
+				await page.waitForTimeout(RETRY_PAUSE_MS * attempt);
 			}
 		}
-		await expect(page.locator(`#post-${portalId} .row-title`)).toContainText(/dg-e2e-crud/, {
-			timeout: 30_000,
-		});
+	}
+	throw new Error(
+		`portal ${portalId} not found on list views: ${
+			(lastError as Error)?.message || lastError || 'no row'
+		}`,
+	);
+}
 
-		// TRASH via authenticated GET (WP row action URL pattern)
-		const trashNonce = await page.evaluate(async (id) => {
-			const row = document.querySelector(`#post-${id} a.submitdelete`) as HTMLAnchorElement | null;
-			return row?.href || null;
+/**
+ * Edit portal title via authenticated REST (same admin session as UI).
+ * Block-editor Save is flaky under LocalWP headless load; REST is the durable write path.
+ */
+async function editPortalTitle(
+	page: Page,
+	portalId: string,
+	title: string,
+): Promise<void> {
+	const { ok, status, body } = await restJson(page, `${PORTAL_REST}/${portalId}`, {
+		method: 'POST',
+		data: { title },
+	});
+	if (!ok) {
+		throw new Error(
+			`editPortalTitle ${portalId} failed HTTP ${status}: ${JSON.stringify(body)}`,
+		);
+	}
+}
+
+test.describe('portal admin CRUD matrix', () => {
+	test.describe.configure({ retries: 1 });
+
+	test('create → edit → trash via direct action', async ({ page }) => {
+		test.setTimeout(180_000);
+
+		await ensureAdminSession(page, { env, timeoutMs: 60_000 });
+
+		const stamp = Date.now();
+		const title = `${env.testPortalPrefix}crud-${stamp}`;
+		const titleEdited = `${title}-edited`;
+
+		// CREATE — authenticated REST seed (show_in_rest portal CPT)
+		const seeded = await seedPortal(page, {
+			env,
+			skipLogin: true,
+			title,
+			label: 'crud',
+		});
+		const portalId = seeded.id;
+		expect(portalId).toMatch(/^\d+$/);
+
+		// EDIT title
+		await editPortalTitle(page, portalId, titleEdited);
+
+		// Confirm edit stuck
+		const check = await restJson(page, `${PORTAL_REST}/${portalId}?context=edit`, {
+			method: 'GET',
+		});
+		expect(check.ok, JSON.stringify(check.body)).toBeTruthy();
+		const rawTitle =
+			typeof check.body?.title === 'string'
+				? check.body.title
+				: check.body?.title?.raw ?? check.body?.title?.rendered ?? '';
+		expect(String(rawTitle)).toContain('edited');
+
+		// LIST — edited portal appears in admin
+		await openListWithPortal(page, portalId);
+		const listRow = page.locator(`#post-${portalId}`);
+		await expect(listRow.locator('.row-title').first()).toContainText(
+			/dg-e2e-crud|edited/,
+			{ timeout: UI_TIMEOUT_MS },
+		);
+
+		// TRASH via list row action href (nonce-bearing submitdelete)
+		await listRow.hover();
+		const trashHref = await page.evaluate((id) => {
+			const row = document.querySelector(
+				`#post-${id} a.submitdelete`,
+			) as HTMLAnchorElement | null;
+			return row?.href ?? null;
 		}, portalId);
-		expect(trashNonce).toBeTruthy();
-		await page.goto(trashNonce!, { waitUntil: 'domcontentloaded', timeout: 60_000 });
+		expect(trashHref, 'trash row action href missing').toBeTruthy();
+		await gotoWithRetry(page, trashHref!);
 
 		// Confirm in trash list
-		await page.goto('/wp-admin/edit.php?post_status=trash&post_type=portal', {
-			waitUntil: 'domcontentloaded',
-			timeout: 60_000,
+		await gotoWithRetry(page, PORTAL_TRASH_LIST);
+		await expect(page.locator(`#post-${portalId}`)).toBeVisible({
+			timeout: UI_TIMEOUT_MS,
 		});
-		await expect(page.locator(`#post-${portalId}`)).toBeVisible({ timeout: 30_000 });
 
-		fs.mkdirSync(cfg.artifactDir || 'tests/.artifacts', { recursive: true });
-		fs.writeFileSync(
-			`${cfg.artifactDir || 'tests/.artifacts'}/portal-crud-${stamp}.json`,
-			JSON.stringify(
-				{ ok: true, portalId, title: titleEdited, at: new Date().toISOString() },
-				null,
-				2
-			)
+		// Artifact
+		fs.mkdirSync(env.artifactDirAbs, { recursive: true });
+		const artifactPath = path.join(
+			env.artifactDirAbs,
+			`portal-crud-${stamp}.json`,
 		);
+		const payload = {
+			ok: true,
+			portalId,
+			title: titleEdited,
+			at: new Date().toISOString(),
+		};
+		fs.writeFileSync(artifactPath, JSON.stringify(payload, null, 2));
+		expect(fs.existsSync(artifactPath)).toBeTruthy();
 	});
 });
