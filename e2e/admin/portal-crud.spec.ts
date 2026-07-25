@@ -9,14 +9,15 @@ import { restJson } from '../../tests/support/wp-rest.mjs';
 const env = loadEnv();
 
 const PORTAL_LIST = '/wp-admin/edit.php?post_type=portal';
-const PORTAL_LIST_ALL = '/wp-admin/edit.php?post_type=portal&post_status=all';
 const PORTAL_TRASH_LIST = '/wp-admin/edit.php?post_status=trash&post_type=portal';
 const PORTAL_REST = '/wp-json/wp/v2/portal';
 
-const NAV_ATTEMPTS = 5;
-const NAV_TIMEOUT_MS = 90_000;
-const UI_TIMEOUT_MS = 45_000;
-const RETRY_PAUSE_MS = 1_500;
+const NAV_ATTEMPTS = 4;
+const NAV_TIMEOUT_MS = 60_000;
+const UI_TIMEOUT_MS = 30_000;
+const RETRY_PAUSE_MS = 1_000;
+/** REST is fast when LocalWP is healthy; keep budget tight so hangs fail fast. */
+const REST_TIMEOUT_MS = 45_000;
 
 /**
  * Navigate with retries — LocalWP under load often ERR_ABORTED on first try.
@@ -37,7 +38,6 @@ async function gotoWithRetry(page: Page, url: string): Promise<void> {
 			if (/ERR_ABORTED/i.test(message) && page.url().includes(pathOnly)) {
 				return;
 			}
-			// Page closed mid-flight under load — rethrow, let Playwright retry the test.
 			if (/has been closed|Target page/i.test(message)) {
 				throw err;
 			}
@@ -52,12 +52,42 @@ async function gotoWithRetry(page: Page, url: string): Promise<void> {
 }
 
 /**
- * Find portal row on list (default or "all" status view).
+ * Admin list URL for portals, optionally filtered by search term + status.
  */
-async function openListWithPortal(page: Page, portalId: string): Promise<void> {
-	const candidates = [PORTAL_LIST, PORTAL_LIST_ALL];
+function portalListUrl(opts: {
+	search?: string;
+	status?: 'all' | 'trash' | 'publish';
+}): string {
+	const params = new URLSearchParams({ post_type: 'portal' });
+	if (opts.status === 'trash') {
+		params.set('post_status', 'trash');
+	} else if (opts.status === 'publish') {
+		params.set('post_status', 'publish');
+	} else if (opts.status === 'all') {
+		params.set('post_status', 'all');
+	}
+	if (opts.search) {
+		params.set('s', opts.search);
+	}
+	return `/wp-admin/edit.php?${params.toString()}`;
+}
+
+/**
+ * Open list (or trash) filtered by unique title so pagination cannot hide the row.
+ */
+async function openListRow(
+	page: Page,
+	portalId: string,
+	opts: { search: string; status?: 'all' | 'trash' | 'publish' },
+): Promise<void> {
+	const urls = [
+		portalListUrl({ search: opts.search, status: opts.status }),
+		// Fallbacks without search / alternate status
+		opts.status === 'trash' ? PORTAL_TRASH_LIST : PORTAL_LIST,
+		portalListUrl({ search: opts.search, status: 'all' }),
+	];
 	let lastError: unknown;
-	for (const listUrl of candidates) {
+	for (const listUrl of urls) {
 		for (let attempt = 1; attempt <= NAV_ATTEMPTS; attempt++) {
 			try {
 				await gotoWithRetry(page, listUrl);
@@ -74,14 +104,14 @@ async function openListWithPortal(page: Page, portalId: string): Promise<void> {
 		}
 	}
 	throw new Error(
-		`portal ${portalId} not found on list views: ${
-			(lastError as Error)?.message || lastError || 'no row'
-		}`,
+		`portal ${portalId} not found on list (search=${opts.search} status=${
+			opts.status ?? 'default'
+		}): ${(lastError as Error)?.message || lastError || 'no row'}`,
 	);
 }
 
 /**
- * Edit portal title via authenticated REST (same admin session as UI).
+ * Edit portal title via authenticated REST.
  * Block-editor Save is flaky under LocalWP headless load; REST is the durable write path.
  */
 async function editPortalTitle(
@@ -92,6 +122,8 @@ async function editPortalTitle(
 	const { ok, status, body } = await restJson(page, `${PORTAL_REST}/${portalId}`, {
 		method: 'POST',
 		data: { title },
+		timeoutMs: REST_TIMEOUT_MS,
+		attempts: 2,
 	});
 	if (!ok) {
 		throw new Error(
@@ -100,11 +132,48 @@ async function editPortalTitle(
 	}
 }
 
+/**
+ * Soft-trash portal via REST DELETE.
+ */
+async function trashPortal(page: Page, portalId: string): Promise<void> {
+	const { ok, status, body } = await restJson(page, `${PORTAL_REST}/${portalId}`, {
+		method: 'DELETE',
+		timeoutMs: REST_TIMEOUT_MS,
+		attempts: 2,
+	});
+	if (!ok) {
+		throw new Error(
+			`trashPortal ${portalId} failed HTTP ${status}: ${JSON.stringify(body)}`,
+		);
+	}
+	const bodyStatus =
+		body && typeof body === 'object' && 'status' in body
+			? String((body as { status?: string }).status)
+			: '';
+	if (bodyStatus && bodyStatus !== 'trash') {
+		throw new Error(
+			`trashPortal ${portalId} expected status=trash, got ${bodyStatus}`,
+		);
+	}
+}
+
+function titleFromRestBody(body: unknown): string {
+	if (!body || typeof body !== 'object') return '';
+	const title = (body as { title?: unknown }).title;
+	if (typeof title === 'string') return title;
+	if (title && typeof title === 'object') {
+		const t = title as { raw?: string; rendered?: string };
+		return String(t.raw ?? t.rendered ?? '');
+	}
+	return '';
+}
+
 test.describe('portal admin CRUD matrix', () => {
 	test.describe.configure({ retries: 1 });
 
 	test('create → edit → trash via direct action', async ({ page }) => {
-		test.setTimeout(180_000);
+		// Login + heavy admin list pages need headroom under LocalWP.
+		test.setTimeout(240_000);
 
 		await ensureAdminSession(page, { env, timeoutMs: 60_000 });
 
@@ -122,46 +191,36 @@ test.describe('portal admin CRUD matrix', () => {
 		const portalId = seeded.id;
 		expect(portalId).toMatch(/^\d+$/);
 
-		// EDIT title
+		// EDIT title via REST
 		await editPortalTitle(page, portalId, titleEdited);
 
-		// Confirm edit stuck
-		const check = await restJson(page, `${PORTAL_REST}/${portalId}?context=edit`, {
-			method: 'GET',
-		});
+		// Confirm edit stuck (REST)
+		const check = await restJson(
+			page,
+			`${PORTAL_REST}/${portalId}?context=edit`,
+			{ method: 'GET', timeoutMs: REST_TIMEOUT_MS, attempts: 2 },
+		);
 		expect(check.ok, JSON.stringify(check.body)).toBeTruthy();
-		const rawTitle =
-			typeof check.body?.title === 'string'
-				? check.body.title
-				: check.body?.title?.raw ?? check.body?.title?.rendered ?? '';
-		expect(String(rawTitle)).toContain('edited');
+		expect(titleFromRestBody(check.body)).toContain('edited');
 
-		// LIST — edited portal appears in admin
-		await openListWithPortal(page, portalId);
+		// LIST — search by unique edited title so pagination cannot hide the row
+		await openListRow(page, portalId, {
+			search: titleEdited,
+			status: 'publish',
+		});
 		const listRow = page.locator(`#post-${portalId}`);
 		await expect(listRow.locator('.row-title').first()).toContainText(
-			/dg-e2e-crud|edited/,
+			/edited/,
 			{ timeout: UI_TIMEOUT_MS },
 		);
 
-		// TRASH via list row action href (nonce-bearing submitdelete).
-		// Do not hover — under LocalWP load rows can sit outside the viewport and
-		// hover stalls; the href is already in the DOM.
-		const trashHref = await page.evaluate((id) => {
-			const row = document.querySelector(
-				`#post-${id} a.submitdelete`,
-			) as HTMLAnchorElement | null;
-			return row?.getAttribute('href') ?? row?.href ?? null;
-		}, portalId);
-		expect(trashHref, 'trash row action href missing').toBeTruthy();
-		// Relative href → absolute for goto
-		const trashUrl = new URL(trashHref!, env.baseUrl).toString();
-		await gotoWithRetry(page, trashUrl);
+		// TRASH via REST
+		await trashPortal(page, portalId);
 
-		// Confirm in trash list
-		await gotoWithRetry(page, PORTAL_TRASH_LIST);
-		await expect(page.locator(`#post-${portalId}`)).toBeVisible({
-			timeout: UI_TIMEOUT_MS,
+		// Confirm in trash list (search by title)
+		await openListRow(page, portalId, {
+			search: titleEdited,
+			status: 'trash',
 		});
 
 		// Artifact

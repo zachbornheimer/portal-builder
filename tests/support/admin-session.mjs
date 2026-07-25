@@ -86,12 +86,20 @@ export async function ensureAdminSession(page, opts = {}) {
 				}
 			}
 
-			// Confirm session cookie is usable by hitting admin home
-			if (!/wp-admin\/?$|wp-admin\/index\.php|wp-admin\/\?/.test(page.url())) {
+			// Auto-login query params can leave the browser on a non-shell admin URL.
+			// Always land on plain admin home so wpApiSettings / #wpadminbar are present.
+			if (
+				!/wp-admin\/?$|wp-admin\/index\.php$/.test(page.url().replace(/[?#].*$/, ''))
+			) {
 				await page.goto(adminHome, {
 					waitUntil: 'domcontentloaded',
 					timeout: timeoutMs,
-				}).catch(() => {});
+				}).catch(async (err) => {
+					if (/ERR_ABORTED/i.test(String(err)) && ADMIN_URL_PATTERN.test(page.url())) {
+						return;
+					}
+					// Keep going — cookie may still be valid; bar check below is the gate.
+				});
 			}
 
 			// Reject login screen masquerading as success
