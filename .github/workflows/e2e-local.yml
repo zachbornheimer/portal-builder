@@ -1,0 +1,72 @@
+# Manual e2e gate — requires LocalWP (or self-hosted runner with the site).
+# Default GitHub-hosted runners cannot reach localhost:10033; this is a stub
+# for self-hosted runners and a documented entry point for Phase 9 CI expansion.
+name: E2E (LocalWP)
+
+on:
+  workflow_dispatch:
+    inputs:
+      suite:
+        description: "Playwright suite to run"
+        required: true
+        default: smoke
+        type: choice
+        options:
+          - smoke
+          - admin
+          - public
+          - pipeline
+          - all
+
+jobs:
+  e2e:
+    name: e2e-${{ inputs.suite }}
+    # Self-hosted runner with LocalWP + plugin symlink; override label as needed.
+    runs-on: [self-hosted, localwp]
+    timeout-minutes: 30
+    # Stub: job is intentionally not force-run on push. Fail loudly if someone
+    # triggers it without a matching runner (better than silent skip).
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install chromium --with-deps
+
+      - name: Assert Local env
+        run: npm run test:env
+
+      - name: Run suite
+        env:
+          CI: "1"
+          DG_TEST_MODE: "1"
+        run: |
+          case "${{ inputs.suite }}" in
+            smoke)    npm run test:e2e:smoke ;;
+            admin)    npm run test:e2e:admin ;;
+            public)   npm run test:e2e:public ;;
+            pipeline) npm run test:e2e:pipeline ;;
+            all)      npm run test:e2e ;;
+            *)        echo "Unknown suite: ${{ inputs.suite }}" >&2; exit 1 ;;
+          esac
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-${{ inputs.suite }}
+          path: |
+            playwright-report/
+            test-results/
+            tests/.artifacts/
+          if-no-files-found: ignore
+          retention-days: 7

@@ -14,15 +14,29 @@
 | `npm run test:env` | Assert URLs, symlink realpath, fixtures |
 | `npm run test:mocks` | Sheet/Drive/mail file-backed selftest |
 | `npm run test:unit` | Node unit tests |
+| `npm run test:e2e` | Full Playwright suite |
 | `npm run test:e2e:smoke` | Auto-login → Portals list → seed → cleanup |
-| `node tests/support/seed.mjs` | Create one `dg-e2e-*` portal (CLI) |
-| `node tests/support/cleanup.mjs` | Remove all `dg-e2e-*` portals (+ registry) |
-| `node tests/support/cleanup.mjs --id=N` | Remove one portal by id |
-| `npm run ci` | env + mocks + unit + smoke |
+| `npm run test:e2e:admin` | Admin CRUD + definition specs |
+| `npm run test:e2e:public` | Public form + closed/preview |
+| `npm run test:e2e:pipeline` | Submit → mock sheet/drive/mail |
+| `npm run test:seed` | Create one `dg-e2e-*` portal (CLI) |
+| `npm run test:cleanup` | Remove all `dg-e2e-*` portals (+ registry) |
+| `npm run test:import` | Importer fixture match (Phase 6) |
+| `npm run ci:offline` | mocks + unit (no LocalWP; GH-safe) |
+| `npm run ci` | env + mocks + unit + smoke (LocalWP required) |
 
 Artifacts land in `tests/.artifacts/` (gitignored). Seed registry: `tests/.artifacts/seeded-portals.json`.
 
+## CI gates
+
+| Workflow | Trigger | Runs |
+|----------|---------|------|
+| `.github/workflows/ci.yml` | push/PR to `main` | `npm run ci:offline` |
+| `.github/workflows/e2e-local.yml` | `workflow_dispatch` | `test:env` + chosen e2e suite on self-hosted LocalWP |
+
+**Local-only gate:** e2e needs `isjac-overhaul` (or equivalent) at `baseUrl` with the plugin symlink. GitHub-hosted runners cannot reach LocalWP; use a self-hosted runner labeled `localwp` or run `npm run ci` on the Mac.
+
 ## Workflow
 
-Phase runner: `.grok/workflows/dragongate-rewrite.rhai`  
+Phase runner: `workflows/dragongate-rewrite.rhai`  
 Invoke with `args.phase` 0–9.
