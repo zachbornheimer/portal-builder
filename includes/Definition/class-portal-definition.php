@@ -193,5 +193,23 @@ if ( ! class_exists( 'Portal_Definition' ) ) {
 		public static function to_json( $definition ) {
 			return wp_json_encode( $definition );
 		}
+
+		/**
+		 * Load and validate definition meta for a portal post.
+		 *
+		 * @param int $post_id Portal post ID.
+		 * @return array|null Validated definition, or null if missing/invalid.
+		 */
+		public static function load_for_post( $post_id ) {
+			$raw = get_post_meta( (int) $post_id, self::META_KEY, true );
+			if ( ! is_string( $raw ) || '' === trim( $raw ) ) {
+				return null;
+			}
+			$validated = self::from_json( $raw );
+			if ( is_wp_error( $validated ) ) {
+				return null;
+			}
+			return $validated;
+		}
 	}
 }

@@ -51,6 +51,9 @@ require_once plugin_dir_path( __FILE__ ) . 'includes/class-portal-file-handler.p
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-data-table.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-portal-about.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/Definition/class-portal-definition.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/Definition/class-portal-definition-renderer.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/Definition/class-portal-open-state.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/Definition/class-portal-public-render.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-portal-definition-rest.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/templates.php';
 require_once plugin_dir_path( __FILE__ ) . 'gsuite-filestore/zysys-file-store.class.php';
@@ -516,56 +519,17 @@ function pb_decrypt_str( $string ) {
 
 
 
-// Function to check if the application deadline has passed
+/**
+ * Whether the application deadline has passed (legacy helper; prefers definition publish).
+ *
+ * @param int $post_id Portal post ID.
+ * @return bool True when the portal is not open (deadline, forceClosed, or not published).
+ */
 function is_application_deadline_passed( $post_id ) {
-	// Retrieve the deadline and timezone index from post meta
-	$deadline       = get_post_meta( $post_id, '_portal_deadline', true );
-	$timezone_index = get_post_meta( $post_id, '_portal_timezone', true );
-
-	// If no deadline is set, assume it hasn't passed
-	if ( empty( $deadline ) ) {
-		return false;
-	}
-
-	// Convert the timezone index to a timezone string
-	$timezones = timezone_identifiers_list();
-
-	// Default to 'America/New_York' if the index is invalid or not set
-	$timezone_string = isset( $timezones[ $timezone_index ] ) ? $timezones[ $timezone_index ] : 'America/New_York';
-
-	try {
-		// Attempt to create a DateTimeZone object
-		$timezone = new DateTimeZone( $timezone_string );
-	} catch ( Exception $e ) {
-		// If it fails, fallback to 'America/New_York'
-		$timezone = new DateTimeZone( 'America/New_York' );
-	}
-
-	// Convert the deadline to a DateTime object with the correct timezone
-	$deadline_date = new DateTime( $deadline, $timezone );
-
-	// Get the current date and time in the same timezone
-	$current_date = new DateTime( 'now', $timezone );
-
-	// Compare the dates
-	return $current_date > $deadline_date;
+	return ! Portal_Open_State::is_open( $post_id );
 }
 
-// Hook to replace the content if the deadline has passed
-function replace_content_if_deadline_passed( $content ) {
-	if ( is_singular( 'portal' ) ) { // Ensure this runs only on single 'portal' post types
-		$post_id = get_the_ID();
-
-		if ( is_application_deadline_passed( $post_id ) ) {
-			// Deadline has passed, replace the content with a message
-			define( 'PB_APPLICATION_DEADLINE_PASSED', true );
-			return '<p>The application deadline has passed.</p>';
-		}
-	}
-
-	return $content; // Return the original content if the deadline hasn't passed
-}
-add_filter( 'the_content', 'replace_content_if_deadline_passed' );
+// Definition-first public content + closed / preview gate (filter registered in class init).
 
 /**
  * Display success notice when a portal is duplicated
