@@ -23,11 +23,32 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 		const CONTENT_FILTER_PRIORITY = 9;
 
 		/**
-		 * Wire the_content filter + definition form assets.
+		 * Wire early closed flag, the_content filter, and definition form assets.
 		 */
 		public static function init() {
+			// Prime before template shortcodes (formstart) so chrome hides when closed.
+			add_action( 'wp', array( __CLASS__, 'prime_request_flags' ) );
 			add_filter( 'the_content', array( __CLASS__, 'filter_content' ), self::CONTENT_FILTER_PRIORITY );
 			add_action( 'wp_enqueue_scripts', array( __CLASS__, 'enqueue_assets' ) );
+		}
+
+		/**
+		 * Set PB_APPLICATION_DEADLINE_PASSED early when the form must not render.
+		 */
+		public static function prime_request_flags() {
+			if ( ! is_singular( 'portal' ) ) {
+				return;
+			}
+			$post_id = (int) get_queried_object_id();
+			if ( $post_id <= 0 ) {
+				return;
+			}
+			if ( ! Portal_Open_State::should_show_form( $post_id ) ) {
+				if ( ! defined( 'PB_APPLICATION_DEADLINE_PASSED' ) ) {
+					// Reused by formstart/formend shortcodes to hide form chrome.
+					define( 'PB_APPLICATION_DEADLINE_PASSED', true );
+				}
+			}
 		}
 
 		/**
@@ -57,8 +78,7 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 			}
 
 			$is_preview = Portal_Open_State::is_preview_request( $post_id );
-			$is_open    = Portal_Open_State::is_open( $post_id );
-			$show_form  = $is_open || $is_preview;
+			$show_form  = Portal_Open_State::should_show_form( $post_id );
 
 			if ( ! $show_form ) {
 				if ( ! defined( 'PB_APPLICATION_DEADLINE_PASSED' ) ) {
@@ -72,6 +92,7 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 			$definition = Portal_Definition::load_for_post( $post_id );
 
 			if ( is_array( $definition ) ) {
+				// Prefer full field renderer (2.1); keep closed/preview gate from 2.2.
 				return $banner . Portal_Definition_Renderer::render( $definition );
 			}
 

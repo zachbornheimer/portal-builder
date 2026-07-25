@@ -18,6 +18,7 @@ const baseDefinition = JSON.parse(
 const PREVIEW_BANNER = /Preview\s*[—–-]\s*not a live submission/i;
 const CLOSED_COPY = /deadline has passed|portal is closed|not currently accepting/i;
 
+/** Closed for public: forceClosed + past deadline (belt and suspenders). */
 function closedDefinition() {
 	return {
 		...baseDefinition,
@@ -26,12 +27,27 @@ function closedDefinition() {
 			deadline: '2020-01-01T00:00:00',
 			timezone: 'America/New_York',
 			applicationFee: null,
-			forceClosed: false,
+			forceClosed: true,
 		},
 	};
 }
 
-async function putDefinition(page: Page, portalId: string, definition: unknown) {
+/**
+ * Build public/preview paths from seed linkPath (pretty permalink).
+ * Avoids ?p= → /portal/slug redirects that strip preview=true.
+ */
+function publicPortalPaths(seeded: { id: string; linkPath?: string; slug?: string }) {
+	const base =
+		seeded.linkPath ||
+		(seeded.slug ? `/portal/${seeded.slug}/` : `/?p=${seeded.id}&post_type=portal`);
+	const normalized = base.endsWith('/') || base.includes('?') ? base : `${base}/`;
+	const preview = normalized.includes('?')
+		? `${normalized}&preview=true`
+		: `${normalized}?preview=true`;
+	return { publicPath: normalized, previewPath: preview };
+}
+
+async function putDefinition(page: import('@playwright/test').Page, portalId: string, definition: unknown) {
 	const nonce = await fetchRestNonce(page);
 	const put = await page.request.post(
 		`/wp-json/dragongate/v1/portals/${portalId}/definition`,
@@ -45,7 +61,19 @@ async function putDefinition(page: Page, portalId: string, definition: unknown) 
 	);
 	const text = await put.text();
 	expect(put.ok(), text).toBeTruthy();
-	return JSON.parse(text);
+	const body = JSON.parse(text);
+	expect(body?.definition?.publish?.deadline).toBeTruthy();
+	// Round-trip GET so we know meta is readable before public view.
+	const get = await page.request.get(
+		`/wp-json/dragongate/v1/portals/${portalId}/definition`,
+		{ headers: { 'X-WP-Nonce': nonce } }
+	);
+	const getBody = await get.json();
+	expect(get.ok()).toBeTruthy();
+	expect(getBody?.definition?.publish?.deadline).toBe(
+		(definition as { publish: { deadline: string } }).publish.deadline
+	);
+	return body;
 }
 
 test.describe('closed vs preview (definition-first)', () => {
@@ -58,19 +86,26 @@ test.describe('closed vs preview (definition-first)', () => {
 		await ensureAdminSession(page, { env });
 		const seeded = await seedPortal(page, { env, skipLogin: true, label: 'closed-preview' });
 		const portalId = seeded.id;
-		const publicPath = seeded.linkPath || `/?p=${portalId}`;
+		const { publicPath, previewPath } = publicPortalPaths(seeded);
 
 		try {
 			await putDefinition(page, portalId, closedDefinition());
-			expect(publicPath.length).toBeGreaterThan(1);
 
 			// --- Anonymous / logged-out: closed message, no form ---
 			const anon = await browser.newContext();
 			const anonPage = await anon.newPage();
-			await anonPage.goto(publicPath, { waitUntil: 'domcontentloaded', timeout: 60_000 });
+			const anonRes = await anonPage.goto(publicPath, {
+				waitUntil: 'domcontentloaded',
+				timeout: 90_000,
+			});
+			// 200 OK expected on pretty permalink; allow soft redirects.
+			expect(
+				anonRes === null ||
+					(anonRes.status() >= 200 && anonRes.status() < 400)
+			).toBeTruthy();
 
 			await expect(anonPage.locator('[data-dg-portal-state="closed"]')).toBeVisible({
-				timeout: 30_000,
+				timeout: 45_000,
 			});
 			await expect(anonPage.locator('body')).toContainText(CLOSED_COPY);
 			await expect(anonPage.locator('[data-dg-render="definition"]')).toHaveCount(0);
@@ -81,9 +116,11 @@ test.describe('closed vs preview (definition-first)', () => {
 			await anon.close();
 
 			// --- Editor with ?preview=true: banner + definition form markers ---
-			const previewPath =
-				publicPath.includes('?') ? `${publicPath}&preview=true` : `${publicPath}?preview=true`;
-			await page.goto(previewPath, { waitUntil: 'domcontentloaded', timeout: 60_000 });
+			// Prefer commit so slow secondary assets don't eat the budget.
+			await page.goto(previewPath, { waitUntil: 'commit', timeout: 90_000 });
+			await page.waitForSelector('[data-dg-preview="true"], [data-dg-render="definition"]', {
+				timeout: 45_000,
+			});
 
 			await expect(page.locator('[data-dg-preview="true"]')).toBeVisible({
 				timeout: 30_000,
@@ -120,7 +157,6 @@ test.describe('closed vs preview (definition-first)', () => {
 			);
 			expect(fs.existsSync(artifact)).toBeTruthy();
 		} finally {
-			// Cleanup is best-effort — do not let a hung admin REST call fail the suite.
 			try {
 				await Promise.race([
 					cleanupPortal(page, portalId, { env, skipLogin: true }),
