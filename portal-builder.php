@@ -54,6 +54,14 @@ require_once plugin_dir_path( __FILE__ ) . 'includes/Definition/class-portal-def
 require_once plugin_dir_path( __FILE__ ) . 'includes/Definition/class-portal-definition-renderer.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/Definition/class-portal-open-state.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/Definition/class-portal-public-render.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-files.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-test-mode.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-sheet-store.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-drive-store.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-mailer.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-submission-field-rules.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-submission-validator.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-submission-pipeline.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-portal-definition-rest.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/templates.php';
 require_once plugin_dir_path( __FILE__ ) . 'gsuite-filestore/zysys-file-store.class.php';
@@ -290,18 +298,34 @@ function handle_submissions() {
 
 			define( 'PB_FILE_LABELS', $labels );
 
-			$submission = new Portal_Submission( 'ready_to_submit_nonce', $file_handler );
+			// Definition-aware path (test mode → mock Sheet/Drive/Mail artifacts).
+			$definition_submit = pb_try_definition_submission( $_POST, $stored_file_paths );
+			if ( is_array( $definition_submit ) && ! empty( $definition_submit['ok'] ) ) {
+				if ( ! empty( $definition_submit['mailPath'] ) ) {
+					define( 'PB_RECEIPT_LINK', $definition_submit['mailPath'] );
+				} else {
+					define( 'PB_RECEIPT_LINK', '' );
+				}
+				$raw_notification_date = get_post_meta( $_POST['post_id'], '_portal_applicant_notification_date', true );
+				$application_notification_date = $raw_notification_date
+					? date( 'l, F j, Y', strtotime( $raw_notification_date ) )
+					: '';
+				define( 'PB_APPLICATION_NOTIFICATION_DATE', $application_notification_date );
+				add_filter( 'the_content', 'pb_post_submitted_content_filter', 10, 1 );
+			} else {
+				$submission = new Portal_Submission( 'ready_to_submit_nonce', $file_handler );
 
-			$submission->process_submission( $_POST );
+				$submission->process_submission( $_POST );
 
-			define( 'PB_RECEIPT_LINK', $submission->get_receipt_link() );
+				define( 'PB_RECEIPT_LINK', $submission->get_receipt_link() );
 
-			$raw_notification_date = get_post_meta( $_POST['post_id'], '_portal_applicant_notification_date', true );
-			// turn the raw date into a human readable date like Monday, June 15, 2021
-			$application_notification_date = date( 'l, F j, Y', strtotime( $raw_notification_date ) );
-			define( 'PB_APPLICATION_NOTIFICATION_DATE', $application_notification_date );
+				$raw_notification_date = get_post_meta( $_POST['post_id'], '_portal_applicant_notification_date', true );
+				// turn the raw date into a human readable date like Monday, June 15, 2021
+				$application_notification_date = date( 'l, F j, Y', strtotime( $raw_notification_date ) );
+				define( 'PB_APPLICATION_NOTIFICATION_DATE', $application_notification_date );
 
-			add_filter( 'the_content', 'pb_post_submitted_content_filter', 10, 1 );
+				add_filter( 'the_content', 'pb_post_submitted_content_filter', 10, 1 );
+			}
 		}
 	} catch ( Exception $e ) {
 		if ( ! WP_DEBUG ) {
@@ -311,6 +335,55 @@ function handle_submissions() {
 			throw $e;
 		}
 	}
+}
+
+/**
+ * Try definition-aware submit when DG_TEST_MODE is on and the portal has a definition.
+ *
+ * @param array $post_values         $_POST-like values (sub_* field names).
+ * @param array $stored_file_paths   Map of input name => absolute temp path.
+ * @return array|false Result payload on success; false to fall back to legacy.
+ */
+function pb_try_definition_submission( $post_values, $stored_file_paths ) {
+	if ( ! class_exists( 'Portal_Test_Mode' ) || ! Portal_Test_Mode::is_enabled() ) {
+		return false;
+	}
+	if ( ! class_exists( 'Portal_Submission_Pipeline' ) || ! class_exists( 'Portal_Definition' ) ) {
+		return false;
+	}
+	if ( empty( $post_values['post_id'] ) ) {
+		return false;
+	}
+	$post_id    = (int) $post_values['post_id'];
+	$definition = Portal_Definition::load_for_post( $post_id );
+	if ( null === $definition ) {
+		return false;
+	}
+
+	$files = array();
+	if ( is_array( $stored_file_paths ) ) {
+		foreach ( $stored_file_paths as $name => $path ) {
+			$field_id = $name;
+			if ( 0 === strpos( (string) $name, 'sub_' ) ) {
+				$field_id = substr( (string) $name, 4 );
+			}
+			$files[ $field_id ] = array(
+				'name' => basename( (string) $path ),
+				'path' => (string) $path,
+			);
+		}
+	}
+
+	$result = Portal_Submission_Pipeline::process_for_post( $post_id, $post_values, $files );
+	if ( is_wp_error( $result ) ) {
+		// Validation failures should surface; other "not ready" codes fall back.
+		$code = $result->get_error_code();
+		if ( 'dg_submission_invalid' === $code || 'dg_submission_file_read' === $code ) {
+			throw new Exception( $result->get_error_message() );
+		}
+		return false;
+	}
+	return $result;
 }
 
 function get_label_for_pb_file_name( $post_id, $name ) {

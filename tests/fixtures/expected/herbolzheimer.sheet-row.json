@@ -1,1 +1,9 @@
-{}
+{
+  "portalId": "herbolzheimer",
+  "status": "synced",
+  "sub_name": "John Doe",
+  "sub_email": "applicant@example.com",
+  "work_title": "Symphony No. 1",
+  "sub_work_title": "Symphony No. 1",
+  "portalTitle": "E2E Herbolzheimer Prize"
+}
