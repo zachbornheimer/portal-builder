@@ -50,6 +50,8 @@ require_once plugin_dir_path( __FILE__ ) . 'includes/class-portal-submission.php
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-portal-file-handler.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-data-table.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-portal-about.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/Definition/class-portal-definition.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/class-portal-definition-rest.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/templates.php';
 require_once plugin_dir_path( __FILE__ ) . 'gsuite-filestore/zysys-file-store.class.php';
 
