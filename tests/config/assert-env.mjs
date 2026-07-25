@@ -1,11 +1,29 @@
 #!/usr/bin/env node
 /**
  * Assert Local/CI harness config is coherent before e2e.
- * Exit 0 only when required paths, symlink target, and baseUrl respond.
+ * Exit 0 only when required paths, symlink target, fixtures, and baseUrl respond.
  */
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+const HTTP_OK_MIN = 200;
+const HTTP_REDIRECT_MAX = 399;
+
+const REQUIRED_KEYS = [
+  'baseUrl',
+  'pluginPath',
+  'pluginMustResolveTo',
+  'artifactDir',
+  'useMocks',
+];
+
+/** Fixture paths relative to repo root that every e2e suite may depend on. */
+const REQUIRED_FIXTURES = [
+  'tests/fixtures/portals/herbolzheimer.definition.json',
+  'tests/fixtures/files/sample-score.pdf',
+  'tests/fixtures/files/sample-recording.mp3',
+];
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '../..');
@@ -16,73 +34,137 @@ function fail(msg) {
   console.error('assert-env FAIL:', msg);
   process.exit(1);
 }
+
 function ok(msg) {
   console.log('assert-env OK:', msg);
 }
 
-const cfgPath = fs.existsSync(localPath) ? localPath : examplePath;
-if (!fs.existsSync(cfgPath)) fail('missing env.example.json');
-const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf8'));
-
-const required = [
-  'baseUrl',
-  'pluginPath',
-  'pluginMustResolveTo',
-  'artifactDir',
-  'useMocks',
-];
-for (const k of required) {
-  if (cfg[k] === undefined || cfg[k] === '') fail(`missing key ${k}`);
+function loadConfig() {
+  const cfgPath = fs.existsSync(localPath) ? localPath : examplePath;
+  if (!fs.existsSync(cfgPath)) {
+    fail('missing env.example.json — copy env.example.json to env.local.json');
+  }
+  let cfg;
+  try {
+    cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf8'));
+  } catch (e) {
+    fail(`invalid JSON in ${cfgPath}: ${e.message}`);
+  }
+  return { cfg, cfgPath };
 }
 
-const mustResolve = path.resolve(cfg.pluginMustResolveTo);
-if (mustResolve !== repoRoot && path.resolve(mustResolve) !== path.resolve(repoRoot)) {
-  // allow if pluginMustResolveTo equals repoRoot after normalize
-  if (fs.realpathSync(mustResolve) !== fs.realpathSync(repoRoot)) {
-    fail(`pluginMustResolveTo ${mustResolve} !== repo ${repoRoot}`);
+function assertRequiredKeys(cfg) {
+  for (const key of REQUIRED_KEYS) {
+    if (cfg[key] === undefined || cfg[key] === '') {
+      fail(`missing key ${key}`);
+    }
   }
 }
-ok(`repo ${repoRoot}`);
 
-if (!fs.existsSync(cfg.pluginPath)) fail(`pluginPath missing: ${cfg.pluginPath}`);
-let realPlugin;
-try {
-  realPlugin = fs.realpathSync(cfg.pluginPath);
-} catch (e) {
-  fail(`pluginPath unreadable: ${e.message}`);
+function assertRepoTarget(cfg) {
+  const mustResolve = path.resolve(cfg.pluginMustResolveTo);
+  let realMust;
+  let realRepo;
+  try {
+    realMust = fs.realpathSync(mustResolve);
+    realRepo = fs.realpathSync(repoRoot);
+  } catch (e) {
+    fail(`pluginMustResolveTo unreadable: ${e.message}`);
+  }
+  if (realMust !== realRepo) {
+    fail(`pluginMustResolveTo ${realMust} !== repo ${realRepo}`);
+  }
+  ok(`repo ${realRepo}`);
+  return realRepo;
 }
-const realRepo = fs.realpathSync(repoRoot);
-if (realPlugin !== realRepo) {
-  fail(`plugin realpath ${realPlugin} !== repo ${realRepo} (symlink broken?)`);
+
+function assertPluginSymlink(cfg, realRepo) {
+  if (!fs.existsSync(cfg.pluginPath)) {
+    fail(`pluginPath missing: ${cfg.pluginPath}`);
+  }
+  let realPlugin;
+  try {
+    realPlugin = fs.realpathSync(cfg.pluginPath);
+  } catch (e) {
+    fail(`pluginPath unreadable: ${e.message}`);
+  }
+  if (realPlugin !== realRepo) {
+    fail(
+      `plugin realpath ${realPlugin} !== repo ${realRepo} (symlink broken?)`,
+    );
+  }
+  ok(`plugin symlink → ${realPlugin}`);
+
+  const portalPhp = path.join(realPlugin, 'portal-builder.php');
+  if (!fs.existsSync(portalPhp)) {
+    fail('portal-builder.php missing in plugin');
+  }
+  ok('portal-builder.php present');
+  return realPlugin;
 }
-ok(`plugin symlink → ${realPlugin}`);
 
-const portalPhp = path.join(realPlugin, 'portal-builder.php');
-if (!fs.existsSync(portalPhp)) fail('portal-builder.php missing in plugin');
-ok('portal-builder.php present');
+function assertFixtures() {
+  for (const rel of REQUIRED_FIXTURES) {
+    const abs = path.join(repoRoot, rel);
+    if (!fs.existsSync(abs)) {
+      fail(`fixture missing: ${rel}`);
+    }
+  }
+  ok(`fixtures (${REQUIRED_FIXTURES.length} required paths)`);
+}
 
-const fixtureDir = path.join(repoRoot, 'tests/fixtures/portals');
-if (!fs.existsSync(fixtureDir)) fail('tests/fixtures/portals missing');
-ok('fixtures dir present');
+function ensureArtifactDir(cfg) {
+  const artifactDir = path.isAbsolute(cfg.artifactDir)
+    ? cfg.artifactDir
+    : path.join(repoRoot, cfg.artifactDir);
+  fs.mkdirSync(artifactDir, { recursive: true });
+  ok(`artifactDir ${artifactDir}`);
+  return artifactDir;
+}
 
-const artifactDir = path.isAbsolute(cfg.artifactDir)
-  ? cfg.artifactDir
-  : path.join(repoRoot, cfg.artifactDir);
-fs.mkdirSync(artifactDir, { recursive: true });
-ok(`artifactDir ${artifactDir}`);
-
-// HTTP reachability
-const base = cfg.baseUrl.replace(/\/$/, '');
-try {
-  const res = await fetch(base + '/', { method: 'GET', redirect: 'manual' });
-  if (res.status < 200 || res.status >= 500) fail(`baseUrl HTTP ${res.status}`);
+async function assertBaseUrl(cfg) {
+  const base = cfg.baseUrl.replace(/\/$/, '');
+  let res;
+  try {
+    res = await fetch(`${base}/`, { method: 'GET', redirect: 'manual' });
+  } catch (e) {
+    fail(`baseUrl unreachable: ${e.message}`);
+  }
+  if (res.status < HTTP_OK_MIN || res.status > HTTP_REDIRECT_MAX) {
+    fail(`baseUrl HTTP ${res.status} (want 2xx or 3xx, typically 200/302)`);
+  }
   ok(`baseUrl ${base} → HTTP ${res.status}`);
-} catch (e) {
-  fail(`baseUrl unreachable: ${e.message}`);
+  return base;
 }
 
-if (cfg.useMocks !== true && cfg.useMocks !== false) fail('useMocks must be boolean');
-ok(`useMocks=${cfg.useMocks}`);
+function assertMockFlag(cfg) {
+  if (cfg.useMocks !== true && cfg.useMocks !== false) {
+    fail('useMocks must be boolean');
+  }
+  ok(`useMocks=${cfg.useMocks}`);
+}
 
-console.log(JSON.stringify({ ok: true, cfgPath, realPlugin, base }, null, 2));
+const { cfg, cfgPath } = loadConfig();
+assertRequiredKeys(cfg);
+const realRepo = assertRepoTarget(cfg);
+const realPlugin = assertPluginSymlink(cfg, realRepo);
+assertFixtures();
+ensureArtifactDir(cfg);
+const base = await assertBaseUrl(cfg);
+assertMockFlag(cfg);
+
+console.log(
+  JSON.stringify(
+    {
+      ok: true,
+      cfgPath,
+      realPlugin,
+      realRepo,
+      base,
+      useMocks: cfg.useMocks,
+    },
+    null,
+    2,
+  ),
+);
 process.exit(0);
