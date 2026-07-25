@@ -14,6 +14,8 @@
         "test:e2e:admin": "playwright test e2e/admin",
         "test:e2e:public": "playwright test e2e/public",
         "test:e2e:pipeline": "playwright test e2e/pipeline",
+        "test:seed": "node tests/support/seed.mjs",
+        "test:cleanup": "node tests/support/cleanup.mjs",
         "test:import": "node tests/support/run-import-tests.mjs",
         "ci": "npm run test:env && npm run test:mocks && npm run test:unit && npm run test:e2e:smoke"
     },

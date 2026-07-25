@@ -33,6 +33,7 @@ if ( ! class_exists( 'Portal_Post_Type' ) ) {
 			'public'          => true,
 			'has_archive'     => true,
 			'show_in_menu'    => true,
+			'show_in_rest'    => true, // required for harness seed/cleanup + future REST clients
 			'menu_icon'       => $this->get_menu_icon_data_uri(),
 			'supports'        => array( 'title', 'editor', 'thumbnail' ),
 			'capability_type' => 'post',
