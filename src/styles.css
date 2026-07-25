@@ -1,8 +1,293 @@
+@import './tokens.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Scoped styles for portal builder */
+/* ── Font utilities ─────────────────────────────────────────── */
+.dg-font-display {
+	font-family: var(--font-display);
+}
+
+.dg-font-ui {
+	font-family: var(--font-ui);
+}
+
+.dg-font-mono {
+	font-family: var(--font-mono);
+}
+
+/* ── Buttons ────────────────────────────────────────────────── */
+.dg-btn {
+	font-family: var(--font-ui);
+	font-weight: 500;
+	font-size: var(--t-body);
+	padding: 9px var(--s-4);
+	border-radius: var(--r-pill);
+	cursor: pointer;
+	border: 1px solid transparent;
+	display: inline-flex;
+	align-items: center;
+	gap: var(--s-2);
+	transition: all var(--dur-fast) var(--ease);
+	line-height: var(--lh-snug);
+	text-decoration: none;
+}
+
+.dg-btn:focus-visible {
+	outline: none;
+	box-shadow: var(--focus-ring);
+}
+
+.dg-btn-primary {
+	background: var(--ember-flow);
+	color: var(--paper-50);
+	box-shadow: var(--shadow-ember);
+}
+
+.dg-btn-primary:hover {
+	transform: translateY(-1px);
+}
+
+.dg-btn-ghost {
+	background: var(--paper-50);
+	border-color: var(--rule-strong);
+	color: var(--ink);
+	box-shadow: 0 1px 2px rgba(18, 20, 15, 0.04);
+}
+
+.dg-btn-ghost:hover {
+	border-color: var(--ink);
+}
+
+/* ── Gate seal (shape differs by state — never color alone) ─── */
+.dg-gate-seal {
+	width: 20px;
+	height: 20px;
+	border-radius: 50%;
+	border: 2px solid var(--brass);
+	flex-shrink: 0;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	margin-top: 1px;
+	background: transparent;
+	box-sizing: border-box;
+}
+
+.dg-gate-seal::after {
+	content: '';
+	display: block;
+	border-radius: 50%;
+}
+
+/* open: hollow ring + small brass disc */
+.dg-gate-seal[data-state='open'] {
+	border-color: var(--brass);
+	background: transparent;
+}
+
+.dg-gate-seal[data-state='open']::after {
+	width: 6px;
+	height: 6px;
+	background: var(--brass-200);
+}
+
+/* current: hollow ring + ember disc (shape differs from sealed) */
+.dg-gate-seal[data-state='current'] {
+	border-color: var(--ember);
+	background: transparent;
+}
+
+.dg-gate-seal[data-state='current']::after {
+	width: 6px;
+	height: 6px;
+	background: var(--ember);
+}
+
+/* sealed: solid ember disc + inner paper check-dot */
+.dg-gate-seal[data-state='sealed'] {
+	border-color: var(--ember);
+	background: var(--ember-flow);
+}
+
+.dg-gate-seal[data-state='sealed']::after {
+	width: 7px;
+	height: 7px;
+	background: var(--paper-50);
+}
+
+/* ── Screen-reader only ─────────────────────────────────────── */
+.sr-only {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	white-space: nowrap;
+	border-width: 0;
+}
+
+/* ── Wizard shell ───────────────────────────────────────────── */
+.dg-wizard-root {
+	margin: 0 0 var(--s-5);
+	font-family: var(--font-ui);
+	font-size: var(--t-body);
+	line-height: var(--lh-prose);
+	color: var(--ink);
+	color-scheme: light;
+}
+
+.dg-wizard-shell {
+	background: var(--paper-50);
+	border: 1px solid var(--rule);
+	border-radius: var(--r-3);
+	overflow: hidden;
+	box-shadow: var(--shadow-shell);
+}
+
+.dg-wizard-topbar {
+	background: var(--ink);
+	color: var(--paper);
+	padding: 0 var(--s-5);
+	height: var(--wizard-topbar-height);
+	display: flex;
+	align-items: center;
+	gap: 14px;
+	font-size: var(--t-caption);
+}
+
+.dg-wizard-brand {
+	display: flex;
+	align-items: center;
+	gap: var(--s-2);
+	font-family: var(--font-display);
+	font-weight: 600;
+	font-size: var(--t-body);
+	color: var(--paper);
+}
+
+.dg-wizard-brand-mark {
+	width: 16px;
+	height: 16px;
+	flex-shrink: 0;
+	color: var(--ember);
+}
+
+.dg-wizard-crumbs {
+	color: rgba(247, 244, 236, 0.5);
+	font-family: var(--font-mono);
+	font-size: var(--t-eyebrow);
+	letter-spacing: 0.04em;
+}
+
+.dg-wizard-body {
+	display: flex;
+	min-height: 420px;
+}
+
+.dg-wizard-sidebar {
+	width: var(--wizard-sidebar-width);
+	flex-shrink: 0;
+	background: var(--ink-800);
+	color: rgba(247, 244, 236, 0.75);
+	padding: 18px 0;
+	font-size: var(--t-body);
+}
+
+.dg-wizard-main {
+	flex: 1;
+	padding: 28px var(--s-6);
+	min-width: 0;
+	background: var(--paper);
+}
+
+.dg-wizard-eyebrow {
+	font-family: var(--font-mono);
+	font-size: var(--t-eyebrow);
+	text-transform: uppercase;
+	letter-spacing: 0.14em;
+	color: var(--brass);
+	margin: 0 0 var(--s-1);
+}
+
+.dg-wizard-title {
+	font-family: var(--font-display);
+	font-size: var(--t-h1);
+	font-weight: 600;
+	line-height: var(--lh-tight);
+	color: var(--ink);
+	margin: 0 0 var(--s-2);
+}
+
+.dg-wizard-lead {
+	font-size: var(--t-small);
+	color: var(--ink-400);
+	margin: 0 0 var(--s-5);
+	line-height: var(--lh-prose);
+}
+
+.dg-wizard-placeholder {
+	background: var(--paper-50);
+	border: 1px dashed var(--rule-strong);
+	border-radius: var(--r-2);
+	padding: var(--s-5);
+	color: var(--ink-400);
+	font-size: var(--t-small);
+}
+
+/* Gate nav items */
+.dg-gate-item {
+	width: 100%;
+	padding: 10px var(--s-5);
+	display: flex;
+	gap: 10px;
+	align-items: flex-start;
+	border: 0;
+	border-left: 3px solid transparent;
+	background: transparent;
+	color: inherit;
+	cursor: pointer;
+	text-align: left;
+	font: inherit;
+	transition: background var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
+}
+
+.dg-gate-item:hover {
+	background: rgba(247, 244, 236, 0.04);
+}
+
+.dg-gate-item:focus-visible {
+	outline: none;
+	box-shadow: inset 0 0 0 2px var(--ember);
+}
+
+.dg-gate-item[data-current='true'] {
+	background: rgba(184, 80, 31, 0.16);
+	border-left-color: var(--ember);
+}
+
+.dg-gate-item-label {
+	font-size: var(--t-small);
+	line-height: var(--lh-snug);
+}
+
+.dg-gate-item[data-current='true'] .dg-gate-item-label {
+	color: var(--paper);
+	font-weight: 600;
+}
+
+.dg-gate-item-sub {
+	font-size: var(--t-eyebrow);
+	color: rgba(247, 244, 236, 0.4);
+	margin-top: 2px;
+	font-family: var(--font-mono);
+	letter-spacing: 0.04em;
+}
+
+/* Scoped styles for legacy portal builder */
 .portal-builder {
-  /* Any custom styles can go here */
+	/* reserved for legacy map UI */
 }

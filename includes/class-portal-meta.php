@@ -24,6 +24,15 @@ if ( ! class_exists( 'Portal_Meta' ) ) {
 		}
 
 		public function add_meta_boxes() {
+			add_meta_box(
+				'portal_setup_wizard',
+				'Portal setup',
+				array( $this, 'render_wizard_mount' ),
+				'portal',
+				'normal',
+				'high'
+			);
+
 			foreach ( $this->meta_boxes as $meta_box ) {
 				add_meta_box(
 					$meta_box['id'],
@@ -35,6 +44,15 @@ if ( ! class_exists( 'Portal_Meta' ) ) {
 					$meta_box['fields']
 				);
 			}
+		}
+
+		/**
+		 * Svelte wizard shell mount point (Start → Build → Map → Publish).
+		 *
+		 * @param WP_Post $post Current post.
+		 */
+		public function render_wizard_mount( $post ) {
+			echo '<div data-portal-wizard class="dg-wizard-root"></div>';
 		}
 
 		public function render_meta_box( $post, $meta_box ) {
@@ -129,37 +147,120 @@ if ( ! class_exists( 'Portal_Meta' ) ) {
 
 			foreach ( $this->meta_boxes as $meta_box ) {
 				foreach ( $meta_box['fields'] as $field ) {
-
-					if ( isset( $_POST[ $field['id'] ] ) ) {
-						update_post_meta( $post_id, $field['id'], sanitize_text_field( $_POST[ $field['id'] ] ) );
-					} else {
+					if ( ! isset( $_POST[ $field['id'] ] ) ) {
 						delete_post_meta( $post_id, $field['id'] );
+						continue;
 					}
+
+					$raw = wp_unslash( $_POST[ $field['id'] ] );
+
+					if ( $this->is_json_meta_field( $field ) ) {
+						$this->save_json_meta( $post_id, $field['id'], $raw );
+						continue;
+					}
+
+					update_post_meta( $post_id, $field['id'], sanitize_text_field( $raw ) );
 				}
 			}
 		}
 
-		public function enqueue_scripts() {
-		// Enqueue local Tailwind CSS with custom zysys-blue colors
-		wp_enqueue_style( 'dragongate-portal-css', plugins_url( '../assets/dist/dragongate-portal.css', __FILE__ ), array(), PB_VERSION );
-			
-			// Enqueue Dashicons for trash icon
+		/**
+		 * Whether a field stores structured JSON (must not run through sanitize_text_field).
+		 *
+		 * @param array $field Meta field config.
+		 * @return bool
+		 */
+		private function is_json_meta_field( $field ) {
+			$type = isset( $field['type'] ) ? $field['type'] : '';
+			$id   = isset( $field['id'] ) ? $field['id'] : '';
+
+			if ( 'data-table' === $type ) {
+				return true;
+			}
+
+			$json_ids = array( '_portal_record_keeping', '_portal_file_backups' );
+			return in_array( $id, $json_ids, true );
+		}
+
+		/**
+		 * Persist a JSON array meta value without sanitize_text_field (which mangles quotes).
+		 *
+		 * @param int    $post_id Post ID.
+		 * @param string $meta_key Meta key.
+		 * @param mixed  $raw     Unslashed POST value.
+		 */
+		private function save_json_meta( $post_id, $meta_key, $raw ) {
+			if ( ! is_string( $raw ) ) {
+				return;
+			}
+
+			$decoded = json_decode( $raw, true );
+			if ( JSON_ERROR_NONE !== json_last_error() || ! is_array( $decoded ) ) {
+				return;
+			}
+
+			update_post_meta( $post_id, $meta_key, wp_json_encode( $decoded ) );
+		}
+
+		/**
+		 * Enqueue admin assets on portal edit screens only.
+		 *
+		 * @param string $hook_suffix Current admin page hook.
+		 */
+		public function enqueue_scripts( $hook_suffix = '' ) {
+			$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+			if ( ! $screen || 'portal' !== $screen->post_type ) {
+				return;
+			}
+
+			wp_enqueue_style(
+				'dragongate-portal-css',
+				plugins_url( '../assets/dist/dragongate-portal.css', __FILE__ ),
+				array(),
+				PB_VERSION
+			);
+
 			wp_enqueue_style( 'dashicons' );
-			
-			// Enqueue existing styles after Tailwind
-			wp_enqueue_style( 'portal-meta-box-styles', plugins_url( '../assets/portal-meta-box.css', __FILE__ ), array( 'dragongate-portal-css' ), PB_VERSION );
-			wp_enqueue_script( 'portal-meta-box-script', plugins_url( '../assets/portal-meta-box.js', __FILE__ ), [ 'jquery' ], PB_VERSION, true );
-			wp_enqueue_script( 'pb-url-validation', plugins_url( '../assets/url-validation.js', __FILE__ ), [ 'jquery' ], PB_VERSION, true );
-			
-			// Enqueue Svelte dragongate portal
-			wp_enqueue_script( 'dragongate-portal-js', plugins_url( '../assets/dist/dragongate-portal.js', __FILE__ ), array(), PB_VERSION, true );
-			// Add type="module" attribute
-			add_filter( 'script_loader_tag', function( $tag, $handle ) {
-				if ( 'dragongate-portal-js' === $handle ) {
-					return str_replace( '<script ', '<script type="module" ', $tag );
-				}
-				return $tag;
-			}, 10, 2 );
+
+			wp_enqueue_style(
+				'portal-meta-box-styles',
+				plugins_url( '../assets/portal-meta-box.css', __FILE__ ),
+				array( 'dragongate-portal-css' ),
+				PB_VERSION
+			);
+			wp_enqueue_script(
+				'portal-meta-box-script',
+				plugins_url( '../assets/portal-meta-box.js', __FILE__ ),
+				array( 'jquery' ),
+				PB_VERSION,
+				true
+			);
+			wp_enqueue_script(
+				'pb-url-validation',
+				plugins_url( '../assets/url-validation.js', __FILE__ ),
+				array( 'jquery' ),
+				PB_VERSION,
+				true
+			);
+
+			wp_enqueue_script(
+				'dragongate-portal-js',
+				plugins_url( '../assets/dist/dragongate-portal.js', __FILE__ ),
+				array(),
+				PB_VERSION,
+				true
+			);
+			add_filter(
+				'script_loader_tag',
+				static function ( $tag, $handle ) {
+					if ( 'dragongate-portal-js' === $handle ) {
+						return str_replace( '<script ', '<script type="module" ', $tag );
+					}
+					return $tag;
+				},
+				10,
+				2
+			);
 		}
 
 		public function validate_url_callback() {

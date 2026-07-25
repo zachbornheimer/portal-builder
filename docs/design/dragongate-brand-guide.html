@@ -1,0 +1,679 @@
+<title>DragonGate Portals — Design System v0.1</title>
+<style>
+  /* ============================================================
+     DragonGate Portals — Canonical tokens
+     Every value used in this document is a token.
+     This document IS the system, not a description of it.
+     Framework: Svelte 5 + Vite (already wired into the plugin's
+     build — src/index.js → assets/dist/dragongate-portal.js).
+     No React/Vue introduced; these tokens map directly to a
+     tailwind.config.js theme.extend block for the Svelte app.
+     ============================================================ */
+  :root {
+    /* Color — ground */
+    --ink:            #12140F;   /* near-black, warm cast — the brand's ground state */
+    --ink-800:         #1C1F17;  /* one step up; wp-admin dark chrome */
+    --ink-600:         #454A3C;  /* body text on paper */
+    --ink-400:         #6E7460;  /* muted text, help copy */
+    --paper:           #F7F4EC;  /* warm parchment page ground */
+    --paper-50:        #FCFBF6;  /* card surface */
+    --paper-100:       #EFEBDD;  /* alt surface, tags */
+
+    /* Color — chromatic accent (the only one) */
+    --ember-100:       #F4E2D4;  /* tinted background */
+    --ember:           #B8501F;  /* the accent — validation/action only, never decoration */
+    --ember-600:       #963F16;  /* hover/active deepening */
+    --ember-flow:      linear-gradient(115deg, #C96A2E 0%, #B8501F 45%, #8B3A1A 100%);
+                                  /* diagonal flow gradient — accent surfaces only */
+
+    /* Color — secondary metal (hairlines, icons — never fills) */
+    --brass:           #9C7A3C;
+    --brass-200:       #E4D9BE;
+
+    /* Color — semantic (do not repurpose the ember accent for these) */
+    --success:         #3F8A5C;
+    --success-100:     #E1EEE4;
+    --warn:            var(--brass);
+    --error:           #B8341F;
+    --error-100:       #F4DCD6;
+
+    /* Color — hairline */
+    --rule:            rgba(18,20,15,0.10);
+    --rule-strong:     rgba(18,20,15,0.20);
+    --rule-ink:        rgba(247,244,236,0.14);
+
+    /* Type */
+    --font-display:    'Fraunces', Georgia, serif;
+    --font-ui:         'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --font-mono:       'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+    /* Type scale — fluid clamp(min, target, max) */
+    --t-display:       clamp(28px, 3.4vw, 40px);
+    --t-h1:            clamp(22px, 2.4vw, 28px);
+    --t-h2:            20px;
+    --t-h3:            16px;
+    --t-body:          14px;
+    --t-small:         12.5px;
+    --t-caption:       11px;
+    --t-eyebrow:       10.5px;
+
+    --lh-tight:        1.05;
+    --lh-snug:         1.3;
+    --lh-prose:        1.55;
+
+    /* Spacing — 4px base, modular */
+    --s-1: 4px; --s-2: 8px; --s-3: 12px; --s-4: 16px; --s-5: 24px;
+    --s-6: 32px; --s-7: 48px; --s-8: 64px; --s-9: 96px;
+
+    /* Radius — pills for actionable/floating elements, soft corners for containers */
+    --r-1: 3px; --r-2: 6px; --r-3: 10px; --r-pill: 999px;
+
+    /* Shadow — soft, warm-tinted "floating" elevation, never a flat 1px line doing the work */
+    --shadow-card:  0 1px 2px rgba(18,20,15,0.03), 0 6px 16px -10px rgba(18,20,15,0.16);
+    --shadow-shell: 0 1px 1px rgba(18,20,15,0.04), 0 8px 24px -12px rgba(18,20,15,0.18), 0 32px 64px -24px rgba(18,20,15,0.22);
+    --shadow-ember: 0 1px 1px rgba(184,80,31,0.25), 0 6px 16px -6px rgba(184,80,31,0.55);
+
+    /* Motion */
+    --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+    --dur-fast: 120ms; --dur-base: 180ms;
+
+    /* Focus — visible on every interactive element, never suppressed */
+    --focus-ring: 0 0 0 2px var(--paper-50), 0 0 0 4px var(--ember);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--paper-100);
+    color: var(--ink);
+    font-family: var(--font-ui);
+    font-size: var(--t-body);
+    line-height: var(--lh-prose);
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--ember-600); }
+  a:hover { color: var(--ember); }
+  :focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: var(--r-1); }
+
+  section.section { border-bottom: 1px solid var(--rule); padding: var(--s-8) 0; }
+  section.section.cover { padding: 0; border-bottom: 1px solid var(--rule-ink); }
+  .frame { max-width: 1080px; margin: 0 auto; padding: 0 var(--s-6); }
+
+  .eyebrow { font-family: var(--font-mono); font-size: var(--t-eyebrow); letter-spacing: 0.18em; text-transform: uppercase; color: var(--brass); margin: 0 0 var(--s-4); }
+  h1.section-title, h2.section-title { font-family: var(--font-display); font-weight: 600; font-size: var(--t-display); line-height: var(--lh-tight); letter-spacing: -0.01em; margin: 0 0 var(--s-4); }
+  h3.sub { font-family: var(--font-ui); font-weight: 600; font-size: var(--t-h1); margin: var(--s-6) 0 var(--s-3); }
+  h4.minor { font-family: var(--font-ui); font-weight: 600; font-size: var(--t-h3); margin: var(--s-5) 0 var(--s-2); color: var(--ink-800); }
+  p.lead { font-size: var(--t-h3); color: var(--ink-600); max-width: 64ch; margin: 0 0 var(--s-4); }
+  p, li { color: var(--ink-600); }
+  small, .caption { font-size: var(--t-caption); color: var(--ink-400); }
+  code, .mono { font-family: var(--font-mono); font-size: 0.92em; color: var(--ember-600); }
+
+  .sec-num { display: flex; align-items: baseline; gap: var(--s-4); margin-bottom: var(--s-5); }
+  .sec-num .num { font-family: var(--font-mono); font-size: 12px; color: var(--ember-600); letter-spacing: 0.14em; }
+  .sec-num .sep { flex: 1; height: 1px; background: var(--rule); }
+  .sec-num .label { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--ink-400); }
+
+  /* ============================================================
+     COVER
+     ============================================================ */
+  .cover-inner {
+    min-height: 78vh; display: grid; grid-template-rows: auto 1fr auto;
+    padding: var(--s-6) var(--s-6);
+    background: radial-gradient(38% 34% at 92% 96%, rgba(184,80,31,0.09), rgba(184,80,31,0) 72%), var(--paper-100);
+  }
+  .cover-top { display: flex; justify-content: space-between; align-items: center; font-family: var(--font-mono); font-size: var(--t-eyebrow); letter-spacing: 0.24em; text-transform: uppercase; color: var(--ink-400); }
+  .cover-top .lockup { display: flex; align-items: center; gap: 10px; color: var(--ink); }
+  .cover-mid { align-self: center; max-width: 780px; }
+  .cover-mid h1 { font-family: var(--font-display); font-weight: 600; font-size: clamp(40px, 6vw, 64px); line-height: 0.98; letter-spacing: -0.015em; margin: var(--s-5) 0; }
+  .cover-mid .deck { font-size: var(--t-h1); line-height: var(--lh-snug); color: var(--ink-600); max-width: 56ch; }
+  .cover-bottom { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--s-5); border-top: 1px solid var(--rule); padding-top: var(--s-4); font-family: var(--font-mono); font-size: var(--t-eyebrow); letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-400); }
+  .cover-bottom strong { color: var(--ink); display: block; font-weight: 600; margin-bottom: 4px; letter-spacing: 0.14em; }
+
+  /* Token-display blocks */
+  .token-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: var(--s-4); margin: var(--s-5) 0; }
+  .token { border: 1px solid var(--rule); border-radius: var(--r-2); padding: var(--s-4); background: var(--paper-50); box-shadow: var(--shadow-card); }
+  .token .swatch { height: 56px; border-radius: var(--r-1); border: 1px solid var(--rule); margin-bottom: var(--s-3); }
+  .token .name { font-weight: 600; font-size: var(--t-small); margin: 0 0 2px; color: var(--ink); }
+  .token .var { font-family: var(--font-mono); font-size: 11px; color: var(--ember-600); margin: 0 0 2px; }
+  .token .hex { font-family: var(--font-mono); font-size: 11px; color: var(--ink-400); margin: 0; }
+  .token .role { margin-top: var(--s-2); font-size: 12px; color: var(--ink-400); line-height: 1.45; }
+
+  .spec-table { width: 100%; border-collapse: collapse; font-size: var(--t-small); margin: var(--s-4) 0; }
+  .spec-table th, .spec-table td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  .spec-table th { font-family: var(--font-mono); font-size: var(--t-eyebrow); letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-400); font-weight: 500; }
+  .spec-table td.k { font-family: var(--font-mono); color: var(--ember-600); white-space: nowrap; }
+  .spec-table td.v { font-family: var(--font-mono); color: var(--ink-600); }
+  .spec-table td.note { color: var(--ink-400); font-size: 12.5px; }
+
+  .dodont { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-4); margin: var(--s-5) 0; }
+  .dodont .cell { border: 1px solid var(--rule); border-radius: var(--r-2); padding: var(--s-5); background: var(--paper-50); }
+  .dodont .do { border-color: rgba(63,138,92,0.35); background: var(--success-100); }
+  .dodont .dnt { border-color: rgba(184,52,31,0.35); background: var(--error-100); }
+  .dodont .tag { font-family: var(--font-mono); font-size: var(--t-eyebrow); letter-spacing: 0.2em; text-transform: uppercase; margin: 0 0 var(--s-3); }
+  .dodont .do .tag { color: var(--success); }
+  .dodont .dnt .tag { color: var(--error); }
+  .dodont ul { margin: 0; padding-left: 18px; }
+  .dodont li { margin: 4px 0; line-height: 1.5; }
+
+  /* Buttons — every state shown, real elements */
+  .btn { font-family: var(--font-ui); font-weight: 500; font-size: 13px; height: 40px; padding: 0 18px; border-radius: var(--r-pill); cursor: pointer; border: 1px solid transparent; display: inline-flex; align-items: center; gap: 8px; transition: all var(--dur-fast) var(--ease); }
+  .btn-primary { background: var(--ember-flow); color: white; box-shadow: var(--shadow-ember); }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 1px 1px rgba(184,80,31,0.3), 0 8px 20px -6px rgba(184,80,31,0.6); }
+  .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; transform: none; box-shadow: none; }
+  .btn-ghost { background: var(--paper-50); border-color: var(--rule-strong); color: var(--ink); box-shadow: 0 1px 2px rgba(18,20,15,0.04); }
+  .btn-ghost:hover { border-color: var(--ink); }
+
+  /* Gate-seal — accessible completeness indicator. Color is NEVER the only signal:
+     shape differs (hollow ring vs. solid disc with a check glyph) so the state
+     survives grayscale/colorblind rendering, and every instance carries a
+     visually-hidden label read by screen readers. */
+  .gate-seal { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--brass); flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; position: relative; }
+  .gate-seal[data-state="sealed"] { border-color: var(--ember); background: var(--ember-flow); }
+  .gate-seal[data-state="sealed"]::after { content: "✓"; font-size: 11px; font-weight: 700; color: var(--paper-50); }
+  .gate-seal[data-state="open"] { background: var(--paper-50); }
+  .gate-seal[data-state="open"]::after { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--brass-200); }
+  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+
+  /* Field-mapping row — human label leads; technical id is de-emphasized,
+     shown small/muted, never competing with the label for attention. */
+  .field-row { display: flex; align-items: baseline; gap: 8px; padding: 10px 0; border-bottom: 1px solid var(--rule); }
+  .field-row .label { font-size: 13.5px; font-weight: 500; color: var(--ink); }
+  .field-row .id { font-family: var(--font-mono); font-size: 10.5px; color: var(--ink-400); opacity: 0.7; }
+
+  .demo-row { display: flex; gap: var(--s-4); align-items: center; flex-wrap: wrap; margin: var(--s-3) 0; }
+
+  /* Form fields — real <input>/<select> controls, not styled divs */
+  .field-group { display: flex; flex-direction: column; gap: 6px; max-width: 360px; margin: 0 0 var(--s-4); }
+  .field-group label { font-size: var(--t-small); font-weight: 600; color: var(--ink); }
+  .field-group .req { font-family: var(--font-mono); font-size: 10px; color: var(--ink-400); font-weight: 400; text-transform: uppercase; letter-spacing: 0.08em; margin-left: 6px; }
+  .field { height: 40px; padding: 0 var(--s-3); border: 1px solid var(--rule-strong); border-radius: var(--r-2); background: var(--paper-50); color: var(--ink); font-family: var(--font-ui); font-size: var(--t-body); }
+  .field::placeholder { color: var(--ink-400); }
+  .field:hover { border-color: var(--ink-400); }
+  .field:focus-visible { outline: none; box-shadow: var(--focus-ring); border-color: var(--ember); }
+  .field[disabled] { background: var(--paper-100); color: var(--ink-400); cursor: not-allowed; }
+  .field.err { border-color: var(--error); }
+  .field.ok { border-color: var(--success); }
+  .field-help { font-size: 12px; color: var(--ink-400); }
+  .field-help.err { color: var(--error); }
+  .field-help.ok { color: var(--success); }
+
+  /* Loading — spinner for in-flight save/publish actions; respects reduced motion */
+  .spinner { width: 14px; height: 14px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.4); border-top-color: white; animation: dg-spin 700ms linear infinite; }
+  @media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 1.4s; } }
+  @keyframes dg-spin { to { transform: rotate(360deg); } }
+
+  /* Skeleton — placeholder while a portal/template list loads */
+  .skeleton { height: 14px; border-radius: var(--r-1); background: linear-gradient(90deg, var(--paper-100) 0%, var(--brass-200) 50%, var(--paper-100) 100%); background-size: 200% 100%; animation: dg-shimmer 1.6s var(--ease) infinite; }
+  @media (prefers-reduced-motion: reduce) { .skeleton { animation: none; background: var(--paper-100); } }
+  @keyframes dg-shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+  /* Empty state — centered, functional, one CTA */
+  .empty-state { display: flex; flex-direction: column; align-items: center; text-align: center; gap: var(--s-3); max-width: 340px; margin: var(--s-5) auto; padding: var(--s-7) var(--s-5); border: 1px dashed var(--rule-strong); border-radius: var(--r-3); background: var(--paper-50); }
+  .empty-state .glyph { width: 48px; height: 48px; border-radius: 50%; background: var(--paper-100); display: flex; align-items: center; justify-content: center; color: var(--brass); }
+  .empty-state h4 { margin: 0; font-family: var(--font-ui); font-weight: 600; font-size: var(--t-h3); color: var(--ink); }
+  .empty-state p { margin: 0; font-size: var(--t-small); color: var(--ink-400); }
+
+  /* Icon set — line icons, generic wp-admin actions (distinct from the dragon mark and gate-seal) */
+  .icon-line { width: 20px; height: 20px; stroke: var(--ink-600); stroke-width: 1.6; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+</style>
+
+<section class="section cover">
+  <div class="cover-inner">
+    <div class="cover-top">
+      <div class="lockup">
+        <svg width="20" height="20" viewBox="0 0 610.04 610.04" fill="none"><g transform="translate(72.93, 0)"><path fill="var(--ember)" d="M140.37,485.99c-4.66,6.72-1.15,15.04-2.95,23.05-1.23,5.49-4.33,10.77-8.58,14.48-4.1,1.71-27.36-13.27-28.95-19.06l.02-233.02c-.85-6.39-1.69-12.78-4.26-18.74-1.22-2.83-4.05-5.48-4.77-7.24-1.21-2.96,2.32-.48,2.49-.48h233c9.38,0,20.5,16.6,20.5,25.5v214l-1.5,1.5h-205ZM285.58,312.19l-83.21,82.78-35.22-34.81c-1.5-.49-2.89-.2-4.33.27-2.39.77-15.88,15.76-15.88,18.06l.67,2.22,50.24,50.8c1.89,1.82,4.41,3.31,6.99,1.99l100.1-100.93c1.49-2.22,1.28-3.92-.02-6.14-.54-.92-13.17-13.51-14.06-13.92-1.68-.77-3.52-.86-5.27-.33Z"/><path fill="var(--ember)" d="M364.87,358.49c.38-1.74,6.72-9.91,8.18-12.82,23.52-46.96,21.05-108.73-9.36-151.99-8.15-11.59-19.58-24.28-32.81-29.68,1.82,23.1-10.62,35.17-33.5,33.98-24.51-1.27-37.93-8.43-64.69-3.67-19.97,3.55-52.78,14.59-53.82,38.68-26.07-2.67-38.98-40.06-32.27-61.78,4.86-15.74,6.48-8.09,15.02-6.46,16.42,3.14,35.5-17.15,39.78-31.74,5.97-20.36,4.41-20.39,20.46-35.54,18.17-17.15,39.2-33.18,58.03-49.97,9.1-8.11,17.16-17.58,26.51-25.49,10.12-8.55,20.46-15.49,31.98-22.02-.26,4.28-2.27,9.19-3.76,13.24-8.37,22.75-19.73,43.31-37.75,59.74,37.36-6.87,73.47-21.58,111.99-20.98l-23.31,14.18c-8.24,7.06-20.68,13.01-23.56,24.1.65,2.55,29.37,19.49,34.18,22.9,26.16,18.55,49.08,41.86,59.69,72.8-9.27-4.04-18.6-8.31-28.99-8.5,46.65,72.15,51.14,168.04,4.41,241.42-15.76,24.74-39.27,49.24-66.42,61.08v-121.5ZM268.39,121.04c-10.43,3.65-41.17,3.52-40.44,19.38.41,8.98,11.28,10.47,18.34,9.49,11.47-1.59,18.18-17.77,23.19-26.84l-1.08-2.03ZM169.6,186.16c-4.74.97-8.02,8.15-4.21,11.84,5.69-.08,13.34-13.7,4.21-11.84Z"/><path fill="var(--ember)" d="M79.87,322.99v73.5c-34.67,30.36-29.57,79.66-1.97,112.97,26.09,31.49,63.19,44.71,103.43,46.57,56.44,2.61,125.15-25.02,168.05,25.95,4.54,5.39,13.44,19.57,13.53,26.49.01,1.12.3,1.77-1.03,1.51-4.91-8.19-16.56-15.19-25.34-19.17-51.38-23.28-102.65.17-155.13,2.21-63.75,2.49-126.97-25.49-160.35-80.73C-21.18,442.39.96,352.07,79.87,322.99Z"/><path fill="var(--ember)" d="M145.88,531.98c6.41-7.69,10.91-17.12,10.14-27.35l2.36-1.64,239.04.26c3.42.61-.7,13.5-1.77,16.02-4.32,10.15-14.63,15.75-25.29,16.71-14.96,1.34-39.83,1.01-55.03.06-9.17-.57-18.85-3.42-27.97-4.03-38.76-2.61-78.83,6.58-119.03,4.03-2.86-.18-21.6-2.97-22.46-4.05Z"/><path fill="var(--ember)" d="M80.87,286.99H26.87v-19.5c0-.9,2.5-7.49,3.18-8.82,8.69-16.93,32.78-18.75,44.34-3.7,1.97,2.56,6.48,11.72,6.48,14.52v17.5Z"/><path fill="var(--paper-50)" d="M285.58,312.19c1.75-.53,3.6-.45,5.27.33.9.41,13.53,13,14.06,13.92,1.3,2.21,1.52,3.92.02,6.14l-100.1,100.93c-2.58,1.31-5.11-.17-6.99-1.99l-50.24-50.8-.67-2.22c0-2.31,13.49-17.29,15.88-18.06,1.44-.47,2.84-.75,4.33-.27l35.22,34.81,83.21-82.78Z"/><path fill="var(--paper-50)" d="M268.39,121.04l1.08,2.03c-5.01,9.06-11.72,25.24-23.19,26.84-7.06.98-17.92-.51-18.34-9.49-.73-15.86,30.02-15.73,40.44-19.38Z"/><path fill="var(--paper-50)" d="M169.6,186.16c9.14-1.86,1.48,11.76-4.21,11.84-3.81-3.69-.53-10.87,4.21-11.84Z"/></g></svg>
+        <span>DragonGate Portals</span>
+      </div>
+      <span>Design system · v0.1 · internal reference</span>
+    </div>
+    <div class="cover-mid">
+      <p class="eyebrow">§00 — Reference document</p>
+      <h1>The gate doesn't open<br>on a hollow seal.</h1>
+      <p class="deck">Canonical tokens for the DragonGate Portals admin — color, type, spacing, shadow, motion, and the accessible component contracts every screen is built from. This document is the system, not a description of it.</p>
+    </div>
+    <div class="cover-bottom">
+      <div><strong>Framework</strong>Svelte 5 + Vite</div>
+      <div><strong>Accent</strong>Ember — one, restrained</div>
+      <div><strong>Ground</strong>Warm parchment, never dark</div>
+      <div><strong>A11y baseline</strong>WCAG AA, color never alone</div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="frame">
+    <div class="sec-num"><span class="num">§01</span><span class="sep"></span><span class="label">Color</span></div>
+    <h2 class="section-title">Ground, accent, metal.</h2>
+    <p class="lead">Three families. Warm neutrals do the work; ember is spent only on validation state and the one primary action per screen.</p>
+
+    <h4 class="minor">Ground</h4>
+    <div class="token-grid">
+      <div class="token"><div class="swatch" style="background:var(--ink);"></div><p class="name">Ink</p><p class="var">--ink</p><p class="hex">#12140F</p><p class="role">Primary text, dark chrome (topbar, sidebar). Never pure black — warm cast ties it to the parchment ground.</p></div>
+      <div class="token"><div class="swatch" style="background:var(--ink-600);"></div><p class="name">Ink 600</p><p class="var">--ink-600</p><p class="hex">#454A3C</p><p class="role">Body copy on paper.</p></div>
+      <div class="token"><div class="swatch" style="background:var(--ink-400);"></div><p class="name">Ink 400</p><p class="var">--ink-400</p><p class="hex">#6E7460</p><p class="role">Help text, de-emphasized field IDs, captions.</p></div>
+      <div class="token"><div class="swatch" style="background:var(--paper); border:1px solid var(--rule-strong);"></div><p class="name">Paper</p><p class="var">--paper</p><p class="hex">#F7F4EC</p><p class="role">Page ground.</p></div>
+      <div class="token"><div class="swatch" style="background:var(--paper-50); border:1px solid var(--rule-strong);"></div><p class="name">Paper 50</p><p class="var">--paper-50</p><p class="hex">#FCFBF6</p><p class="role">Card / input surface — the lightest layer.</p></div>
+      <div class="token"><div class="swatch" style="background:var(--paper-100); border:1px solid var(--rule-strong);"></div><p class="name">Paper 100</p><p class="var">--paper-100</p><p class="hex">#EFEBDD</p><p class="role">Page background, tag chips.</p></div>
+    </div>
+
+    <h4 class="minor">Accent — ember (the only chromatic color)</h4>
+    <div class="token-grid">
+      <div class="token"><div class="swatch" style="background:var(--ember-100);"></div><p class="name">Ember 100</p><p class="var">--ember-100</p><p class="hex">#F4E2D4</p><p class="role">Tinted background for badges/alerts needing attention.</p></div>
+      <div class="token"><div class="swatch" style="background:var(--ember);"></div><p class="name">Ember</p><p class="var">--ember</p><p class="hex">#B8501F</p><p class="role">The accent. Validation-complete state, the one primary action. Never used decoratively.</p></div>
+      <div class="token"><div class="swatch" style="background:var(--ember-600);"></div><p class="name">Ember 600</p><p class="var">--ember-600</p><p class="hex">#963F16</p><p class="role">Hover/active deepening; link color on paper.</p></div>
+      <div class="token"><div class="swatch" style="background:linear-gradient(115deg,#C96A2E,#B8501F,#8B3A1A);"></div><p class="name">Ember flow</p><p class="var">--ember-flow</p><p class="hex">diagonal</p><p class="role">Accent surfaces only (primary button, sealed state, featured card). Never the page background — see §04.</p></div>
+    </div>
+
+    <h4 class="minor">Metal — hairlines &amp; icons, never fills</h4>
+    <div class="token-grid">
+      <div class="token"><div class="swatch" style="background:var(--brass);"></div><p class="name">Brass</p><p class="var">--brass</p><p class="hex">#9C7A3C</p><p class="role">Eyebrow labels, unsealed gate-seal ring.</p></div>
+      <div class="token"><div class="swatch" style="background:var(--brass-200);"></div><p class="name">Brass 200</p><p class="var">--brass-200</p><p class="hex">#E4D9BE</p><p class="role">Field-type pill background.</p></div>
+    </div>
+
+    <h4 class="minor">Semantic — do not repurpose ember for these</h4>
+    <table class="spec-table">
+      <tr><th>Token</th><th>Hex</th><th>Use</th></tr>
+      <tr><td class="k">--success</td><td class="v">#3F8A5C</td><td class="note">Confirmation toasts, "all fields mapped" states — distinct from ember so "done" and "the one action to take" never look identical.</td></tr>
+      <tr><td class="k">--error</td><td class="v">#B8341F</td><td class="note">Destructive/failed validation. Cooler and darker than ember — deliberately not the brand accent, so errors don't inherit the accent's "call to action" weight.</td></tr>
+    </table>
+  </div>
+</section>
+
+<section class="section">
+  <div class="frame">
+    <div class="sec-num"><span class="num">§02</span><span class="sep"></span><span class="label">Type &amp; scale</span></div>
+    <h2 class="section-title">Fraunces, Inter, Plex Mono.</h2>
+    <p class="lead">Display carries personality with restraint; UI is a workhorse; mono marks data, IDs, and anything technical — which is exactly why de-emphasized field IDs use it at reduced size and opacity, not the label typeface.</p>
+    <table class="spec-table">
+      <tr><th>Role</th><th>Token</th><th>Face</th></tr>
+      <tr><td class="k">Display</td><td class="v">--font-display</td><td class="note">Fraunces → Georgia → serif. Headings, wordmark only.</td></tr>
+      <tr><td class="k">UI</td><td class="v">--font-ui</td><td class="note">Inter → system-ui. Body, labels, buttons.</td></tr>
+      <tr><td class="k">Mono</td><td class="v">--font-mono</td><td class="note">IBM Plex Mono. Eyebrows, technical IDs, tags — never body copy.</td></tr>
+    </table>
+    <div class="demo-row" style="align-items:baseline;">
+      <span style="font-family:var(--font-display); font-size:var(--t-display);">Aa</span>
+      <span style="font-family:var(--font-ui); font-size:var(--t-h1);">Aa</span>
+      <span style="font-family:var(--font-mono); font-size:var(--t-h2); color:var(--ember-600);">Aa</span>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="frame">
+    <div class="sec-num"><span class="num">§03</span><span class="sep"></span><span class="label">Spacing, radius, shadow, motion</span></div>
+    <h2 class="section-title">The mechanical scale.</h2>
+    <table class="spec-table">
+      <tr><th>Category</th><th>Tokens</th><th>Rule</th></tr>
+      <tr><td class="k">Spacing</td><td class="v">--s-1 … --s-9</td><td class="note">4px base, modular (4/8/12/16/24/32/48/64/96). No off-scale magic numbers.</td></tr>
+      <tr><td class="k">Radius</td><td class="v">--r-1, --r-2, --r-3, --r-pill</td><td class="note">Pill (999px) for anything actionable/floating — buttons, tabs. Soft corners (6–10px) for containers.</td></tr>
+      <tr><td class="k">Shadow</td><td class="v">--shadow-card, --shadow-shell, --shadow-ember</td><td class="note">Layered, warm-tinted, soft falloff — elevation reads as "floating," never a flat border pretending to be depth.</td></tr>
+      <tr><td class="k">Motion</td><td class="v">--ease, --dur-fast, --dur-base</td><td class="note">120/180ms, one easing curve. Respect prefers-reduced-motion in the Svelte components (not shown in this static doc).</td></tr>
+    </table>
+  </div>
+</section>
+
+<section class="section">
+  <div class="frame">
+    <div class="sec-num"><span class="num">§04</span><span class="sep"></span><span class="label">Accessibility contract</span></div>
+    <h2 class="section-title">Color is a hint, never the signal.</h2>
+    <p class="lead">Every state that matters to a decision — sealed vs. open, mapped vs. unmapped, error vs. success — carries a second, non-color channel: shape, glyph, or text. This is the fix for the finding that the gate-seal used color alone.</p>
+    <div class="dodont">
+      <div class="cell dnt">
+        <p class="tag">Don't</p>
+        <ul><li>Signal "sealed" with fill color alone on an unlabeled circle.</li><li>Rely on the ember/brass hue difference — indistinguishable for red-green colorblind users at this saturation.</li><li>Ship a focus state only on inputs; buttons and tabs need one too.</li></ul>
+      </div>
+      <div class="cell do">
+        <p class="tag">Do</p>
+        <ul><li>Pair color with a shape change (hollow ring → solid disc + ✓ glyph) and a visually-hidden label.</li><li>Use <code>--focus-ring</code> on every interactive element via <code>:focus-visible</code>.</li><li>Real <code>&lt;button&gt;</code>/<code>&lt;select&gt;</code> elements with associated <code>&lt;label&gt;</code>s — never a styled <code>&lt;div&gt;</code> with an onclick.</li></ul>
+      </div>
+    </div>
+    <h4 class="minor">Gate-seal — before / after</h4>
+    <div class="demo-row">
+      <span class="gate-seal" data-state="sealed"><span class="sr-only">Complete</span></span>
+      <small>Sealed — shape (disc + check) AND color, not color alone</small>
+    </div>
+    <div class="demo-row">
+      <span class="gate-seal" data-state="open"><span class="sr-only">Incomplete</span></span>
+      <small>Open — hollow ring, distinct silhouette even in grayscale</small>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="frame">
+    <div class="sec-num"><span class="num">§05</span><span class="sep"></span><span class="label">Core components</span></div>
+    <h2 class="section-title">Buttons, and the field-mapping row.</h2>
+
+    <h4 class="minor">Buttons — every state</h4>
+    <div class="demo-row">
+      <button class="btn btn-primary">Continue to Publish →</button>
+      <button class="btn btn-primary" disabled>Continue to Publish →</button>
+      <button class="btn btn-ghost">← Back to form</button>
+    </div>
+
+    <h4 class="minor">Field-mapping row — label leads, ID de-emphasized</h4>
+    <p class="lead" style="font-size:var(--t-small);">Previously the technical field ID (<code>sub_work_title</code>) sat at equal visual weight to the human label. Now it drops to muted, reduced-size mono — present for anyone debugging, silent for everyone else.</p>
+    <div class="dodont">
+      <div class="cell dnt">
+        <p class="tag">Don't</p>
+        <div class="field-row" style="border:none; padding:0;">
+          <span class="label" style="font-family:var(--font-mono); font-size:13.5px; color:var(--ink);">sub_work_title</span>
+          <span class="label" style="font-weight:400; color:var(--ink-400);">Title of Work</span>
+        </div>
+      </div>
+      <div class="cell do">
+        <p class="tag">Do</p>
+        <div class="field-row" style="border:none; padding:0;">
+          <span class="label">Title of Work</span>
+          <span class="id">sub_work_title</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="frame">
+    <div class="sec-num"><span class="num">§06</span><span class="sep"></span><span class="label">Core components</span></div>
+    <h2 class="section-title">Buttons, and the field-mapping row.</h2>
+
+    <h4 class="minor">Buttons — every state</h4>
+    <div class="demo-row">
+      <button class="btn btn-primary">Continue to Publish →</button>
+      <button class="btn btn-primary" disabled>Continue to Publish →</button>
+      <button class="btn btn-ghost">← Back to form</button>
+    </div>
+
+    <h4 class="minor">Field-mapping row — label leads, ID de-emphasized</h4>
+    <p class="lead" style="font-size:var(--t-small);">Previously the technical field ID (<code>sub_work_title</code>) sat at equal visual weight to the human label. Now it drops to muted, reduced-size mono — present for anyone debugging, silent for everyone else.</p>
+    <div class="dodont">
+      <div class="cell dnt">
+        <p class="tag">Don't</p>
+        <div class="field-row" style="border:none; padding:0;">
+          <span class="label" style="font-family:var(--font-mono); font-size:13.5px; color:var(--ink);">sub_work_title</span>
+          <span class="label" style="font-weight:400; color:var(--ink-400);">Title of Work</span>
+        </div>
+      </div>
+      <div class="cell do">
+        <p class="tag">Do</p>
+        <div class="field-row" style="border:none; padding:0;">
+          <span class="label">Title of Work</span>
+          <span class="id">sub_work_title</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="frame">
+    <div class="sec-num"><span class="num">§07</span><span class="sep"></span><span class="label">Form states &amp; validation</span></div>
+    <h2 class="section-title">Every field, every state, in plain language.</h2>
+    <p class="lead">The Build form and Publish steps are where a volunteer admin does the most typing. Validation is immediate — on blur, not on submit — so a mistake gets caught before it's forgotten. Every error names what's wrong and what to do about it; never a bare "Invalid input."</p>
+
+    <h4 class="minor">States — real DragonGate fields</h4>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap: var(--s-6);">
+      <div>
+        <div class="field-group">
+          <label for="dg-f-default">Portal name</label>
+          <input class="field" id="dg-f-default" type="text" placeholder="2027 Community Grant" />
+        </div>
+        <div class="field-group">
+          <label for="dg-f-filled">Portal name</label>
+          <input class="field" id="dg-f-filled" type="text" value="2027 Community Grant" />
+        </div>
+        <div class="field-group">
+          <label for="dg-f-disabled">Sheet ID <span class="req">Locked while published</span></label>
+          <input class="field" id="dg-f-disabled" type="text" value="1BxiMVs0XRA5nFMdKvBd..." disabled />
+          <p class="field-help">Unpublish the portal to change where responses are saved.</p>
+        </div>
+      </div>
+      <div>
+        <div class="field-group">
+          <label for="dg-f-focus">Portal name</label>
+          <input class="field" id="dg-f-focus" type="text" value="2027 Community Grant" style="box-shadow: var(--focus-ring); border-color: var(--ember);" />
+        </div>
+        <div class="field-group">
+          <label for="dg-f-err">Google Sheet ID <span class="req">Required</span></label>
+          <input class="field err" id="dg-f-err" type="text" value="docs.google.com/spreadsheets/d/abc" aria-invalid="true" />
+          <p class="field-help err">That doesn't look like a Sheet ID — paste the long code between <code>/d/</code> and <code>/edit</code> in the sheet's URL, not the whole link.</p>
+        </div>
+        <div class="field-group">
+          <label for="dg-f-ok">Google Sheet ID</label>
+          <input class="field ok" id="dg-f-ok" type="text" value="1BxiMVs0XRA5nFMdKvBd..." />
+          <p class="field-help ok">Connected — DragonGate can write submissions here.</p>
+        </div>
+      </div>
+    </div>
+
+    <h4 class="minor">Unmapped-field warning — Build form → Map data step</h4>
+    <p class="lead" style="font-size:var(--t-small);">A field the admin added to the form but never assigned to a Sheet column. This blocks Publish — the warning says which field, and the fix is one click away, not a hunt through the form.</p>
+    <div class="dodont">
+      <div class="cell dnt">
+        <p class="tag">Don't</p>
+        <p style="margin:0; font-size:13px; color:var(--ink);">"Validation error: field mapping incomplete."</p>
+      </div>
+      <div class="cell do">
+        <p class="tag">Do</p>
+        <p style="margin:0; font-size:13px; color:var(--ink);">"'Organization budget' isn't going anywhere yet — pick a Sheet column for it before you publish."</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="frame">
+    <div class="sec-num"><span class="num">§08</span><span class="sep"></span><span class="label">Empty states</span></div>
+    <h2 class="section-title">Nothing here yet is not the same as broken.</h2>
+    <p class="lead">A first-run admin sees an empty dashboard before they see a single portal. The empty state has to do the job a demo video usually does: say what's missing, and hand over the one next action.</p>
+
+    <h4 class="minor">No portals yet — main dashboard</h4>
+    <div class="empty-state">
+      <span class="glyph" aria-hidden="true">
+        <span class="gate-seal" data-state="open"></span>
+      </span>
+      <h4>No portals yet</h4>
+      <p>Create your first portal to start collecting applications — a grant, a prize, a scholarship. Takes about five minutes.</p>
+      <button class="btn btn-primary">Start a portal</button>
+    </div>
+
+    <h4 class="minor">No saved templates — template picker</h4>
+    <div class="empty-state">
+      <span class="glyph" aria-hidden="true">
+        <svg class="icon-line" viewBox="0 0 24 24" width="22" height="22"><path d="M4 4h16v16H4z"/><path d="M4 9h16M9 9v11"/></svg>
+      </span>
+      <h4>No templates saved</h4>
+      <p>Save any portal as a template to reuse its form and field mapping next cycle. You haven't saved one yet.</p>
+      <button class="btn btn-ghost">Browse starter templates</button>
+    </div>
+
+    <div class="dodont">
+      <div class="cell dnt"><p class="tag">Don't</p><ul><li>Show a blank table with no explanation.</li><li>Lead with an illustration and bury the CTA below the fold.</li></ul></div>
+      <div class="cell do"><p class="tag">Do</p><ul><li>Name what's missing in plain words, then one clear next step.</li><li>Reuse the same button and gate-seal glyphs the rest of the product already uses — the empty state isn't a special skin.</li></ul></div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="frame">
+    <div class="sec-num"><span class="num">§09</span><span class="sep"></span><span class="label">Loading &amp; saving states</span></div>
+    <h2 class="section-title">The admin should never wonder if the click landed.</h2>
+    <p class="lead">"Update portal" writes to the database and, when connected, to the Google Sheet — two round-trips that can each take a second or two. The button shows its own state; nothing else on the page should require a guess.</p>
+
+    <h4 class="minor">Update-portal flow — button carries the state</h4>
+    <div class="demo-row">
+      <button class="btn btn-primary">Update portal</button>
+      <small>Idle — ready to save</small>
+    </div>
+    <div class="demo-row">
+      <button class="btn btn-primary" disabled style="opacity:0.85;"><span class="spinner"></span> Saving…</button>
+      <small>In flight — label changes tense, spinner is the second signal (never color alone)</small>
+    </div>
+    <div class="demo-row">
+      <button class="btn btn-primary" disabled style="background:var(--success); box-shadow:none;">✓ Saved</button>
+      <small>Confirmed — reverts to "Update portal" after 2s, or on next edit</small>
+    </div>
+
+    <h4 class="minor">List loading — portal dashboard skeleton</h4>
+    <div style="display:grid; gap:10px; max-width:480px; padding:var(--s-4); border:1px solid var(--rule); border-radius:var(--r-2); background:var(--paper-50);">
+      <div class="skeleton" style="width:55%;"></div>
+      <div class="skeleton" style="width:85%;"></div>
+      <div class="skeleton" style="width:70%;"></div>
+    </div>
+    <p class="lead" style="font-size:var(--t-small); margin-top:var(--s-3);">Skeletons, not spinners, for lists — the shape of the eventual content is already visible, which reads as "almost there" instead of "unknown wait." A spinner is reserved for a single in-flight action tied to one button.</p>
+  </div>
+</section>
+
+<section class="section">
+  <div class="frame">
+    <div class="sec-num"><span class="num">§10</span><span class="sep"></span><span class="label">Data &amp; table patterns</span></div>
+    <h2 class="section-title">Sheets mapping, and the template gallery.</h2>
+    <p class="lead">Two recurring data shapes: a row-per-field mapping table (Map data step) and a card grid (template picker). Both reuse the same tokens as everything else — no separate "data view" visual language.</p>
+
+    <h4 class="minor">Field → Sheet column mapping table</h4>
+    <table class="spec-table">
+      <tr><th>Form field</th><th>Sheet column</th><th>Status</th></tr>
+      <tr><td class="v">Applicant name</td><td class="v">A — Name</td><td class="note"><span class="gate-seal" data-state="sealed" style="width:16px;height:16px;"></span> Mapped</td></tr>
+      <tr><td class="v">Email address</td><td class="v">B — Email</td><td class="note"><span class="gate-seal" data-state="sealed" style="width:16px;height:16px;"></span> Mapped</td></tr>
+      <tr><td class="v">Organization budget</td><td class="v" style="color:var(--ink-400);">— none —</td><td class="note" style="color:var(--error);"><span class="gate-seal" data-state="open" style="width:16px;height:16px;"></span> Needs a column</td></tr>
+    </table>
+
+    <h4 class="minor">Template gallery — card grid</h4>
+    <div class="token-grid">
+      <div class="token">
+        <div class="swatch" style="background:var(--ember-100); display:flex; align-items:center; justify-content:center;"><svg class="icon-line" style="stroke:var(--ember-600);" viewBox="0 0 24 24" width="24" height="24"><path d="M12 2l2.6 6.3L21 9l-5 4.5L17.5 21 12 17.6 6.5 21 8 13.5 3 9l6.4-.7z"/></svg></div>
+        <p class="name">Community Grant</p>
+        <p class="role">Single-round grant with budget upload and two reviewer fields.</p>
+      </div>
+      <div class="token">
+        <div class="swatch" style="background:var(--paper-100); display:flex; align-items:center; justify-content:center;"><svg class="icon-line" viewBox="0 0 24 24" width="24" height="24"><path d="M4 4h16v16H4z"/><path d="M4 9h16M9 9v11"/></svg></div>
+        <p class="name">Scholarship Prize</p>
+        <p class="role">Student eligibility fields, transcript upload, guardian contact.</p>
+      </div>
+      <div class="token">
+        <div class="swatch" style="background:var(--paper-100); display:flex; align-items:center; justify-content:center;"><svg class="icon-line" viewBox="0 0 24 24" width="24" height="24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div>
+        <p class="name">Rolling Deadline</p>
+        <p class="role">No fixed close date — mapping refreshes on each new submission.</p>
+      </div>
+    </div>
+    <p class="lead" style="font-size:var(--t-small);">Cards carry a thumbnail (icon or ember-tinted swatch), a name, and a one-line description of what makes the template different — never the full field list, which belongs one click deeper.</p>
+  </div>
+</section>
+
+<section class="section">
+  <div class="frame">
+    <div class="sec-num"><span class="num">§11</span><span class="sep"></span><span class="label">Iconography</span></div>
+    <h2 class="section-title">Three marks, three jobs — never interchangeable.</h2>
+    <table class="spec-table">
+      <tr><th>Mark</th><th>Use</th><th>Never</th></tr>
+      <tr><td class="k">Dragon mark</td><td class="note">Plugin identity only — cover/wordmark lockup, the plugin's "About DragonGate" screen, the WP admin-menu icon. Appears once per screen at most.</td><td class="note">As a repeated UI icon, a bullet, or a loading indicator.</td></tr>
+      <tr><td class="k">Gate-seal</td><td class="note">Step/field completion state — sealed vs. open (§04). A functional status indicator, not decoration.</td><td class="note">As a generic "info" or "settings" icon — it means completion, nothing else.</td></tr>
+      <tr><td class="k">Generic line icon</td><td class="note">Everyday wp-admin actions — template, form, deadline, mapping. Matches Dashicons' 20px / stroke conventions so a DragonGate icon sits cleanly beside core WP-admin icons in the same toolbar.</td><td class="note">Ember-filled or ornate — generic icons stay in ink-600, never in the brand accent.</td></tr>
+    </table>
+    <div class="demo-row" style="align-items:flex-start;">
+      <div style="text-align:center;"><svg class="icon-line" viewBox="0 0 24 24" width="24" height="24"><path d="M4 4h16v16H4z"/><path d="M4 9h16M9 9v11"/></svg><br><small>Form</small></div>
+      <div style="text-align:center;"><svg class="icon-line" viewBox="0 0 24 24" width="24" height="24"><path d="M12 2l2.6 6.3L21 9l-5 4.5L17.5 21 12 17.6 6.5 21 8 13.5 3 9l6.4-.7z"/></svg><br><small>Template</small></div>
+      <div style="text-align:center;"><svg class="icon-line" viewBox="0 0 24 24" width="24" height="24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><br><small>Deadline</small></div>
+      <div style="text-align:center;"><span class="gate-seal" data-state="sealed"><span class="sr-only">Complete</span></span><br><small>Gate-seal</small></div>
+    </div>
+    <p class="lead" style="font-size:var(--t-small); margin-top:var(--s-3);">Rule of thumb: if it names the plugin, it's the dragon. If it names a state, it's the seal. If it names an action or object, it's a generic line icon — 20px, 1.6px stroke, ink-600, no fill.</p>
+  </div>
+</section>
+
+<section class="section">
+  <div class="frame">
+    <div class="sec-num"><span class="num">§12</span><span class="sep"></span><span class="label">Voice &amp; tone</span></div>
+    <h2 class="section-title">Written for a volunteer, not a developer.</h2>
+    <p class="lead">The person configuring a DragonGate portal is usually a nonprofit volunteer or part-time program admin — not a WordPress developer, not an engineer. Copy assumes no technical background, names concrete next actions, and never blames the admin for a mistake the system could have prevented.</p>
+
+    <h4 class="minor">Button labels — active voice, named object</h4>
+    <div class="dodont">
+      <div class="cell dnt"><p class="tag">Don't</p><ul><li>"Submit"</li><li>"OK"</li><li>"Save Changes"</li></ul></div>
+      <div class="cell do"><p class="tag">Do</p><ul><li>"Publish portal"</li><li>"Connect this Sheet"</li><li>"Update portal"</li></ul></div>
+    </div>
+
+    <h4 class="minor">Errors — plain language, always a fix</h4>
+    <div class="dodont">
+      <div class="cell dnt"><p class="tag">Don't</p><ul><li>"Error: 403 Forbidden."</li><li>"Invalid Sheet ID."</li></ul></div>
+      <div class="cell do"><p class="tag">Do</p><ul><li>"DragonGate can't write to that sheet — make sure it's shared with dragongate@yourdomain.iam.gserviceaccount.com."</li><li>"That doesn't look like a Sheet ID — paste the code between /d/ and /edit in the sheet's URL."</li></ul></div>
+    </div>
+
+    <h4 class="minor">Empty states — name it, hand over the next step</h4>
+    <p style="margin:0 0 var(--s-2); font-size:13px; color:var(--ink-600);">"No portals yet. Create your first portal to start collecting applications." — never "No data found."</p>
+
+    <h4 class="minor">Confirmations — past tense, no exclamation marks</h4>
+    <p style="margin:0 0 var(--s-2); font-size:13px; color:var(--ink-600);">"Portal published. Applicants can now submit at the link below." — not "Success!! Your portal is live!!"</p>
+
+    <h4 class="minor">Tone by surface</h4>
+    <table class="spec-table">
+      <tr><th>Surface</th><th>Tone</th></tr>
+      <tr><td class="k">Start / template picker</td><td class="note">Warm, encouraging — this is the admin's first impression of the plugin.</td></tr>
+      <tr><td class="k">Build form / Map data</td><td class="note">Precise, procedural — the admin is doing careful configuration work; don't editorialize.</td></tr>
+      <tr><td class="k">Errors anywhere</td><td class="note">Calm and specific. Never "Oops!" — name the problem and the fix in one sentence.</td></tr>
+      <tr><td class="k">Publish confirmation</td><td class="note">Quietly confident. The gate is sealed; say so plainly.</td></tr>
+    </table>
+  </div>
+</section>
+
+<section class="section">
+  <div class="frame">
+    <div class="sec-num"><span class="num">§13</span><span class="sep"></span><span class="label">Accessibility checklist</span></div>
+    <h2 class="section-title">Verified pairs, not assumed ones.</h2>
+    <p class="lead">Every ratio below is computed from the hex values in <code>:root</code> above, not eyeballed. Two pairs fail AA for normal text and are flagged with their actual required use — this is the honest state of the palette, not a claim that everything passes.</p>
+
+    <table class="spec-table">
+      <tr><th>Pair</th><th>Ratio</th><th>Verdict</th></tr>
+      <tr><td class="k">--ink on --paper</td><td class="v">16.9 : 1</td><td class="note">AA + AAA, any text size.</td></tr>
+      <tr><td class="k">--ink-600 on --paper</td><td class="v">8.3 : 1</td><td class="note">AA + AAA, any text size. Body copy default.</td></tr>
+      <tr><td class="k">--ink-400 on --paper</td><td class="v">4.4 : 1</td><td class="note"><strong>Fails AA for normal text</strong> (needs 4.5). Passes for large text (≥18px / 14px bold) and icons only — use for captions/help text at ≥13px with generous line-height, never for small critical copy.</td></tr>
+      <tr><td class="k">--ember-600 on --paper</td><td class="v">6.3 : 1</td><td class="note">AA + AAA. Link color, safe at body size.</td></tr>
+      <tr><td class="k">white on --ember</td><td class="v">5.0 : 1</td><td class="note">AA for normal text. Primary button label.</td></tr>
+      <tr><td class="k">--error on --paper</td><td class="v">5.4 : 1</td><td class="note">AA. Safe for error text at body size.</td></tr>
+      <tr><td class="k">--success on --paper</td><td class="v">3.8 : 1</td><td class="note"><strong>Fails AA for normal text.</strong> Use only for large text, icons, or paired with a bold weight — the "Saved" confirmation in §09 uses it on a filled button (white-on-color contrast, not text-on-paper), which is the safe pattern.</td></tr>
+      <tr><td class="k">--brass on --paper</td><td class="v">3.6 : 1</td><td class="note"><strong>Fails AA for normal text.</strong> Reserved for eyebrow labels (which are decorative/redundant with adjacent headings) and icon strokes — never load-bearing body copy.</td></tr>
+    </table>
+
+    <h4 class="minor">Keyboard navigation</h4>
+    <ul>
+      <li>Tab order through Build form follows visual order top-to-bottom, left-to-right; the Map data table is tabbable row by row, each Sheet-column select reachable without a mouse.</li>
+      <li>Every actionable element (button, select, gate-seal-triggering control) is a real focusable element with <code>--focus-ring</code> visible on <code>:focus-visible</code> — never suppressed with <code>outline: none</code> alone.</li>
+      <li>The Publish confirmation and any destructive action (delete portal, unpublish) is reachable and confirmable via keyboard alone, with focus returned to a sensible element after the action completes.</li>
+    </ul>
+
+    <h4 class="minor">Screen-reader labels</h4>
+    <ul>
+      <li>The gate-seal never relies on its shape or color alone — every instance carries a <code>&lt;span class="sr-only"&gt;</code> announcing "Complete" or "Incomplete" (see §04, §11).</li>
+      <li>Icon-only buttons (a trash icon to remove a mapped field, a gear to open portal settings) carry an <code>aria-label</code> naming the action and its target — "Remove Organization budget field," not "Remove."</li>
+      <li>The saving spinner (§09) sits in an <code>aria-live="polite"</code> region so a screen-reader user hears "Saving…" then "Saved" without needing to poll the button.</li>
+    </ul>
+
+    <h4 class="minor">Touch targets &amp; motion</h4>
+    <ul>
+      <li>Every button and gate-seal-triggering control is at least 40px on the shortest side inside wp-admin's own touch-friendly chrome.</li>
+      <li>All shimmer/spin animations (§09) respect <code>prefers-reduced-motion</code> — spinners slow to a calmer pace, skeleton shimmer becomes a flat tone. Neither loses its meaning when motion is reduced.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="section">
+  <div class="frame">
+    <div class="sec-num"><span class="num">§14</span><span class="sep"></span><span class="label">Responsive behavior</span></div>
+    <h2 class="section-title">This is wp-admin. Its collapse rules already exist — don't fight them.</h2>
+    <p class="lead">DragonGate renders inside the WordPress admin shell, which already owns responsive behavior for the sidebar and top toolbar. The plugin's job is to make sure its own screens (Build form, Map data table, Publish) degrade cleanly inside whatever width wp-admin gives them — not to invent a parallel breakpoint system.</p>
+    <table class="spec-table">
+      <tr><th>Width</th><th>wp-admin does</th><th>DragonGate does</th></tr>
+      <tr><td class="k">&gt; 960px</td><td class="note">Full sidebar, expanded menu labels.</td><td class="note">Two-column form layouts (as in §07); mapping table shows all columns side by side.</td></tr>
+      <tr><td class="k">782–960px</td><td class="note">Sidebar auto-folds to icons-only (the native "folded" admin menu).</td><td class="note">No change needed — DragonGate's content area simply gets narrower; two-column field groups already wrap via existing grid, no override required.</td></tr>
+      <tr><td class="k">&lt; 782px</td><td class="note">wp-admin switches to its mobile nav (hamburger toggle, sidebar becomes an overlay).</td><td class="note">Field-mapping table (§10) stacks to one row per field, label above value; template gallery cards drop to a single column; button rows go full-width and stack vertically.</td></tr>
+    </table>
+    <p class="lead" style="font-size:var(--t-small);">Deliberately no dark mode: DragonGate is a light-only surface, matching the parchment-and-ember palette established in §01 — wp-admin's own dark "Midnight" color scheme wraps our screens without inverting them, the same way any other plugin's light-surface settings page coexists inside a dark admin theme today.</p>
+  </div>
+</section>
+
+<section class="section" style="border-bottom:none;">
+  <div class="frame">
+    <div class="sec-num"><span class="num">§15</span><span class="sep"></span><span class="label">Implementation note</span></div>
+    <h2 class="section-title">Where this lives in code.</h2>
+    <p class="lead">These tokens map 1:1 onto a <code>tailwind.config.js</code> <code>theme.extend</code> block consumed by the existing Svelte app (<code>src/</code> → <code>assets/dist/dragongate-portal.js</code>). No new framework, no new build tool — the gate-seal, button, field-mapping, form-field, empty-state, and skeleton components above become Svelte components with <code>data-state</code> props driving the exact CSS shown here.</p>
+  </div>
+</section>
