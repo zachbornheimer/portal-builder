@@ -58,11 +58,37 @@ function appendSeedRegistry(artifactDirAbs, entry) {
 }
 
 /**
+ * Pathname (+ trailing slash) from a WP REST `link` URL for pretty-permalink e2e.
+ * Query-form `?p=` redirects strip `preview=true`; public tests need this path.
+ *
+ * @param {string|undefined} link Absolute or site-relative portal URL from REST.
+ * @returns {string|undefined}
+ */
+export function linkPathFromRestLink(link) {
+	if (!link || typeof link !== 'string') {
+		return undefined;
+	}
+	try {
+		const pathname = link.includes('://')
+			? new URL(link).pathname
+			: link.startsWith('/')
+				? link.split('?')[0]
+				: `/${link.split('?')[0]}`;
+		if (!pathname || pathname === '/') {
+			return undefined;
+		}
+		return pathname.endsWith('/') ? pathname : `${pathname}/`;
+	} catch {
+		return undefined;
+	}
+}
+
+/**
  * Create a published portal via REST.
  *
  * @param {import('@playwright/test').Page} page
  * @param {{ title?: string, label?: string, env?: ReturnType<typeof loadEnv>, skipLogin?: boolean }} [opts]
- * @returns {Promise<{ id: string, title: string, editUrl: string }>}
+ * @returns {Promise<{ id: string, title: string, editUrl: string, slug?: string, link?: string, linkPath?: string }>}
  */
 export async function seedPortal(page, opts = {}) {
 	const env = opts.env || loadEnv();
@@ -99,9 +125,12 @@ export async function seedPortal(page, opts = {}) {
 
 	const id = String(body.id);
 	const editUrl = `/wp-admin/post.php?post=${id}&action=edit`;
+	const slug = typeof body.slug === 'string' && body.slug ? body.slug : undefined;
+	const link = typeof body.link === 'string' && body.link ? body.link : undefined;
+	const linkPath = linkPathFromRestLink(link);
 	appendSeedRegistry(env.artifactDirAbs, { id, title });
 
-	return { id, title, editUrl };
+	return { id, title, editUrl, slug, link, linkPath };
 }
 
 /** CLI entry: seed one portal and print JSON. */

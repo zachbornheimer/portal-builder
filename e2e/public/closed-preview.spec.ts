@@ -86,6 +86,11 @@ test.describe('closed vs preview (definition-first)', () => {
 		await ensureAdminSession(page, { env });
 		const seeded = await seedPortal(page, { env, skipLogin: true, label: 'closed-preview' });
 		const portalId = seeded.id;
+		// Pretty permalink required: ?p= → /portal/slug redirects drop preview=true.
+		expect(
+			seeded.linkPath || seeded.slug,
+			'seed must return linkPath or slug for preview query preservation'
+		).toBeTruthy();
 		const { publicPath, previewPath } = publicPortalPaths(seeded);
 
 		try {
@@ -117,10 +122,48 @@ test.describe('closed vs preview (definition-first)', () => {
 
 			// --- Editor with ?preview=true: banner + definition form markers ---
 			// Prefer commit so slow secondary assets don't eat the budget.
-			await page.goto(previewPath, { waitUntil: 'commit', timeout: 90_000 });
-			await page.waitForSelector('[data-dg-preview="true"], [data-dg-render="definition"]', {
-				timeout: 45_000,
+			const previewRes = await page.goto(previewPath, {
+				waitUntil: 'commit',
+				timeout: 90_000,
 			});
+			// If markers missing, dump request HTML for diagnosis (redirects strip preview).
+			try {
+				await page.waitForSelector(
+					'[data-dg-preview="true"], [data-dg-render="definition"]',
+					{ timeout: 45_000 }
+				);
+			} catch (err) {
+				const dumpRes = await page.request.get(previewPath);
+				const dumpHtml = await dumpRes.text();
+				fs.mkdirSync(env.artifactDirAbs, { recursive: true });
+				const dumpPath = path.join(
+					env.artifactDirAbs,
+					`closed-preview-fail-${portalId}.json`
+				);
+				fs.writeFileSync(
+					dumpPath,
+					JSON.stringify(
+						{
+							ok: false,
+							portalId,
+							publicPath,
+							previewPath,
+							finalUrl: page.url(),
+							gotoStatus: previewRes?.status() ?? null,
+							requestStatus: dumpRes.status(),
+							requestUrl: dumpRes.url(),
+							htmlSnippet: dumpHtml.slice(0, 4000),
+							hasPreview: /data-dg-preview="true"/.test(dumpHtml),
+							hasDefinition: /data-dg-render="definition"/.test(dumpHtml),
+							hasClosed: /data-dg-portal-state="closed"/.test(dumpHtml),
+							at: new Date().toISOString(),
+						},
+						null,
+						2
+					)
+				);
+				throw err;
+			}
 
 			await expect(page.locator('[data-dg-preview="true"]')).toBeVisible({
 				timeout: 30_000,
@@ -146,6 +189,8 @@ test.describe('closed vs preview (definition-first)', () => {
 						portalId,
 						publicPath,
 						previewPath,
+						seedLinkPath: seeded.linkPath ?? null,
+						seedSlug: seeded.slug ?? null,
 						anonHasClosed: /data-dg-portal-state="closed"/.test(anonHtml),
 						previewHasBanner: /data-dg-preview="true"/.test(previewHtml),
 						previewHasDefinition: /data-dg-render="definition"/.test(previewHtml),
