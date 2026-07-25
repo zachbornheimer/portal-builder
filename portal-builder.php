@@ -235,6 +235,49 @@ function handle_submissions() {
 
 	try {
 
+		// Definition-backed single-page submit (Phase 3).
+		if (
+			isset( $_SERVER['REQUEST_METHOD'] )
+			&& 'POST' === $_SERVER['REQUEST_METHOD']
+			&& isset( $_POST[ Portal_Submission_Pipeline::NONCE_FIELD ] )
+			&& isset( $_POST['post_id'] )
+		) {
+			$portal_id = (int) $_POST['post_id'];
+			if (
+				! wp_verify_nonce(
+					// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+					wp_unslash( $_POST[ Portal_Submission_Pipeline::NONCE_FIELD ] ),
+					Portal_Submission_Pipeline::NONCE_ACTION
+				)
+			) {
+				throw new Exception( 'Invalid nonce. Likely data corruption.' );
+			}
+
+			// phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified above.
+			$outcome = Portal_Submission_Pipeline::process_request(
+				$portal_id,
+				wp_unslash( $_POST ),
+				$_FILES
+			);
+
+			if ( ! empty( $outcome['ok'] ) ) {
+				$result = isset( $outcome['result'] ) ? $outcome['result'] : array();
+				if ( ! defined( 'PB_APPLICATION_SUBMITTED' ) ) {
+					define( 'PB_APPLICATION_SUBMITTED', true );
+				}
+				if ( ! defined( 'DG_DEFINITION_SUBMIT_OK' ) ) {
+					define( 'DG_DEFINITION_SUBMIT_OK', true );
+				}
+				if ( ! defined( 'PB_RECEIPT_LINK' ) ) {
+					$receipt = isset( $result['receipt_url'] ) ? $result['receipt_url'] : '';
+					define( 'PB_RECEIPT_LINK', $receipt );
+				}
+			} elseif ( ! defined( 'DG_DEFINITION_SUBMIT_ERRORS' ) ) {
+				define( 'DG_DEFINITION_SUBMIT_ERRORS', true );
+			}
+			return;
+		}
+
 		if ( $_SERVER['REQUEST_METHOD'] === 'POST' && isset( $_POST['review_nonce'] ) ) {
 			// filter the content to change inputs to spans with the class 'reviewable'
 

@@ -47,6 +47,20 @@ test('submit herbolzheimer produces sheet/drive/mail artifacts', async () => {
   expect(row.work_title).toBe('Symphony No. 1');
   expect(row.sub_work_title).toBe('Symphony No. 1');
 
+  // Second submit appends a second row (plan 3.5).
+  const r2 = spawnSync(
+    'php',
+    [harness, definition, submission, env.artifactDirAbs, portalId, '--append'],
+    {
+      encoding: 'utf8',
+      env: { ...process.env, DG_TEST_MODE: '1' },
+      cwd: root,
+    },
+  );
+  expect(r2.status, (r2.stdout || '') + (r2.stderr || '')).toBe(0);
+  const lines = fs.readFileSync(sheet, 'utf8').trim().split('\n').filter(Boolean);
+  expect(lines.length).toBe(2);
+
   const summary = path.join(
     env.artifactDirAbs,
     `pipeline-herbolzheimer-${portalId}.json`,
@@ -60,9 +74,38 @@ test('submit herbolzheimer produces sheet/drive/mail artifacts', async () => {
         sheetPath: data.sheetPath,
         drivePaths: data.drivePaths,
         mailPath: data.mailPath,
+        rows: lines.length,
       },
       null,
       2,
     ),
   );
+});
+
+test('missing required field and bad MIME produce no sheet artifact', async () => {
+  const badPortal = 'herbolzheimer-validation';
+  const badSub = path.join(env.artifactDirAbs, 'e2e-bad-submission.json');
+  const txtPath = path.join(env.artifactDirAbs, 'e2e-not-score.txt');
+  fs.writeFileSync(txtPath, 'plain text not pdf\n');
+  const good = JSON.parse(fs.readFileSync(submission, 'utf8'));
+  delete good.values.sub_name;
+  good.portalId = badPortal;
+  good.files = {
+    ...good.files,
+    score: { name: 'e2e-not-score.txt', path: txtPath },
+  };
+  fs.writeFileSync(badSub, JSON.stringify(good));
+
+  const r = spawnSync(
+    'php',
+    [harness, definition, badSub, env.artifactDirAbs, badPortal],
+    {
+      encoding: 'utf8',
+      env: { ...process.env, DG_TEST_MODE: '1' },
+      cwd: root,
+    },
+  );
+  expect(r.status).not.toBe(0);
+  const sheet = path.join(env.artifactDirAbs, 'sheets', `${badPortal}.jsonl`);
+  expect(fs.existsSync(sheet)).toBeFalsy();
 });

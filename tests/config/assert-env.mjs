@@ -113,11 +113,21 @@ function assertFixtures() {
   ok(`fixtures (${REQUIRED_FIXTURES.length} required paths)`);
 }
 
+const TEST_MODE_MARKER = '.dg-test-mode';
+
 function ensureArtifactDir(cfg) {
   const artifactDir = path.isAbsolute(cfg.artifactDir)
     ? cfg.artifactDir
     : path.join(repoRoot, cfg.artifactDir);
   fs.mkdirSync(artifactDir, { recursive: true });
+  // PHP Portal_Test_Mode reads this marker so LocalWP (no env) enables mock stores.
+  if (cfg.useMocks === true) {
+    fs.writeFileSync(
+      path.join(artifactDir, TEST_MODE_MARKER),
+      'enabled-by-assert-env\n',
+      'utf8',
+    );
+  }
   ok(`artifactDir ${artifactDir}`);
   return artifactDir;
 }

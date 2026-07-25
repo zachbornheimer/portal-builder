@@ -105,3 +105,60 @@ test('missing required field fails validation without artifacts overwrite of goo
   const badSheet = path.join(artifactDir, 'sheets', 'herbolzheimer-bad.jsonl');
   assert.equal(fs.existsSync(badSheet), false);
 });
+
+test('bad MIME on score_file is rejected (no sheet row)', () => {
+  const badMime = path.join(root, 'tests/.artifacts/bad-mime-submission.json');
+  const txtPath = path.join(root, 'tests/.artifacts/not-a-score.txt');
+  fs.mkdirSync(path.dirname(badMime), { recursive: true });
+  fs.writeFileSync(txtPath, 'this is not a pdf\n');
+  const good = JSON.parse(fs.readFileSync(submission, 'utf8'));
+  good.portalId = 'herbolzheimer-mime';
+  good.files = {
+    ...good.files,
+    score: { name: 'not-a-score.txt', path: txtPath },
+  };
+  fs.writeFileSync(badMime, JSON.stringify(good));
+
+  const r = spawnSync(
+    'php',
+    [harness, definition, badMime, artifactDir, 'herbolzheimer-mime'],
+    { encoding: 'utf8', env: { ...process.env, DG_TEST_MODE: '1' } },
+  );
+  assert.notEqual(r.status, 0, r.stdout + r.stderr);
+  const errText = (r.stdout || '') + (r.stderr || '');
+  assert.match(errText, /dg_submission_invalid|PDF|valid/i);
+
+  const sheet = path.join(artifactDir, 'sheets', 'herbolzheimer-mime.jsonl');
+  assert.equal(fs.existsSync(sheet), false);
+});
+
+test('two sequential submits append two sheet rows (idempotent enough)', () => {
+  const portal = 'herbolzheimer-twice';
+  // First run clears via harness; second must append.
+  const first = spawnSync(
+    'php',
+    [harness, definition, submission, artifactDir, portal],
+    { encoding: 'utf8', env: { ...process.env, DG_TEST_MODE: '1' } },
+  );
+  assert.equal(first.status, 0, first.stdout + first.stderr);
+
+  // Second run without clear: call pipeline append only via a second process
+  // that does not clear — harness always clears, so append by reusing sheets API
+  // through a second harness run would wipe. Use a dedicated double-run harness flag.
+  const second = spawnSync(
+    'php',
+    [harness, definition, submission, artifactDir, portal, '--append'],
+    { encoding: 'utf8', env: { ...process.env, DG_TEST_MODE: '1' } },
+  );
+  assert.equal(second.status, 0, second.stdout + second.stderr);
+
+  const sheet = path.join(artifactDir, 'sheets', `${portal}.jsonl`);
+  assert.ok(fs.existsSync(sheet));
+  const lines = fs.readFileSync(sheet, 'utf8').trim().split('\n').filter(Boolean);
+  assert.equal(lines.length, 2, `expected 2 rows, got ${lines.length}`);
+  for (const line of lines) {
+    const row = JSON.parse(line);
+    assert.equal(row.work_title, expectedRow.work_title);
+    assert.equal(row.sub_email, expectedRow.sub_email);
+  }
+});

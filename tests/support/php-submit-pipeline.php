@@ -115,12 +115,16 @@ if ( null === $portal_id || '' === $portal_id ) {
 	$portal_id = isset( $submission['portalId'] ) ? (string) $submission['portalId'] : 'cli-submit';
 }
 
-// Isolate this portal's prior artifacts for a clean run.
+$append_only = in_array( '--append', $argv, true );
+
+// Isolate this portal's prior artifacts for a clean run (unless --append).
 $files_facade = new Portal_Files();
 $sheets       = new Portal_Sheet_Store( $artifact, $files_facade );
 $drive        = new Portal_Drive_Store( $artifact, $files_facade );
-$sheets->clear_portal( $portal_id );
-$drive->clear_portal( $portal_id );
+if ( ! $append_only ) {
+	$sheets->clear_portal( $portal_id );
+	$drive->clear_portal( $portal_id );
+}
 
 // Deterministic mail filename for assertions.
 $fixed_ms = static function () {

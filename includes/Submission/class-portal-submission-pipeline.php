@@ -21,6 +21,206 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 
 		const RECEIPT_SUBJECT_PREFIX = 'Application receipt';
 
+		/** Single-step definition form nonce (Phase 3). */
+		const NONCE_ACTION = 'dg_definition_submit';
+		const NONCE_FIELD  = 'dg_definition_submit';
+
+		const SUCCESS_COPY      = 'Your application has been submitted successfully!';
+		const RECEIPT_LINK_TEXT = 'Click here to view the details of your application. Please print / save this for your records.';
+
+		/** @var array|null Last validation/pipeline errors for re-render. */
+		private static $last_errors = null;
+
+		/** @var array|null Last success payload for re-render. */
+		private static $last_success = null;
+
+		/**
+		 * @return array|null
+		 */
+		public static function last_errors() {
+			return self::$last_errors;
+		}
+
+		/**
+		 * @return array|null
+		 */
+		public static function last_success() {
+			return self::$last_success;
+		}
+
+		/**
+		 * Process a definition single-step form POST (values + $_FILES).
+		 *
+		 * @param int                  $portal_id Portal post ID.
+		 * @param array<string,mixed>  $post      $_POST-like map.
+		 * @param array<string,mixed>  $files     $_FILES-like map.
+		 * @return array{ok:bool,errors?:array,result?:array}
+		 */
+		public static function process_request( $portal_id, array $post, array $files ) {
+			self::$last_errors  = null;
+			self::$last_success = null;
+
+			$portal_id  = (int) $portal_id;
+			$definition = Portal_Definition::load_for_post( $portal_id );
+			if ( null === $definition ) {
+				self::$last_errors = array(
+					array(
+						'code'     => 'definition',
+						'field_id' => '',
+						'message'  => 'This portal has no form definition.',
+					),
+				);
+				return array( 'ok' => false, 'errors' => self::$last_errors );
+			}
+
+			if ( ! Portal_Test_Mode::is_enabled() ) {
+				self::$last_errors = array(
+					array(
+						'code'     => 'test_mode',
+						'field_id' => '',
+						'message'  => 'Definition submit requires DG_TEST_MODE until live adapters ship.',
+					),
+				);
+				return array( 'ok' => false, 'errors' => self::$last_errors );
+			}
+
+			$file_meta = self::normalize_uploaded_files( $files );
+			$pipeline  = self::for_artifacts( Portal_Test_Mode::artifact_dir() );
+			$result    = $pipeline->process( $portal_id, $definition, $post, $file_meta );
+
+			if ( is_wp_error( $result ) ) {
+				self::$last_errors = self::errors_from_wp_error( $result );
+				return array( 'ok' => false, 'errors' => self::$last_errors );
+			}
+
+			$receipt_url = self::build_receipt_url( $portal_id, $result );
+			$result['receipt_url'] = $receipt_url;
+			self::$last_success    = $result;
+			return array( 'ok' => true, 'result' => $result );
+		}
+
+		/**
+		 * @param array $result Pipeline result.
+		 * @return string
+		 */
+		public static function render_success( array $result ) {
+			$url    = isset( $result['receipt_url'] ) ? (string) $result['receipt_url'] : '#';
+			$app_id = isset( $result['portalId'] ) ? (string) $result['portalId'] : '';
+
+			return sprintf(
+				'<div class="dg-submit-success" data-dg-submit-status="success" data-dg-app-id="%1$s"><p>%2$s</p><p><a href="%3$s" data-dg-receipt-link target="_blank" rel="noopener">%4$s</a></p></div>',
+				esc_attr( $app_id ),
+				esc_html( self::SUCCESS_COPY ),
+				esc_url( $url ),
+				esc_html( self::RECEIPT_LINK_TEXT )
+			);
+		}
+
+		/**
+		 * @param array $errors Error list.
+		 * @return string
+		 */
+		public static function render_errors( array $errors ) {
+			$items = '';
+			foreach ( $errors as $err ) {
+				$code     = isset( $err['code'] ) ? (string) $err['code'] : '';
+				$field_id = isset( $err['field_id'] ) ? (string) $err['field_id'] : '';
+				$message  = isset( $err['message'] ) ? (string) $err['message'] : 'Submission error.';
+				$items   .= sprintf(
+					'<li data-dg-error-code="%1$s" data-dg-field-id="%2$s">%3$s</li>',
+					esc_attr( $code ),
+					esc_attr( $field_id ),
+					esc_html( $message )
+				);
+			}
+			return sprintf(
+				'<div class="dg-submit-errors" data-dg-submit-status="error" role="alert"><ul>%s</ul></div>',
+				$items
+			);
+		}
+
+		/**
+		 * Map $_FILES entries onto field ids (strip sub_ prefix).
+		 *
+		 * @param array $files $_FILES.
+		 * @return array<string,array>
+		 */
+		private static function normalize_uploaded_files( array $files ) {
+			$out = array();
+			foreach ( $files as $name => $meta ) {
+				if ( ! is_array( $meta ) ) {
+					continue;
+				}
+				// Skip empty file inputs.
+				if ( isset( $meta['error'] ) && (int) $meta['error'] === UPLOAD_ERR_NO_FILE ) {
+					continue;
+				}
+				$field_id = (string) $name;
+				if ( 0 === strpos( $field_id, Portal_Submission_Field_Rules::NAME_PREFIX ) ) {
+					$field_id = substr( $field_id, strlen( Portal_Submission_Field_Rules::NAME_PREFIX ) );
+				}
+				$out[ $field_id ] = $meta;
+			}
+			return $out;
+		}
+
+		/**
+		 * @param WP_Error $err Error.
+		 * @return array<int,array{code:string,field_id:string,message:string}>
+		 */
+		private static function errors_from_wp_error( $err ) {
+			$errors = array();
+			$data   = $err->get_error_data();
+			if ( is_array( $data ) && isset( $data['fields'] ) && is_array( $data['fields'] ) ) {
+				foreach ( $data['fields'] as $field_id => $message ) {
+					$code = 'required';
+					$msg  = (string) $message;
+					if ( false !== stripos( $msg, 'valid PDF' ) || false !== stripos( $msg, 'valid MP3' ) || false !== stripos( $msg, 'must be a valid' ) ) {
+						$code = 'mime';
+					}
+					$errors[] = array(
+						'code'     => $code,
+						'field_id' => (string) $field_id,
+						'message'  => $msg,
+					);
+				}
+			}
+			if ( empty( $errors ) ) {
+				$errors[] = array(
+					'code'     => $err->get_error_code(),
+					'field_id' => '',
+					'message'  => $err->get_error_message(),
+				);
+			}
+			return $errors;
+		}
+
+		/**
+		 * @param int   $portal_id Portal ID.
+		 * @param array $result    Pipeline result.
+		 * @return string
+		 */
+		private static function build_receipt_url( $portal_id, array $result ) {
+			$args = array(
+				'dg-receipt' => '1',
+				'portal-id'  => (int) $portal_id,
+			);
+			if ( ! empty( $result['applicant']['sub_email'] ) ) {
+				$args['email'] = $result['applicant']['sub_email'];
+			}
+			if ( ! empty( $result['applicant']['sub_name'] ) ) {
+				$args['name'] = $result['applicant']['sub_name'];
+			}
+			if ( ! empty( $result['values']['work_title'] ) ) {
+				$args['work_title'] = $result['values']['work_title'];
+			}
+			$permalink = get_permalink( $portal_id );
+			if ( ! $permalink ) {
+				$permalink = home_url( '/' );
+			}
+			return add_query_arg( $args, $permalink );
+		}
+
 		/** @var Portal_Sheet_Store */
 		private $sheets;
 

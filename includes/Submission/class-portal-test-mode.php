@@ -25,6 +25,7 @@ if ( ! class_exists( 'Portal_Test_Mode' ) ) {
 		const FILTER_NAME        = 'dg_test_mode';
 		const FILTER_ARTIFACT    = 'dg_artifact_dir';
 		const DEFAULT_ARTIFACT   = 'tests/.artifacts';
+		const MARKER_FILENAME    = '.dg-test-mode';
 		const TRUTHY_VALUES      = array( '1', 'true', 'yes', 'on' );
 
 		/**
@@ -54,6 +55,12 @@ if ( ! class_exists( 'Portal_Test_Mode' ) ) {
 				if ( null !== $option && '' !== $option ) {
 					return self::is_truthy( $option );
 				}
+			}
+
+			// Local harness: assert-env writes tests/.artifacts/.dg-test-mode when useMocks=true.
+			$marker = self::artifact_dir() . DIRECTORY_SEPARATOR . self::MARKER_FILENAME;
+			if ( is_readable( $marker ) ) {
+				return true;
 			}
 
 			return false;

@@ -47,6 +47,11 @@ if ( ! class_exists( 'Portal_Submission_Field_Rules' ) ) {
 			'phone',
 		);
 
+		const MAGIC_PDF = '%PDF';
+		const MAGIC_ID3 = 'ID3';
+		const EXT_PDF   = 'pdf';
+		const EXT_MP3   = 'mp3';
+
 		/**
 		 * Lookup sub_{id} then bare id.
 		 *
@@ -157,6 +162,7 @@ if ( ! class_exists( 'Portal_Submission_Field_Rules' ) ) {
 			$id       = (string) $field['id'];
 			$label    = isset( $field['label'] ) ? (string) $field['label'] : $id;
 			$required = ! empty( $field['required'] );
+			$type     = (string) $field['type'];
 
 			$meta = null;
 			if ( isset( $files[ $id ] ) && is_array( $files[ $id ] ) ) {
@@ -175,8 +181,87 @@ if ( ! class_exists( 'Portal_Submission_Field_Rules' ) ) {
 				$errors[ $id ] = sprintf( '"%s" file is required.', $label );
 				return;
 			}
-			if ( $has_content ) {
-				$collected['files'][ $id ] = $meta;
+			if ( ! $has_content ) {
+				return;
+			}
+
+			if ( ! self::mime_allowed( $type, $meta ) ) {
+				$errors[ $id ] = sprintf(
+					'"%s" must be a valid %s file.',
+					$label,
+					self::mime_human( $type )
+				);
+				return;
+			}
+
+			$collected['files'][ $id ] = $meta;
+		}
+
+		/**
+		 * Accept score/recording/bio by extension + magic bytes (client MIME is unreliable).
+		 *
+		 * @param string $field_type Definition field type.
+		 * @param array  $meta       File meta (name/path/tmp_name/contents).
+		 * @return bool
+		 */
+		public static function mime_allowed( $field_type, array $meta ) {
+			if ( 'file' === $field_type ) {
+				return true;
+			}
+
+			$filename = isset( $meta['name'] ) ? (string) $meta['name'] : '';
+			$ext      = strtolower( pathinfo( $filename, PATHINFO_EXTENSION ) );
+			$head     = self::file_head_bytes( $meta, 16 );
+
+			switch ( $field_type ) {
+				case 'score_file':
+				case 'bio_file':
+					return self::EXT_PDF === $ext && 0 === strpos( $head, self::MAGIC_PDF );
+				case 'recording_file':
+					$magic_ok = ( 0 === strpos( $head, self::MAGIC_ID3 ) )
+						|| ( strlen( $head ) >= 2 && "\xFF" === $head[0] && ( ord( $head[1] ) & 0xE0 ) === 0xE0 );
+					return self::EXT_MP3 === $ext && $magic_ok;
+				default:
+					return true;
+			}
+		}
+
+		/**
+		 * @param array $meta   File meta.
+		 * @param int   $length Bytes to read.
+		 * @return string
+		 */
+		private static function file_head_bytes( array $meta, $length ) {
+			if ( isset( $meta['contents'] ) && is_string( $meta['contents'] ) ) {
+				return substr( $meta['contents'], 0, $length );
+			}
+			$path = null;
+			if ( isset( $meta['path'] ) && is_string( $meta['path'] ) && is_readable( $meta['path'] ) ) {
+				$path = $meta['path'];
+			} elseif ( ! empty( $meta['tmp_name'] ) && is_readable( $meta['tmp_name'] ) ) {
+				$path = $meta['tmp_name'];
+			}
+			if ( null === $path ) {
+				return '';
+			}
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+			$chunk = file_get_contents( $path, false, null, 0, $length );
+			return is_string( $chunk ) ? $chunk : '';
+		}
+
+		/**
+		 * @param string $field_type Type.
+		 * @return string
+		 */
+		private static function mime_human( $field_type ) {
+			switch ( $field_type ) {
+				case 'score_file':
+				case 'bio_file':
+					return 'PDF';
+				case 'recording_file':
+					return 'MP3';
+				default:
+					return 'supported';
 			}
 		}
 

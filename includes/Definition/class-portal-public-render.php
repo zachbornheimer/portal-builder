@@ -67,7 +67,21 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 				return $content;
 			}
 
-			// Submission success / review flows own the content.
+			// Definition pipeline success owns the content.
+			if ( defined( 'DG_DEFINITION_SUBMIT_OK' ) && DG_DEFINITION_SUBMIT_OK ) {
+				$success = Portal_Submission_Pipeline::last_success();
+				if ( is_array( $success ) ) {
+					return Portal_Submission_Pipeline::render_success( $success );
+				}
+			}
+
+			// Lightweight receipt view from email link (query arg).
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			if ( isset( $_GET['dg-receipt'] ) ) {
+				return self::render_receipt_view( $post_id );
+			}
+
+			// Legacy submission success / review flows own the content.
 			if ( defined( 'PB_APPLICATION_SUBMITTED' ) && PB_APPLICATION_SUBMITTED ) {
 				return $content;
 			}
@@ -92,11 +106,45 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 			$definition = Portal_Definition::load_for_post( $post_id );
 
 			if ( is_array( $definition ) ) {
+				$errors_html = '';
+				if ( defined( 'DG_DEFINITION_SUBMIT_ERRORS' ) && DG_DEFINITION_SUBMIT_ERRORS ) {
+					$errs = Portal_Submission_Pipeline::last_errors();
+					if ( is_array( $errs ) && ! empty( $errs ) ) {
+						$errors_html = Portal_Submission_Pipeline::render_errors( $errs );
+					}
+				}
 				// Prefer full field renderer (2.1); keep closed/preview gate from 2.2.
-				return $banner . Portal_Definition_Renderer::render( $definition );
+				return $banner . $errors_html . Portal_Definition_Renderer::render( $definition );
 			}
 
 			return $banner . self::wrap_legacy( $content );
+		}
+
+		/**
+		 * Minimal receipt page for definition submissions (email link target).
+		 *
+		 * @param int $post_id Portal ID.
+		 * @return string
+		 */
+		public static function render_receipt_view( $post_id ) {
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			$app_id = isset( $_GET['app-id'] ) ? sanitize_text_field( wp_unslash( $_GET['app-id'] ) ) : '';
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			$name = isset( $_GET['name'] ) ? sanitize_text_field( wp_unslash( $_GET['name'] ) ) : '';
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			$email = isset( $_GET['email'] ) ? sanitize_text_field( wp_unslash( $_GET['email'] ) ) : '';
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			$work = isset( $_GET['work_title'] ) ? sanitize_text_field( wp_unslash( $_GET['work_title'] ) ) : '';
+
+			return sprintf(
+				'<div class="dg-receipt" data-dg-receipt="1" data-dg-app-id="%1$s"><h2>%2$s</h2><p>Application ID: <code>%1$s</code></p><p>Portal: %3$s</p>%4$s%5$s%6$s</div>',
+				esc_attr( $app_id ),
+				esc_html__( 'Application receipt', 'dragongate-portals' ),
+				esc_html( get_the_title( $post_id ) ),
+				$name ? '<p>Name: ' . esc_html( $name ) . '</p>' : '',
+				$email ? '<p>Email: ' . esc_html( $email ) . '</p>' : '',
+				$work ? '<p>Work: ' . esc_html( $work ) . '</p>' : ''
+			);
 		}
 
 		/**
