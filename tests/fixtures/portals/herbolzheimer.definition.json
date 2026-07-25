@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "title": "E2E Herbolzheimer Prize",
+  "fields": [
+    { "id": "applicant", "type": "applicant_pack", "label": "Your Information", "required": true },
+    {
+      "id": "submission",
+      "type": "group",
+      "label": "Submission Information",
+      "children": [
+        { "id": "work_title", "type": "short_text", "label": "Title of Work", "required": true },
+        { "id": "score", "type": "score_file", "label": "Full Score", "required": true, "fileSuffix": "_SCORE" },
+        { "id": "recording", "type": "recording_file", "label": "Recording (MP3)", "required": true, "fileSuffix": "_REC" }
+      ]
+    }
+  ],
+  "mapping": { "sheets": [], "drive": [] },
+  "publish": { "deadline": null, "timezone": "America/New_York", "applicationFee": null, "forceClosed": false },
+  "options": { "anonymize": false, "skipHeader": false, "guidelinesUrl": null }
+}

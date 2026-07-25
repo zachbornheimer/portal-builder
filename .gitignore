@@ -63,3 +63,10 @@ Thumbs.db
 !.phpcs.xml
 !phpcs.xml
 !Makefile
+
+# DragonGate e2e harness
+tests/.artifacts/
+tests/config/env.local.json
+playwright-report/
+test-results/
+.playwright/

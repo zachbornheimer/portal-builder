@@ -1,18 +1,29 @@
 {
-  "name": "portal-builder",
-  "version": "1.0.0",
-  "description": "WordPress plugin for portal building",
-  "type": "module",
-  "scripts": {
-    "build": "vite build",
-    "dev": "vite build --watch"
-  },
-  "devDependencies": {
-    "@sveltejs/vite-plugin-svelte": "^4.0.0",
-    "autoprefixer": "^10.4.21",
-    "postcss": "^8.5.6",
-    "svelte": "^5.0.0",
-    "tailwindcss": "^3.4.17",
-    "vite": "^5.4.4"
-  }
+    "name": "portal-builder",
+    "version": "1.0.0",
+    "description": "WordPress plugin for portal building",
+    "type": "module",
+    "scripts": {
+        "build": "vite build",
+        "dev": "vite build --watch",
+        "test:env": "node tests/config/assert-env.mjs",
+        "test:unit": "node --test tests/unit/**/*.test.mjs 2>/dev/null || node --test tests/unit/*.test.mjs",
+        "test:mocks": "node tests/mocks/selftest.mjs",
+        "test:e2e": "playwright test",
+        "test:e2e:smoke": "playwright test e2e/smoke.spec.ts",
+        "test:e2e:admin": "playwright test e2e/admin",
+        "test:e2e:public": "playwright test e2e/public",
+        "test:e2e:pipeline": "playwright test e2e/pipeline",
+        "test:import": "node tests/support/run-import-tests.mjs",
+        "ci": "npm run test:env && npm run test:mocks && npm run test:unit && npm run test:e2e:smoke"
+    },
+    "devDependencies": {
+        "@sveltejs/vite-plugin-svelte": "^4.0.0",
+        "autoprefixer": "^10.4.21",
+        "postcss": "^8.5.6",
+        "svelte": "^5.0.0",
+        "tailwindcss": "^3.4.17",
+        "vite": "^5.4.4",
+        "@playwright/test": "^1.49.0"
+    }
 }
