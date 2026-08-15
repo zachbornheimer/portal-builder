@@ -2,8 +2,7 @@
  * Public definition form — file enclosure + open-to-confirm + branch paths.
  *
  * After a file is chosen: stage bytes (XHR progress → anonymize spinner →
- * retained server name), open the staged file to prove it isn’t corrupt, then
- * require an explicit confirm.
+ * retained server name). Opening the staged file is the confirm it isn’t corrupt.
  *
  * Branch radios show only the selected path’s `.dg-branch-children` and disable
  * hidden controls so HTML5 `required` cannot block submit.
@@ -14,7 +13,7 @@
 	var KB = 1024;
 	var MB = 1024 * 1024;
 	var STATUS_WORKING = 'Processing';
-	var STAGE_FAIL = 'Upload failed. Replace the file and try again.';
+	var STAGE_FAIL = 'Upload failed. Remove the upload and try again.';
 
 	/**
 	 * DOM-free visibility plan (mirrors src/wizard/branchVisibility.js).
@@ -113,7 +112,6 @@
 		var sepEl = card.querySelector('[data-dg-file-sep]');
 		var openBtn = card.querySelector('[data-dg-file-open]');
 		var swapBtn = card.querySelector('[data-dg-file-swap]');
-		var confirm = card.querySelector('[data-dg-file-confirm]');
 		var copyEl = card.querySelector('[data-dg-file-confirm-copy]');
 		var stagedInput = card.querySelector('[data-dg-file-staged]');
 		var progressWrap = card.querySelector('[data-dg-file-progress]');
@@ -218,13 +216,25 @@
 			}
 		}
 
+		function setOpenLabel(opened) {
+			if (!openBtn) {
+				return;
+			}
+			var idle = openBtn.getAttribute('data-label-idle') || openBtn.textContent;
+			var openedLabel = openBtn.getAttribute('data-label-opened') || idle;
+			openBtn.textContent = opened ? openedLabel : idle;
+		}
+
+		function markOpened() {
+			card.classList.add('is-opened', 'is-confirmed');
+			card.classList.remove('is-invalid');
+			setOpenLabel(true);
+			setCopy('ready');
+		}
+
 		function resetConfirm() {
 			card.classList.remove('is-opened', 'is-confirmed', 'is-invalid');
-			if (confirm) {
-				confirm.checked = false;
-				confirm.disabled = true;
-				confirm.required = false;
-			}
+			setOpenLabel(false);
 			setCopy('idle');
 		}
 
@@ -404,13 +414,7 @@
 				// Prefer staged bytes when available.
 				if (stagedUrl) {
 					openInNewTab(stagedUrl);
-					card.classList.add('is-opened');
-					card.classList.remove('is-invalid');
-					if (confirm) {
-						confirm.disabled = false;
-						confirm.required = true;
-					}
-					setCopy('ready');
+					markOpened();
 					return;
 				}
 				if (requiresStage && stagedToken && !stagedUrl) {
@@ -420,13 +424,7 @@
 					if (base) {
 						var tokenUrl = base + encodeURIComponent(stagedToken);
 						openInNewTab(tokenUrl);
-						card.classList.add('is-opened');
-						card.classList.remove('is-invalid');
-						if (confirm) {
-							confirm.disabled = false;
-							confirm.required = true;
-						}
-						setCopy('ready');
+						markOpened();
 						return;
 					}
 				}
@@ -436,13 +434,7 @@
 				revokeUrl();
 				objectUrl = URL.createObjectURL(file);
 				openInNewTab(objectUrl);
-				card.classList.add('is-opened');
-				card.classList.remove('is-invalid');
-				if (confirm) {
-					confirm.disabled = false;
-					confirm.required = true;
-				}
-				setCopy('ready');
+				markOpened();
 			});
 		}
 
@@ -451,15 +443,6 @@
 				abortXhr();
 				clearStaged(true);
 				input.click();
-			});
-		}
-
-		if (confirm) {
-			confirm.addEventListener('change', function () {
-				card.classList.toggle('is-confirmed', !!confirm.checked);
-				if (confirm.checked) {
-					card.classList.remove('is-invalid');
-				}
 			});
 		}
 
@@ -505,11 +488,10 @@
 			var requireStage = !!stageUrl();
 			for (var i = 0; i < cards.length; i += 1) {
 				var card = cards[i];
-				var confirm = card.querySelector('[data-dg-file-confirm]');
 				var staged = card.querySelector('[data-dg-file-staged]');
-				var missingConfirm = confirm && !confirm.checked;
+				var missingOpen = !card.classList.contains('is-opened');
 				var missingToken = requireStage && staged && !staged.value;
-				if (missingConfirm || missingToken) {
+				if (missingOpen || missingToken) {
 					card.classList.add('is-invalid');
 					blocked = true;
 				}

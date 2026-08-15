@@ -277,7 +277,7 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 		}
 
 		/**
-		 * Whether the definition path should emit formstart, submit, and privacy.
+		 * Whether the definition path should emit formstart and submit.
 		 *
 		 * @param int $post_id Portal post ID.
 		 * @return bool
@@ -335,27 +335,17 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 		}
 
 		/**
-		 * Privacy lock line under submit.
-		 *
-		 * @return string
-		 */
-		public static function render_privacy_line() {
-			$lock = '<svg class="dg-privacy-lock" width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><rect x="3" y="6.2" width="8" height="6" rx="1.1" stroke="currentColor" stroke-width="1.2"/><path d="M4.6 6.2V4.5a2.4 2.4 0 0 1 4.8 0v1.7" stroke="currentColor" stroke-width="1.2"/></svg>';
-			return sprintf(
-				'<p class="dg-privacy">%1$s<span>%2$s</span></p>',
-				$lock,
-				esc_html__( 'Your information is used to process this application. Files and answers go to the host’s Google Drive and Sheets. We do not sell your data.', 'dragongate-portals' )
-			);
-		}
-
-		/**
 		 * Seal + Application eyebrow + title. Used for open, closed, and receipt.
 		 *
 		 * @param string $title Portal title.
 		 * @return string
 		 */
 		public static function render_packet_head( $title ) {
-			$seal = '<svg class="dg-seal" viewBox="0 0 80 80" fill="none" aria-hidden="true"><circle cx="40" cy="40" r="37.2" stroke="currentColor" stroke-width="1.15"/><circle cx="40" cy="40" r="33.4" stroke="currentColor" stroke-width="0.6" opacity="0.45"/><path d="M26 30.5c0-8.4 6.2-13.6 14-13.6s14 5.2 14 13.6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><rect x="25.4" y="28" width="5.2" height="30" rx="0.6" fill="currentColor"/><rect x="49.4" y="28" width="5.2" height="30" rx="0.6" fill="currentColor"/><path d="M40 31.2c3.4 5.1 6.1 8.4 6.1 13.1 0 3.9-2.6 6.7-6.1 6.7s-6.1-2.8-6.1-6.7c0-4.7 2.7-8 6.1-13.1Z" fill="currentColor"/></svg>';
+			$plugin_file = dirname( __DIR__, 2 ) . '/portal-builder.php';
+			$seal        = sprintf(
+				'<img class="dg-seal" src="%s" alt="" width="56" height="56" />',
+				esc_url( plugins_url( 'assets/icon.svg', $plugin_file ) )
+			);
 			$rule = '<div class="dg-rule-ornament" aria-hidden="true"><svg width="10" height="10" viewBox="0 0 10 10"><path d="M5 0.6 9.2 5 5 9.4 0.8 5Z" fill="currentColor"/></svg></div>';
 
 			return sprintf(

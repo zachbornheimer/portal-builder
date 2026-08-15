@@ -65,9 +65,10 @@ body.single-portal form.dg-portal-submit-form fieldset {
 }
 
 .dg-seal {
+	display: block;
 	width: 56px;
 	height: 56px;
-	color: var(--brass);
+	object-fit: contain;
 }
 
 .dg-public-eyebrow {
@@ -548,23 +549,38 @@ body.single-portal form.dg-portal-submit-form fieldset {
 	display: flex;
 }
 
-.dg-file-open {
+body.single-portal .dg-packet .dg-file-open,
+body.single-portal button.dg-file-open {
 	appearance: none;
+	-webkit-appearance: none;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	height: 36px;
+	padding: 0 16px;
 	border: 1px solid var(--rule-strong);
+	border-radius: var(--r-pill);
 	background: var(--paper);
 	color: var(--ember-600);
-	font: 500 12.5px/1.3 var(--font-ui);
-	padding: 6px 10px;
-	border-radius: var(--r-1);
+	font-family: var(--font-ui);
+	font-size: 13px;
+	font-weight: 500;
+	line-height: 1;
+	box-shadow: none;
 	cursor: pointer;
 }
 
-.dg-file-open:hover,
-.dg-file-open:focus-visible {
+body.single-portal .dg-packet .dg-file-open:hover,
+body.single-portal .dg-packet .dg-file-open:focus-visible,
+body.single-portal button.dg-file-open:hover,
+body.single-portal button.dg-file-open:focus-visible {
 	border-color: var(--ember);
+	background: var(--paper);
+	color: var(--ember-600);
 }
 
-.dg-file-open:focus-visible {
+body.single-portal .dg-packet .dg-file-open:focus-visible,
+body.single-portal button.dg-file-open:focus-visible {
 	outline: none;
 	box-shadow: var(--focus-ring);
 }
@@ -575,41 +591,7 @@ body.single-portal form.dg-portal-submit-form fieldset {
 }
 
 .dg-file.is-opened .dg-file-confirm-copy {
-	color: var(--ink-600);
-}
-
-.dg-file.is-confirmed .dg-file-confirm-copy {
 	color: var(--success);
-}
-
-.dg-file-confirm-label {
-	display: none;
-	align-items: center;
-}
-
-.dg-file.is-opened .dg-file-confirm-label {
-	display: inline-flex;
-}
-
-.dg-file-confirm-input {
-	appearance: none;
-	-webkit-appearance: none;
-	width: 16px;
-	height: 16px;
-	margin: 0 6px 0 0;
-	border: 1.5px solid var(--rule-strong);
-	border-radius: 3px;
-	background: var(--paper-50);
-}
-
-.dg-file-confirm-input:checked {
-	background: var(--success);
-	border-color: var(--success);
-}
-
-.dg-file-confirm-input:focus-visible {
-	outline: none;
-	box-shadow: var(--focus-ring);
 }
 
 .dg-file-error {
@@ -658,7 +640,7 @@ body.single-portal form.dg-portal-submit-form fieldset {
 .dg-packet .dg-check,
 .dg-form.portal-definition-form .dg-check {
 	display: flex;
-	align-items: center;
+	align-items: flex-start;
 	gap: 10px;
 	width: 100%;
 	text-align: left;
@@ -813,56 +795,48 @@ body.single-portal form.dg-portal-submit-form fieldset {
 	margin-top: var(--s-6);
 }
 
-.dg-public-submit,
+body.single-portal .dg-actions .dg-public-submit,
+body.single-portal button.dg-public-submit,
 .dg-form.portal-definition-form + .sub_submit_container .dg-public-submit,
 .sub_submit_container .dg-public-submit {
 	appearance: none;
+	-webkit-appearance: none;
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
 	min-width: min(100%, 360px);
 	min-height: 48px;
-	padding: var(--s-3) var(--s-6);
+	padding: 0 var(--s-6);
 	border: 0;
-	border-radius: var(--r-2);
+	border-radius: var(--r-pill);
 	background: var(--ember-flow);
 	color: var(--paper-50);
 	font-family: var(--font-ui);
 	font-size: 16px;
 	font-weight: 500;
+	line-height: 1;
 	box-shadow: var(--shadow-ember);
 	cursor: pointer;
 	transition: transform var(--dur-fast) var(--ease), filter var(--dur-fast) var(--ease);
 }
 
+body.single-portal .dg-actions .dg-public-submit:hover,
+body.single-portal .dg-actions .dg-public-submit:focus,
+body.single-portal button.dg-public-submit:hover,
+body.single-portal button.dg-public-submit:focus,
 .dg-public-submit:hover,
 .dg-public-submit:focus {
 	background: var(--ember-flow);
+	color: var(--paper-50);
 	filter: brightness(1.03);
 	transform: translateY(-1px);
 }
 
+body.single-portal .dg-actions .dg-public-submit:focus,
+body.single-portal button.dg-public-submit:focus,
 .dg-public-submit:focus {
 	outline: none;
 	box-shadow: var(--focus-ring), var(--shadow-ember);
-}
-
-.dg-privacy {
-	display: flex;
-	align-items: flex-start;
-	justify-content: center;
-	gap: var(--s-2);
-	margin-top: var(--s-4);
-	font-size: var(--t-small);
-	line-height: var(--lh-snug);
-	color: var(--ink-400);
-	text-align: center;
-}
-
-.dg-privacy-lock {
-	flex-shrink: 0;
-	margin-top: 2px;
-	color: var(--ink-400);
 }
 
 body.single-portal .cs-replacer,

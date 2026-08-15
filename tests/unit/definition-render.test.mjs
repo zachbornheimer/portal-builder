@@ -31,6 +31,10 @@ test('herbolzheimer definition renders public form markers', () => {
 	assert.equal(data.checks.file_card, true, 'file enclosure card');
 	assert.equal(data.checks.score_name, true, 'sub_score input name');
 	assert.equal(data.checks.file_open, true, 'open-to-confirm control');
+	assert.equal(data.checks.file_open_idle, true, 'Open to confirm idle label');
+	assert.equal(data.checks.file_open_opened, true, 'data-label-opened on open button');
+	assert.equal(data.checks.file_remove, true, 'Remove upload control');
+	assert.equal(data.checks.no_file_confirm_cb, true, 'no confirm checkbox');
 	assert.equal(data.checks.file_original, true, 'data-dg-file-original');
 	assert.equal(data.checks.file_progress, true, 'data-dg-file-progress');
 	assert.equal(data.checks.file_status, true, 'data-dg-file-status');
@@ -43,12 +47,19 @@ test('herbolzheimer definition renders public form markers', () => {
 	assert.match(data.html, /name="sub_score_staged"/);
 	assert.match(data.html, /data-dg-file-original/);
 	assert.match(data.html, /application\/pdf/);
+	assert.match(data.html, /Open to confirm/);
+	assert.match(data.html, /Remove upload/);
+	assert.match(data.html, /data-label-opened/);
+	assert.doesNotMatch(data.html, /dg-file-confirm-input/);
 });
 
 test('definition-form.css paints error background on .dg-file.is-invalid', () => {
 	const css = fs.readFileSync(path.join(root, 'assets/definition-form.css'), 'utf8');
 	assert.match(css, /\.dg-file\.is-invalid\s*\{[^}]*background\s*:\s*var\(--error-100\)/s);
 	assert.match(css, /data-dg-file-original|dg-file-progress|is-uploading|is-working|is-staged/);
+	assert.match(css, /--r-pill/);
+	assert.doesNotMatch(css, /\.dg-privacy/);
+	assert.doesNotMatch(css, /dg-file-confirm-input/);
 });
 
 test('definition-form.js stages via XHR and writes the staged token', () => {
@@ -66,6 +77,10 @@ test('definition-form.js stages via XHR and writes the staged token', () => {
 	assert.match(js, /requireStage|missingToken|staged\.value/);
 	assert.match(js, /openInNewTab/);
 	assert.match(js, /forceNewTabLinks/);
+	assert.match(js, /markOpened/);
+	assert.match(js, /data-label-opened/);
+	assert.match(js, /Remove the upload/);
+	assert.doesNotMatch(js, /data-dg-file-confirm[^-]/);
 	assert.doesNotMatch(js, /location\.assign/);
 	assert.doesNotMatch(js, /window\.open\([^)]*noopener/);
 });
