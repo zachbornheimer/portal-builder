@@ -66,6 +66,20 @@ test('call-for-scores renders category radios, hidden scores panel, nested score
 	assert.match(data.html, /New Music Masterclass Workshop \(Large Ensemble\)/);
 });
 
+test('definition render uses dg- classes only — no portal-group / form-grid / form-group', () => {
+	const cfs = path.join(root, 'tests/fixtures/portals/call-for-scores.definition.json');
+	const { code, out } = runPhp(cfs);
+	assert.equal(code, 0, out);
+	const data = JSON.parse(out.trim());
+	assert.doesNotMatch(data.html, /portal-group/);
+	assert.doesNotMatch(data.html, /form-grid/);
+	assert.doesNotMatch(data.html, /form-group/);
+	assert.match(data.html, /dg-field--applicant_pack/);
+	assert.match(data.html, /dg-choice-list/);
+	const css = fs.readFileSync(path.join(root, 'assets/definition-form.css'), 'utf8');
+	assert.doesNotMatch(css, /\.portal-group/);
+});
+
 test('group with short_text only renders label and input', () => {
 	const p = path.join(root, 'tests/.artifacts/simple-render-definition.json');
 	fs.writeFileSync(

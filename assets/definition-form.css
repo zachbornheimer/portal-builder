@@ -184,8 +184,6 @@ body.single-portal form.dg-portal-submit-form fieldset {
 	background: transparent;
 }
 
-.dg-packet .portal-group .form-grid,
-.dg-form.portal-definition-form .portal-group .form-grid,
 .dg-stack {
 	display: flex;
 	flex-direction: column;
@@ -193,8 +191,6 @@ body.single-portal form.dg-portal-submit-form fieldset {
 	gap: var(--s-4);
 }
 
-.dg-packet .portal-group .form-group,
-.dg-form.portal-definition-form .portal-group .form-group,
 .dg-field {
 	display: flex;
 	flex-direction: column;
@@ -271,8 +267,8 @@ body.single-portal form.dg-portal-submit-form fieldset {
 }
 
 .dg-section .dg-grid + .dg-grid,
-.dg-section .dg-grid + .form-group,
-.dg-section .form-group + .dg-grid {
+.dg-section .dg-grid + .dg-field,
+.dg-section .dg-field + .dg-grid {
 	margin-top: var(--s-4);
 }
 
@@ -340,8 +336,7 @@ body.single-portal form.dg-portal-submit-form fieldset {
 
 .dg-file,
 .dg-packet .dg-file,
-.dg-form.portal-definition-form .dg-file,
-.dg-form.portal-definition-form .portal-group .form-group.dg-file {
+.dg-form.portal-definition-form .dg-file {
 	position: relative;
 	display: grid;
 	grid-template-columns: 1fr;
@@ -582,12 +577,7 @@ body.single-portal form.dg-portal-submit-form fieldset {
 	color: var(--ink);
 }
 
-.dg-packet .portal-group label {
-	text-align: left;
-	grid-column: auto;
-}
-
-.dg-packet .portal-group .form-group.dg-field--disclaimer {
+.dg-packet .dg-field--disclaimer {
 	display: block;
 	width: 100%;
 }
@@ -684,8 +674,7 @@ body.single-portal form.dg-portal-submit-form fieldset {
 	font-weight: 500;
 }
 
-/* Legacy portal.css sets .portal-group input { width: 100% }. That
- * turns a radio into a full-row box and shoves the caption right. */
+/* Keep radios intrinsic. Host themes often stretch every input to 100%. */
 .dg-packet .dg-branch-option input[type='radio'],
 .dg-form.portal-definition-form .dg-branch-option input[type='radio'] {
 	appearance: auto;
@@ -824,14 +813,13 @@ body.dg-public-portal .widget_custom_sidebars {
 		grid-template-columns: 1fr 1fr;
 	}
 
-	.dg-grid-3 .form-group:first-child {
+	.dg-grid-3 > .dg-field:first-child {
 		grid-column: 1 / -1;
 	}
 
 	.dg-file,
 	.dg-packet .dg-file,
-	.dg-form.portal-definition-form .dg-file,
-	.dg-form.portal-definition-form .portal-group .form-group.dg-file {
+	.dg-form.portal-definition-form .dg-file {
 		grid-template-columns: 210px 1fr;
 	}
 
@@ -866,7 +854,7 @@ body.dg-public-portal .widget_custom_sidebars {
 		grid-template-columns: 1.1fr 1.1fr 1fr;
 	}
 
-	.dg-grid-3 .form-group:first-child {
+	.dg-grid-3 > .dg-field:first-child {
 		grid-column: auto;
 	}
 
