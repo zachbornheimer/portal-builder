@@ -526,6 +526,7 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 				return;
 			}
 			$plugin_file = dirname( __DIR__, 2 ) . '/portal-builder.php';
+			$plugin_dir  = dirname( $plugin_file );
 
 			wp_enqueue_style(
 				'dg-public-fonts',
@@ -535,23 +536,36 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 			);
 			wp_enqueue_style(
 				'dg-tokens',
-				plugins_url( 'src/tokens.css', $plugin_file ),
+				plugins_url( 'assets/tokens.css', $plugin_file ),
 				array(),
-				PB_VERSION
+				self::asset_version( $plugin_dir . '/assets/tokens.css' )
 			);
 			wp_enqueue_style(
 				'dg-definition-form',
 				plugins_url( 'assets/definition-form.css', $plugin_file ),
 				array( 'dg-public-fonts', 'dg-tokens', 'portal-styles' ),
-				PB_VERSION
+				self::asset_version( $plugin_dir . '/assets/definition-form.css' )
 			);
 			wp_enqueue_script(
 				'dg-definition-form',
 				plugins_url( 'assets/definition-form.js', $plugin_file ),
 				array(),
-				PB_VERSION,
+				self::asset_version( $plugin_dir . '/assets/definition-form.js' ),
 				true
 			);
+		}
+
+		/**
+		 * Filemtime so a deploy is visible without bumping PB_VERSION.
+		 *
+		 * @param string $path Absolute path.
+		 * @return string
+		 */
+		private static function asset_version( $path ) {
+			if ( is_readable( $path ) ) {
+				return (string) filemtime( $path );
+			}
+			return PB_VERSION;
 		}
 
 		/**

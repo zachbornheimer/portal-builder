@@ -214,6 +214,16 @@ test('public render source does not echo anonymizeApiKey', () => {
   assert.doesNotMatch(renderSrc, /wp_json_encode\s*\(\s*\$options/);
 });
 
+test('public form loads tokens from assets, not src', () => {
+  const renderSrc = fs.readFileSync(
+    path.join(root, 'includes/Definition/class-portal-public-render.php'),
+    'utf8',
+  );
+  assert.match(renderSrc, /assets\/tokens\.css/);
+  assert.doesNotMatch(renderSrc, /src\/tokens\.css/);
+  assert.ok(fs.existsSync(path.join(root, 'assets/tokens.css')));
+});
+
 test('call-for-scores definition validates', () => {
   const cfs = path.join(root, 'tests/fixtures/portals/call-for-scores.definition.json');
   const { code, out } = runPhp(cfs);

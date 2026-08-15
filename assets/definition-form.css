@@ -1,6 +1,8 @@
 /**
  * Public definition form — packet language (docs/design/TOKENS.md).
+ * Tokens live next to this file so a deploy of assets/ is enough.
  */
+@import url('tokens.css');
 body.dg-public-portal,
 body.single-portal {
 	background-color: var(--paper);

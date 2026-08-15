@@ -27,7 +27,8 @@
         "test:cleanup": "node tests/support/cleanup.mjs",
         "test:import": "node tests/support/run-import-tests.mjs",
         "ci:offline": "npm run test:mocks && npm run test:unit",
-        "ci": "npm run test:env && npm run test:mocks && npm run test:unit && npm run test:e2e:smoke"
+        "ci": "npm run test:env && npm run test:mocks && npm run test:unit && npm run test:e2e:smoke",
+        "push": "bash scripts/push-plugin.sh"
     },
     "devDependencies": {
         "@playwright/test": "^1.62.0",
