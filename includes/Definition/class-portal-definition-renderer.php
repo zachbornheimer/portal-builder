@@ -35,21 +35,26 @@ if ( ! class_exists( 'Portal_Definition_Renderer' ) ) {
 			if ( null === $definition ) {
 				return '';
 			}
-			return self::render( $definition );
+			$site = class_exists( 'Portal_Site_Defaults' )
+				? Portal_Site_Defaults::read_site()
+				: array();
+			return self::render( $definition, $site );
 		}
 
 		/**
 		 * Render a validated definition document to HTML.
 		 *
 		 * @param array $definition Validated definition (fields required).
+		 * @param array $site       Site bag for inherit resolve (empty in CLI harness).
 		 * @return string
 		 */
-		public static function render( $definition ) {
+		public static function render( $definition, $site = array() ) {
 			if ( ! is_array( $definition ) || empty( $definition['fields'] ) || ! is_array( $definition['fields'] ) ) {
 				return '';
 			}
 
 			$inner = self::render_fields( $definition['fields'] );
+			$inner .= self::render_anonymize_ack_if_needed( $definition, $site );
 
 			return sprintf(
 				'<div class="%1$s" %2$s="%3$s">%4$s</div>',
@@ -57,6 +62,47 @@ if ( ! class_exists( 'Portal_Definition_Renderer' ) ) {
 				esc_attr( self::ROOT_ATTR ),
 				esc_attr( self::ROOT_VALUE ),
 				$inner
+			);
+		}
+
+		/**
+		 * Required certification when resolved anonymize is on.
+		 *
+		 * @param array $definition Definition document.
+		 * @param array $site       Site bag.
+		 * @return string
+		 */
+		private static function render_anonymize_ack_if_needed( array $definition, array $site ) {
+			if ( ! class_exists( 'Portal_Site_Defaults' ) ) {
+				return '';
+			}
+			$resolved = Portal_Site_Defaults::resolve( $definition, $site );
+			if ( empty( $resolved['anonymize'] ) ) {
+				return '';
+			}
+			$text = isset( $resolved['anonymizeAck'] ) ? (string) $resolved['anonymizeAck'] : '';
+			if ( '' === $text ) {
+				$text = Portal_Site_Defaults::BUILTIN_ANONYMIZE_ACK;
+			}
+			return self::render_anonymize_ack( $text );
+		}
+
+		/**
+		 * Disclaimer-style required checkbox for anonymize certification.
+		 *
+		 * Public contract: field id anonymize_ack, input name sub_anonymize_ack.
+		 *
+		 * @param string $label Certification text.
+		 * @return string
+		 */
+		private static function render_anonymize_ack( $label ) {
+			$id   = 'anonymize_ack';
+			$name = self::input_name( $id ); // sub_anonymize_ack
+			return sprintf(
+				'<div class="form-group dg-field dg-field--disclaimer full-span" data-dg-field-id="%1$s" data-dg-field-type="disclaimer"><label class="dg-check" for="%2$s"><input type="checkbox" id="%2$s" name="%2$s" value="1" required aria-required="true" /><span>%3$s</span></label></div>',
+				esc_attr( $id ),
+				esc_attr( $name ),
+				esc_html( $label )
 			);
 		}
 

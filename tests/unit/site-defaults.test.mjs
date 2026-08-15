@@ -17,6 +17,8 @@ const root = process.cwd();
 const harness = path.join(root, 'tests/support/php-site-defaults.php');
 const artifactDir = path.join(root, 'tests/.artifacts/site-defaults');
 const BUILTIN_ENDPOINT = 'https://api.allintersections.com';
+const BUILTIN_ANONYMIZE_ACK =
+	'I certify that my scores and recordings exclude any information that might identify the composer but do include title of work, instrumentation, and duration.';
 
 /**
  * @param {object} payload
@@ -154,8 +156,59 @@ test('setup screen and wizard mount site defaults on the same channel as accessC
 	assert.match(settings, /pb_default_anonymize/);
 	assert.match(settings, /pb_default_anonymize_endpoint/);
 	assert.match(settings, /pb_default_anonymize_api_key/);
+	assert.match(settings, /pb_default_anonymize_ack/);
 	assert.match(settings, /pb_default_guidelines_url/);
 	assert.match(settings, /pb_default_free_for_members/);
 	assert.match(settings, /pb_default_timezone/);
 	assert.match(settings, /docs\/design\/ANONYMIZER\.md/);
+});
+
+test('portal anonymizeAck null + site text set → site text', () => {
+	const { code, out, data } = resolve({
+		name: 'site-ack',
+		definition: { options: { anonymizeAck: null } },
+		site: { anonymizeAck: 'Site certification text for tests.' },
+	});
+	assert.equal(code, 0, out);
+	assert.equal(data.anonymizeAck, 'Site certification text for tests.');
+});
+
+test('portal anonymizeAck set → portal wins', () => {
+	const { code, out, data } = resolve({
+		name: 'portal-ack',
+		definition: { options: { anonymizeAck: 'Portal certification override.' } },
+		site: { anonymizeAck: 'Site certification text for tests.' },
+	});
+	assert.equal(code, 0, out);
+	assert.equal(data.anonymizeAck, 'Portal certification override.');
+});
+
+test('both anonymizeAck empty/null → builtin sentence', () => {
+	const { code, out, data } = resolve({
+		name: 'builtin-ack',
+		definition: { options: { anonymizeAck: null } },
+		site: { anonymizeAck: '' },
+	});
+	assert.equal(code, 0, out);
+	assert.equal(data.anonymizeAck, BUILTIN_ANONYMIZE_ACK);
+});
+
+test('blank definition and normalizeLoaded keep anonymizeAck as inherit-null', () => {
+	assert.equal(defaultOptions().anonymizeAck, null);
+	const blank = blankDefinition('Portal');
+	assert.equal(blank.options.anonymizeAck, null);
+	const loaded = normalizeLoaded({
+		title: 'Legacy',
+		fields: [],
+		options: {},
+		publish: {},
+	});
+	assert.equal(loaded.options.anonymizeAck, null);
+	const cleared = normalizeLoaded({
+		title: 'Cleared',
+		fields: [],
+		options: { anonymizeAck: '' },
+		publish: {},
+	});
+	assert.equal(cleared.options.anonymizeAck, null);
 });

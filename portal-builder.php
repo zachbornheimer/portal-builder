@@ -61,6 +61,7 @@ require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-tes
 require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-sheet-store.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-drive-store.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-mailer.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-receipt.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-submission-field-rules.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-submission-validator.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-submission-selections.php';

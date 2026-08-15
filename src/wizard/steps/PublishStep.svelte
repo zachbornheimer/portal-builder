@@ -1,5 +1,6 @@
 <script>
 	import {
+		BUILTIN_ANONYMIZE_ACK,
 		BUILTIN_ANONYMIZE_ENDPOINT,
 		DEFAULT_TIMEZONE,
 		countLeafFields,
@@ -87,6 +88,9 @@
 	);
 	const endpointPlaceholder = $derived(
 		emptyToNull(siteDefaults.anonymizeEndpoint) || BUILTIN_ANONYMIZE_ENDPOINT,
+	);
+	const ackPlaceholder = $derived(
+		emptyToNull(siteDefaults.anonymizeAck) || BUILTIN_ANONYMIZE_ACK,
 	);
 	const timezonePlaceholder = $derived(
 		emptyToNull(siteDefaults.timezone) || DEFAULT_TIMEZONE,
@@ -409,10 +413,33 @@
 					/>
 				</div>
 			</div>
+			<div>
+				<label class="dg-field-label" for="dg-anonymize-ack">Anonymize certification</label>
+				<textarea
+					id="dg-anonymize-ack"
+					class="dg-input"
+					rows="3"
+					placeholder={ackPlaceholder}
+					value={options.anonymizeAck || ''}
+					oninput={(e) => setOption('anonymizeAck', emptyToNull(e.currentTarget.value))}
+				></textarea>
+				{#if !options.anonymizeAck}
+					<p class="dg-field-help">Using site default</p>
+				{:else}
+					<button
+						type="button"
+						class="dg-btn dg-btn-ghost dg-btn-sm"
+						onclick={() => setOption('anonymizeAck', null)}
+					>
+						Use site default
+					</button>
+				{/if}
+			</div>
 			<p class="dg-anonymize-help dg-field-help">
 				A custom URL is allowed. Blank URL uses the site default, then All Intersections
 				({BUILTIN_ANONYMIZE_ENDPOINT}). If the call fails we keep the original. The key is
-				never shown on the public form.
+				never shown on the public form. Certification text appears as a required checkbox on
+				the public form.
 			</p>
 		{/if}
 	</div>

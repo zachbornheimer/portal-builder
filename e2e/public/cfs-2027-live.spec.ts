@@ -122,6 +122,17 @@ async function openPublicForm(page: import('@playwright/test').Page) {
 	await expect(page.getByRole('heading', { name: /2027 Call for Scores/i })).toBeVisible();
 }
 
+/**
+ * Check the auto-injected anonymize certification when present.
+ * Absent when anonymize is off — do not fail.
+ */
+async function acceptAnonymizeAck(page: import('@playwright/test').Page) {
+	const ack = page.getByLabel(/I certify that my scores and recordings/i);
+	if (await ack.count()) {
+		await ack.check();
+	}
+}
+
 function readSheet() {
 	const r = spawnSync('php', [reader, `--sheet=${SHEET_ID}`], { encoding: 'utf8' });
 	const text = (r.stdout || '') + (r.stderr || '');
@@ -179,6 +190,7 @@ test('scores large-ensemble submit lands on the 2027 sheet and a top-level Drive
 		await confirmFileCard(page, 'large_score', /^Score/, scorePdf);
 		await confirmFileCard(page, 'large_rec', /Recording/, recording);
 
+		await acceptAnonymizeAck(page);
 		await page.getByRole('button', { name: 'Submit application' }).click({
 			timeout: 240_000,
 			noWaitAfter: true,
@@ -231,6 +243,7 @@ test('poster submit writes a second top-level Drive folder', async ({ browser })
 		await expect(page.locator('[data-dg-field-id="poster_description"]')).toBeVisible();
 		await confirmFileCard(page, 'poster_description', /Brief Description/, scorePdf);
 
+		await acceptAnonymizeAck(page);
 		await page.getByRole('button', { name: 'Submit application' }).click({
 			timeout: 240_000,
 			noWaitAfter: true,
@@ -258,3 +271,209 @@ test('poster submit writes a second top-level Drive folder', async ({ browser })
 	expect(base.folders, JSON.stringify(base)).toContain(appId);
 	console.log(`cfs_poster_ok app=${appId} files=${named.Files} base_folders=${base.folders.length}`);
 });
+
+function latestMailPayload() {
+	const dir = path.resolve('tests/.artifacts/mail');
+	if (!fs.existsSync(dir)) {
+		return null;
+	}
+	const files = fs
+		.readdirSync(dir)
+		.filter((name) => name.endsWith('.json'))
+		.map((name) => {
+			const full = path.join(dir, name);
+			return { full, mtime: fs.statSync(full).mtimeMs };
+		})
+		.sort((a, b) => b.mtime - a.mtime);
+	if (!files.length) {
+		return null;
+	}
+	return JSON.parse(fs.readFileSync(files[0].full, 'utf8')) as {
+		to?: string;
+		subject?: string;
+		body?: string;
+		tokens?: Record<string, string>;
+		wpMail?: boolean;
+		error?: string;
+	};
+}
+
+test('papers submit writes dest row, Drive folder, and a receipt URL without email=', async ({
+	browser,
+}) => {
+	const before = readSheet();
+	const beforeApp = before.named['Application ID'] || '';
+	const beforeFiles = before.named.Files || '';
+
+	const ctx = await browser.newContext();
+	const page = await ctx.newPage();
+	const title = `Playwright Papers ${stamp}`;
+	const email = `cfs.papers+${stamp}@example.com`;
+
+	try {
+		await openPublicForm(page);
+		await fillApplicant(page, 'Playwright Papers', email);
+		await confirmFileCard(page, 'bio', /Bio/, scorePdf);
+		await page.getByLabel(/Research\/Analysis Papers/i).check();
+		const titleInput = page.locator('#sub_paper_title');
+		await expect(titleInput).toBeVisible();
+		await titleInput.fill(title);
+		await confirmFileCard(page, 'paper_abstract', /Abstract/, scorePdf);
+
+		await acceptAnonymizeAck(page);
+		await page.getByRole('button', { name: 'Submit application' }).click({
+			timeout: 240_000,
+			noWaitAfter: true,
+		});
+		const success = page.locator('[data-dg-submit-status="success"]');
+		const error = page.locator('[data-dg-submit-status="error"]');
+		await expect(success.or(error)).toBeVisible({ timeout: 240_000 });
+		if (await error.count()) {
+			throw new Error(`papers submit failed: ${await error.innerText()}`);
+		}
+		await expect(success).toBeVisible();
+	} finally {
+		await ctx.close();
+	}
+
+	const sheet = readSheet();
+	const named = sheet.named;
+	expect(named['Application ID'], JSON.stringify(named)).toBeTruthy();
+	expect(named['Application ID']).not.toBe(beforeApp);
+	expect(String(named['Application Category'] || '')).toMatch(/papers/i);
+	expect(String(named['Title of Work or Presentation'] || '')).toContain('Playwright Papers');
+	expect(String(named.Files || '')).toMatch(new RegExp(`^${FOLDER_URL_PREFIX}`));
+	expect(named.Files).not.toBe(beforeFiles);
+
+	const appId = named['Application ID'];
+	const base = readDrive(DRIVE_BASE);
+	expect(base.folders, JSON.stringify(base)).toContain(appId);
+
+	const mail = latestMailPayload();
+	expect(mail, 'expected a captured mail JSON after papers submit').toBeTruthy();
+	const blob = `${mail?.subject || ''}\n${mail?.body || ''}\n${JSON.stringify(mail?.tokens || {})}`;
+	expect(blob).toMatch(/dg-receipt=1/);
+	expect(blob).not.toMatch(/email=/i);
+	console.log(
+		`cfs_papers_ok app=${appId} files=${named.Files} date=${named['Date Received'] || ''} receipt=${named['Application Receipt Link'] || ''} wpMail=${mail?.wpMail === true}`,
+	);
+});
+
+type TScoreKindWalk = {
+	kindId: string;
+	radio: RegExp;
+	titleSelector: string;
+	scoreField: string;
+	recField: string;
+	category: RegExp;
+	logKey: string;
+	emailLocal: string;
+	name: string;
+};
+
+const SCORE_KIND_WALKS: TScoreKindWalk[] = [
+	{
+		kindId: 'small',
+		radio: /Small Ensemble/i,
+		titleSelector: '#sub_small_title',
+		scoreField: 'small_score',
+		recField: 'small_rec',
+		category: /small/i,
+		logKey: 'cfs_small_ok',
+		emailLocal: 'cfs.small',
+		name: 'Playwright Small',
+	},
+	{
+		kindId: 'arrangement',
+		radio: /Arrangement/i,
+		titleSelector: '#sub_arrangement_title',
+		scoreField: 'arrangement_score',
+		recField: 'arrangement_rec',
+		category: /arrangement/i,
+		logKey: 'cfs_arrangement_ok',
+		emailLocal: 'cfs.arrangement',
+		name: 'Playwright Arrangement',
+	},
+	{
+		kindId: 'first_takes',
+		radio: /First Takes/i,
+		titleSelector: '#sub_first_takes_title',
+		scoreField: 'first_takes_score',
+		recField: 'first_takes_rec',
+		category: /first_takes|first takes/i,
+		logKey: 'cfs_first_takes_ok',
+		emailLocal: 'cfs.firsttakes',
+		name: 'Playwright First Takes',
+	},
+	{
+		kindId: 'student',
+		radio: /Student\/Young Artist|Student/i,
+		titleSelector: '#sub_student_title',
+		scoreField: 'student_score',
+		recField: 'student_rec',
+		category: /student/i,
+		logKey: 'cfs_student_ok',
+		emailLocal: 'cfs.student',
+		name: 'Playwright Student',
+	},
+];
+
+for (const walk of SCORE_KIND_WALKS) {
+	test(`scores ${walk.kindId} submit lands on the 2027 sheet and a top-level Drive folder`, async ({
+		browser,
+	}) => {
+		const before = readSheet();
+		const beforeApp = before.named['Application ID'] || '';
+		const beforeFiles = before.named.Files || '';
+
+		const ctx = await browser.newContext();
+		const page = await ctx.newPage();
+		const title = `${walk.name} ${stamp}`;
+		const email = `${walk.emailLocal}+${stamp}@example.com`;
+
+		try {
+			await openPublicForm(page);
+			await fillApplicant(page, walk.name, email);
+			await confirmFileCard(page, 'bio', /Bio/, scorePdf);
+
+			await page.getByLabel(/Scores\/Recordings/i).check();
+			await expect(page.getByLabel(walk.radio)).toBeVisible();
+			await page.getByLabel(walk.radio).check();
+			const titleInput = page.locator(walk.titleSelector);
+			await expect(titleInput).toBeEnabled();
+			await titleInput.fill(title);
+			await confirmFileCard(page, walk.scoreField, /^Score/, scorePdf);
+			await confirmFileCard(page, walk.recField, /Recording/, recording);
+
+			await acceptAnonymizeAck(page);
+			await page.getByRole('button', { name: 'Submit application' }).click({
+				timeout: 240_000,
+				noWaitAfter: true,
+			});
+			const success = page.locator('[data-dg-submit-status="success"]');
+			const error = page.locator('[data-dg-submit-status="error"]');
+			await expect(success.or(error)).toBeVisible({ timeout: 240_000 });
+			if (await error.count()) {
+				throw new Error(`${walk.kindId} submit failed: ${await error.innerText()}`);
+			}
+			await expect(success).toBeVisible();
+		} finally {
+			await ctx.close();
+		}
+
+		const sheet = readSheet();
+		const named = sheet.named;
+		expect(named['Application ID'], JSON.stringify(named)).toBeTruthy();
+		expect(named['Application ID']).not.toBe(beforeApp);
+		expect(String(named['Application Category'] || '')).toMatch(/scores/i);
+		expect(String(named['Select a Category'] || '')).toMatch(walk.category);
+		expect(String(named['Title of Work or Presentation'] || '')).toContain(walk.name);
+		expect(String(named.Files || '')).toMatch(new RegExp(`^${FOLDER_URL_PREFIX}`));
+		expect(named.Files).not.toBe(beforeFiles);
+
+		const appId = named['Application ID'];
+		const base = readDrive(DRIVE_BASE);
+		expect(base.folders, JSON.stringify(base)).toContain(appId);
+		console.log(`${walk.logKey} app=${appId} files=${named.Files}`);
+	});
+}

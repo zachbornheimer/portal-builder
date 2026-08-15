@@ -31,6 +31,7 @@ function wp_kses_post( $s ) {
 }
 
 require_once dirname( __DIR__, 2 ) . '/includes/Definition/class-portal-definition.php';
+require_once dirname( __DIR__, 2 ) . '/includes/Definition/class-portal-site-defaults.php';
 require_once dirname( __DIR__, 2 ) . '/includes/Definition/class-portal-definition-renderer.php';
 
 $path = $argv[1] ?? '';
