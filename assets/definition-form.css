@@ -657,12 +657,49 @@ body.single-portal form.dg-portal-submit-form fieldset {
 	font-size: var(--t-small);
 }
 
+.dg-choice-list {
+	display: flex;
+	flex-direction: column;
+	align-items: stretch;
+	gap: var(--s-3);
+}
+
+.dg-packet .dg-branch-option,
+.dg-form.portal-definition-form .dg-branch-option {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	width: 100%;
+}
+
+.dg-packet .dg-branch-option label,
 .dg-form.portal-definition-form .dg-branch-option label {
 	display: flex;
+	flex-direction: row;
 	align-items: center;
-	gap: var(--s-2);
+	gap: var(--s-3);
+	width: auto;
+	max-width: 100%;
 	text-align: left;
 	font-weight: 500;
+}
+
+/* Legacy portal.css sets .portal-group input { width: 100% }. That
+ * turns a radio into a full-row box and shoves the caption right. */
+.dg-packet .dg-branch-option input[type='radio'],
+.dg-form.portal-definition-form .dg-branch-option input[type='radio'] {
+	appearance: auto;
+	width: 1.15rem;
+	height: 1.15rem;
+	min-width: 1.15rem;
+	min-height: 1.15rem;
+	margin: 0;
+	padding: 0;
+	flex: 0 0 1.15rem;
+	grid-column: auto;
+	border: 0;
+	background: transparent;
+	box-shadow: none;
 }
 
 .dg-form.portal-definition-form .dg-branch-children:not([hidden]) {

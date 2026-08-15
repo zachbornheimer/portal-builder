@@ -298,7 +298,7 @@ if ( ! class_exists( 'Portal_Definition_Renderer' ) ) {
 			}
 
 			return sprintf(
-				'<div class="portal-group dg-field dg-field--branch" data-dg-field-id="%1$s" data-dg-field-type="branch"><fieldset><legend>%2$s</legend><div class="form-grid">%3$s</div>%4$s</fieldset></div>',
+				'<div class="dg-field dg-field--branch" data-dg-field-id="%1$s" data-dg-field-type="branch"><fieldset><legend>%2$s</legend><div class="dg-choice-list">%3$s</div>%4$s</fieldset></div>',
 				esc_attr( $field['id'] ),
 				esc_html( $label ),
 				$options_html,
