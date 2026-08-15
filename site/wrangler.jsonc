@@ -1,0 +1,30 @@
+{
+	"name": "dragongate-portals",
+	"main": "src/worker.js",
+	"compatibility_date": "2026-08-15",
+	"account_id": "595630bd9318136ad22a3d3a39161f5c",
+	"workers_dev": true,
+	"preview_urls": false,
+	"assets": {
+		"directory": "./public",
+		"binding": "ASSETS",
+		"html_handling": "drop-trailing-slash",
+		"not_found_handling": "404-page"
+	},
+	"routes": [
+		{
+			"pattern": "dragongateportals.com",
+			"custom_domain": true
+		},
+		{
+			"pattern": "www.dragongateportals.com",
+			"custom_domain": true
+		}
+	],
+	"kv_namespaces": [
+		{
+			"binding": "WAITLIST",
+			"id": "4e6de7441aec4a088fd1772ad70bcb1f"
+		}
+	]
+}
