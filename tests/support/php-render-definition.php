@@ -62,6 +62,9 @@ $out = array(
 		'applicant_pack' => false !== strpos( $html, 'data-dg-field-type="applicant_pack"' ),
 		'work_title_name'=> false !== strpos( $html, 'name="sub_work_title"' ),
 		'score_accept'   => false !== strpos( $html, 'application/pdf' ),
+		'file_card'      => false !== strpos( $html, 'dg-file' ),
+		'score_name'     => false !== strpos( $html, 'name="sub_score"' ),
+		'file_open'      => false !== strpos( $html, 'data-dg-file-open' ),
 	),
 );
 echo json_encode( $out, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES ) . "\n";

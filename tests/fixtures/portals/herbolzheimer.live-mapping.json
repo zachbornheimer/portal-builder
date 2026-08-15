@@ -1,0 +1,28 @@
+{
+  "sheets": [
+    {
+      "id": "sheet_housekeeping",
+      "name": "Housekeeping",
+      "role": "housekeeping",
+      "spreadsheetId": "sheet_hk_fixture_not_prod"
+    },
+    {
+      "id": "sheet_adjudicator",
+      "name": "Adjudicator",
+      "role": "adjudicator",
+      "spreadsheetId": "sheet_adj_fixture_not_prod"
+    }
+  ],
+  "drive": [
+    {
+      "id": "drive_submissions",
+      "name": "Submissions",
+      "folderId": "drive_sub_fixture_not_prod"
+    }
+  ],
+  "fieldDest": {
+    "work_title": "sheet:Housekeeping:Title",
+    "score": "drive:Submissions|sheet:Housekeeping:Score Link",
+    "recording": "drive:Submissions|sheet:Housekeeping:Rec Link"
+  }
+}

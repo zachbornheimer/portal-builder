@@ -1,0 +1,69 @@
+/**
+ * Portal setup: open paper page under a full-bleed header.
+ * No .wrap card, no nested content container.
+ */
+
+body.dg-portal-setup #wpfooter {
+	display: none !important;
+}
+
+body.dg-portal-setup .notice,
+body.dg-portal-setup .update-nag,
+body.dg-portal-setup .updated,
+body.dg-portal-setup .error,
+body.dg-portal-about .notice,
+body.dg-portal-about .update-nag,
+body.dg-portal-about .updated,
+body.dg-portal-about .error {
+	display: none !important;
+}
+
+/* Paper page fills the WP content column */
+body.dg-portal-setup #wpcontent {
+	background:
+		radial-gradient(38% 40% at 92% 96%, rgba(184, 80, 31, 0.08), rgba(184, 80, 31, 0) 70%),
+		var(--paper, #f7f4ec);
+	/* Keep standard left padding so header can bleed with known offsets */
+	padding-bottom: 0;
+}
+
+body.dg-portal-setup #wpbody-content {
+	padding-bottom: 0;
+	float: none;
+	/* Kill default top padding so header can sit flush under admin bar row */
+	padding-top: 0;
+}
+
+/* Not a WP .wrap — full width of content column */
+body.dg-portal-setup .dg-setup-page {
+	margin: 0;
+	padding: 0;
+	max-width: none;
+	width: 100%;
+}
+
+.dg-wizard-root--product {
+	width: 100%;
+	max-width: none;
+	margin: 0;
+}
+
+/* Folded admin menu uses 0 / 36px; default menu ~160px — #wpcontent padding is 20px */
+@media (max-width: 782px) {
+	body.dg-portal-setup #wpcontent {
+		padding-left: 10px;
+	}
+}
+
+/* Legacy post edit belt */
+body.post-type-portal.post-php #postdivrich,
+body.post-type-portal.post-new-php #postdivrich,
+body.post-type-portal .block-editor {
+	display: none !important;
+}
+
+body.post-type-portal #portal_options,
+body.post-type-portal #portal_record_keeping,
+body.post-type-portal #portal_file_backups {
+	display: none !important;
+}

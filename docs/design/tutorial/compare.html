@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>DragonGate — mockup vs live</title>
+  <style>
+    :root {
+      --bg: #0f1218;
+      --panel: #171b24;
+      --text: #e8ecf4;
+      --muted: #9aa3b5;
+      --accent: #c9a227;
+      --border: #2a3142;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.45;
+    }
+    .top {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .top h1 { margin: 0 0 0.35rem; font-size: 1.75rem; font-weight: 600; }
+    .top p { margin: 0.25rem 0; color: var(--muted); }
+    .top a { color: var(--accent); }
+    .pair {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 1.75rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .pair h2 { margin: 0 0 0.35rem; font-size: 1.25rem; color: var(--accent); }
+    .pair > header p { margin: 0 0 1rem; color: var(--muted); font-size: 0.95rem; }
+    .cols {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+    @media (max-width: 900px) {
+      .cols { grid-template-columns: 1fr; }
+    }
+    figure {
+      margin: 0;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    figcaption {
+      padding: 0.55rem 0.85rem;
+      font-family: ui-monospace, monospace;
+      font-size: 0.75rem;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    img { display: block; width: 100%; height: auto; background: #000; }
+    .empty {
+      min-height: 200px;
+      display: grid;
+      place-items: center;
+      color: var(--muted);
+      font-family: ui-monospace, monospace;
+      font-size: 0.85rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="top">
+    <h1>DragonGate — mockup vs live</h1>
+    <p>Claude Design mockups (left) against LocalWP tutorial captures (right).</p>
+    <p><a href="index.html">Tutorial gallery</a> · <a href="../mockups/dragongate-mockups.html">Mockup deck</a></p>
+  </div>
+
+    <section class="pair">
+      <header>
+        <h2>Start</h2>
+        <p>Wizard Start step — mockup shows template cards; live has placeholder + block editor chrome.</p>
+      </header>
+      <div class="cols">
+        <figure>
+          <figcaption>Design mockup</figcaption>
+          <a href="../mockups/01-start.png" target="_blank" rel="noopener"><img src="../mockups/01-start.png" alt="Mockup Start" /></a>
+        </figure>
+        <figure>
+          <figcaption>Live LocalWP</figcaption>
+          <a href="03-admin-portal-edit.png" target="_blank" rel="noopener"><img src="03-admin-portal-edit.png" alt="Live Start" /></a>
+        </figure>
+      </div>
+    </section>
+
+    <section class="pair">
+      <header>
+        <h2>Build form</h2>
+        <p>Mockup is admin field builder; live shot is public definition-rendered form (closest shipping surface).</p>
+      </header>
+      <div class="cols">
+        <figure>
+          <figcaption>Design mockup</figcaption>
+          <a href="../mockups/02-build-form.png" target="_blank" rel="noopener"><img src="../mockups/02-build-form.png" alt="Mockup Build form" /></a>
+        </figure>
+        <figure>
+          <figcaption>Live LocalWP</figcaption>
+          <a href="05b-public-form-open-full.png" target="_blank" rel="noopener"><img src="05b-public-form-open-full.png" alt="Live Build form" /></a>
+        </figure>
+      </div>
+    </section>
+
+    <section class="pair">
+      <header>
+        <h2>Map data</h2>
+        <p>Map step not yet interactive in live wizard — same editor shell for reference.</p>
+      </header>
+      <div class="cols">
+        <figure>
+          <figcaption>Design mockup</figcaption>
+          <a href="../mockups/03-map-data.png" target="_blank" rel="noopener"><img src="../mockups/03-map-data.png" alt="Mockup Map data" /></a>
+        </figure>
+        <figure>
+          <figcaption>Live LocalWP</figcaption>
+          <a href="03-admin-portal-edit.png" target="_blank" rel="noopener"><img src="03-admin-portal-edit.png" alt="Live Map data" /></a>
+        </figure>
+      </div>
+    </section>
+
+    <section class="pair">
+      <header>
+        <h2>Publish</h2>
+        <p>Mockup is publish settings; live shows closed public outcome of deadline/forceClosed.</p>
+      </header>
+      <div class="cols">
+        <figure>
+          <figcaption>Design mockup</figcaption>
+          <a href="../mockups/04-publish.png" target="_blank" rel="noopener"><img src="../mockups/04-publish.png" alt="Mockup Publish" /></a>
+        </figure>
+        <figure>
+          <figcaption>Live LocalWP</figcaption>
+          <a href="06-public-closed.png" target="_blank" rel="noopener"><img src="06-public-closed.png" alt="Live Publish" /></a>
+        </figure>
+      </div>
+    </section>
+
+    <section class="pair">
+      <header>
+        <h2>Open form</h2>
+        <p>No design mockup for public form yet — live viewport only.</p>
+      </header>
+      <div class="cols">
+        <figure>
+          <figcaption>Design mockup</figcaption>
+          <div class="empty">No mockup</div>
+        </figure>
+        <figure>
+          <figcaption>Live LocalWP</figcaption>
+          <a href="05-public-form-open.png" target="_blank" rel="noopener"><img src="05-public-form-open.png" alt="Live Open form" /></a>
+        </figure>
+      </div>
+    </section>
+
+    <section class="pair">
+      <header>
+        <h2>Editor preview</h2>
+        <p>Preview banner + form for closed portal (staff path).</p>
+      </header>
+      <div class="cols">
+        <figure>
+          <figcaption>Design mockup</figcaption>
+          <div class="empty">No mockup</div>
+        </figure>
+        <figure>
+          <figcaption>Live LocalWP</figcaption>
+          <a href="07-editor-preview-closed.png" target="_blank" rel="noopener"><img src="07-editor-preview-closed.png" alt="Live Editor preview" /></a>
+        </figure>
+      </div>
+    </section>
+</body>
+</html>

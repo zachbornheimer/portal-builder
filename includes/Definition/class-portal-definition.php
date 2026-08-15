@@ -30,6 +30,8 @@ if ( ! class_exists( 'Portal_Definition' ) ) {
 			'static_html',
 		);
 
+		const SHEET_ROLES = array( 'housekeeping', 'adjudicator' );
+
 		/**
 		 * Decode JSON string into array or WP_Error.
 		 *
@@ -71,29 +73,232 @@ if ( ! class_exists( 'Portal_Definition' ) ) {
 			$mapping = isset( $data['mapping'] ) && is_array( $data['mapping'] ) ? $data['mapping'] : array();
 			$publish = isset( $data['publish'] ) && is_array( $data['publish'] ) ? $data['publish'] : array();
 			$options = isset( $data['options'] ) && is_array( $data['options'] ) ? $data['options'] : array();
+			$access  = isset( $data['access'] ) && is_array( $data['access'] ) ? $data['access'] : array();
+
+			$field_dest = array();
+			if ( isset( $mapping['fieldDest'] ) && is_array( $mapping['fieldDest'] ) ) {
+				foreach ( $mapping['fieldDest'] as $fid => $dest ) {
+					if ( is_string( $fid ) && is_string( $dest ) ) {
+						$field_dest[ $fid ] = $dest;
+					}
+				}
+			}
+
+			$sheets = isset( $mapping['sheets'] ) && is_array( $mapping['sheets'] )
+				? self::normalize_sheets( $mapping['sheets'] )
+				: array();
+			$drive  = isset( $mapping['drive'] ) && is_array( $mapping['drive'] )
+				? self::normalize_drive( $mapping['drive'] )
+				: array();
 
 			return array(
 				'version' => isset( $data['version'] ) ? (int) $data['version'] : 1,
 				'title'   => isset( $data['title'] ) ? (string) $data['title'] : '',
 				'fields'  => $validated_fields,
 				'mapping' => array(
-					'sheets' => isset( $mapping['sheets'] ) && is_array( $mapping['sheets'] ) ? $mapping['sheets'] : array(),
-					'drive'  => isset( $mapping['drive'] ) && is_array( $mapping['drive'] ) ? $mapping['drive'] : array(),
+					'sheets'    => $sheets,
+					'drive'     => $drive,
+					'fieldDest' => $field_dest,
 				),
-				'publish' => array(
-					'deadline'        => array_key_exists( 'deadline', $publish ) ? $publish['deadline'] : null,
-					'timezone'        => isset( $publish['timezone'] ) ? (string) $publish['timezone'] : 'America/New_York',
-					'applicationFee'  => array_key_exists( 'applicationFee', $publish ) ? $publish['applicationFee'] : null,
-					'forceClosed'     => ! empty( $publish['forceClosed'] ),
-				),
+				'publish' => self::normalize_publish( $publish ),
 				'options' => array(
-					'anonymize'                 => ! empty( $options['anonymize'] ),
+					'anonymize'                 => self::nullable_bool(
+						array_key_exists( 'anonymize', $options ) ? $options['anonymize'] : null
+					),
 					'skipHeader'                => ! empty( $options['skipHeader'] ),
-					'guidelinesUrl'             => isset( $options['guidelinesUrl'] ) ? $options['guidelinesUrl'] : null,
+					'guidelinesUrl'             => self::nullable_string(
+						array_key_exists( 'guidelinesUrl', $options ) ? $options['guidelinesUrl'] : null
+					),
 					'applicantNotificationDate' => isset( $options['applicantNotificationDate'] ) ? $options['applicantNotificationDate'] : null,
-					'freeForMembers'            => ! empty( $options['freeForMembers'] ),
+					'freeForMembers'            => self::nullable_bool(
+						array_key_exists( 'freeForMembers', $options ) ? $options['freeForMembers'] : null
+					),
+					'freeMembershipPlanIds'     => self::string_id_list(
+						isset( $options['freeMembershipPlanIds'] ) ? $options['freeMembershipPlanIds'] : array()
+					),
+					'anonymizeEndpoint'         => self::nullable_url(
+						array_key_exists( 'anonymizeEndpoint', $options ) ? $options['anonymizeEndpoint'] : null
+					),
+					'anonymizeApiKey'           => self::nullable_string(
+						array_key_exists( 'anonymizeApiKey', $options ) ? $options['anonymizeApiKey'] : null
+					),
+				),
+				'access'  => self::normalize_access( $access ),
+			);
+		}
+
+		/**
+		 * Dual-write enabled / forceClosed. Empty launchAt becomes null.
+		 *
+		 * @param array $publish Raw publish block.
+		 * @return array
+		 */
+		private static function normalize_publish( array $publish ) {
+			$enabled = array_key_exists( 'enabled', $publish )
+				? ! empty( $publish['enabled'] )
+				: empty( $publish['forceClosed'] );
+			return array(
+				'deadline'       => array_key_exists( 'deadline', $publish ) ? $publish['deadline'] : null,
+				'timezone'       => self::nullable_string(
+					array_key_exists( 'timezone', $publish ) ? $publish['timezone'] : null
+				),
+				'applicationFee' => array_key_exists( 'applicationFee', $publish ) ? $publish['applicationFee'] : null,
+				'enabled'        => $enabled,
+				'forceClosed'    => ! $enabled,
+				'launchAt'       => self::nullable_string(
+					array_key_exists( 'launchAt', $publish ) ? $publish['launchAt'] : null
 				),
 			);
+		}
+
+		/**
+		 * Who may apply. audience anyone | logged_in | members.
+		 *
+		 * @param array $access Raw access block.
+		 * @return array
+		 */
+		private static function normalize_access( $access ) {
+			$audience = isset( $access['audience'] ) ? (string) $access['audience'] : 'anyone';
+			if ( ! in_array( $audience, array( 'anyone', 'logged_in', 'members' ), true ) ) {
+				$audience = 'anyone';
+			}
+			$rules = array();
+			if ( isset( $access['profileRules'] ) && is_array( $access['profileRules'] ) ) {
+				foreach ( $access['profileRules'] as $rule ) {
+					if ( ! is_array( $rule ) || empty( $rule['key'] ) ) {
+						continue;
+					}
+					$op = isset( $rule['op'] ) ? (string) $rule['op'] : 'eq';
+					if ( ! in_array( $op, array( 'eq', 'neq', 'in', 'gte', 'lte', 'contains' ), true ) ) {
+						$op = 'eq';
+					}
+					$rules[] = array(
+						'key'   => (string) $rule['key'],
+						'op'    => $op,
+						'value' => isset( $rule['value'] ) ? (string) $rule['value'] : '',
+					);
+				}
+			}
+			return array(
+				'audience'          => $audience,
+				'membershipPlanIds' => self::string_id_list(
+					isset( $access['membershipPlanIds'] ) ? $access['membershipPlanIds'] : array()
+				),
+				'profileRules'      => $rules,
+				'denyMessage'       => isset( $access['denyMessage'] ) ? (string) $access['denyMessage'] : '',
+			);
+		}
+
+		/**
+		 * @param mixed $ids Raw id list.
+		 * @return string[]
+		 */
+		private static function string_id_list( $ids ) {
+			if ( ! is_array( $ids ) ) {
+				return array();
+			}
+			$out = array();
+			foreach ( $ids as $id ) {
+				$id = trim( (string) $id );
+				if ( '' !== $id ) {
+					$out[] = $id;
+				}
+			}
+			return $out;
+		}
+
+		/**
+		 * Copy known sheet fields; keep old un-roled ids; drop invalid roles.
+		 *
+		 * @param array $sheets Raw sheet targets.
+		 * @return array
+		 */
+		private static function normalize_sheets( $sheets ) {
+			$out = array();
+			foreach ( $sheets as $sheet ) {
+				if ( ! is_array( $sheet ) ) {
+					continue;
+				}
+				$row = array(
+					'id'            => isset( $sheet['id'] ) ? (string) $sheet['id'] : '',
+					'name'          => isset( $sheet['name'] ) ? (string) $sheet['name'] : '',
+					'spreadsheetId' => isset( $sheet['spreadsheetId'] ) ? (string) $sheet['spreadsheetId'] : '',
+				);
+				if ( isset( $sheet['role'] ) && is_string( $sheet['role'] ) && in_array( $sheet['role'], self::SHEET_ROLES, true ) ) {
+					$row['role'] = $sheet['role'];
+				}
+				if ( isset( $sheet['columns'] ) && is_array( $sheet['columns'] ) ) {
+					$row['columns'] = $sheet['columns'];
+				}
+				$out[] = $row;
+			}
+			return $out;
+		}
+
+		/**
+		 * @param array $drive Raw drive targets.
+		 * @return array
+		 */
+		private static function normalize_drive( $drive ) {
+			$out = array();
+			foreach ( $drive as $folder ) {
+				if ( ! is_array( $folder ) ) {
+					continue;
+				}
+				$row = array(
+					'id'       => isset( $folder['id'] ) ? (string) $folder['id'] : '',
+					'name'     => isset( $folder['name'] ) ? (string) $folder['name'] : '',
+					'folderId' => isset( $folder['folderId'] ) ? (string) $folder['folderId'] : '',
+				);
+				if ( isset( $folder['fieldIds'] ) && is_array( $folder['fieldIds'] ) ) {
+					$row['fieldIds'] = $folder['fieldIds'];
+				}
+				$out[] = $row;
+			}
+			return $out;
+		}
+
+		/**
+		 * Empty string → null. Non-strings → null. Do not invent a URL.
+		 *
+		 * @param mixed $value Raw option.
+		 * @return string|null
+		 */
+		private static function nullable_url( $value ) {
+			return self::nullable_string( $value );
+		}
+
+		/**
+		 * Missing / empty / non-bool → null (inherit). true/false stay.
+		 *
+		 * @param mixed $value Raw option.
+		 * @return bool|null
+		 */
+		private static function nullable_bool( $value ) {
+			if ( is_bool( $value ) ) {
+				return $value;
+			}
+			if ( 1 === $value || '1' === $value || 'true' === $value ) {
+				return true;
+			}
+			if ( 0 === $value || '0' === $value || 'false' === $value ) {
+				return false;
+			}
+			return null;
+		}
+
+		/**
+		 * Empty string → null. Non-strings → null.
+		 *
+		 * @param mixed $value Raw option.
+		 * @return string|null
+		 */
+		private static function nullable_string( $value ) {
+			if ( ! is_string( $value ) ) {
+				return null;
+			}
+			$trimmed = trim( $value );
+			return '' === $trimmed ? null : $trimmed;
 		}
 
 		/**

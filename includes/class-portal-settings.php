@@ -89,6 +89,8 @@ if (! class_exists('Portal_Settings')) {
             );
             register_setting('pb_settings_group', 'pb_receipt_alt_body');
 
+            $this->register_site_default_settings();
+
             // Add a section for Google API keys
             add_settings_section(
                 'pb_google_api_section',
@@ -248,6 +250,243 @@ if (! class_exists('Portal_Settings')) {
                 'portal-default-settings',
                 'pb_email_section'
             );
+
+            $this->add_site_default_fields();
+        }
+
+        /**
+         * Site-wide Anonymizer and inherit bag. Same page, not a new menu.
+         */
+        private function register_site_default_settings() {
+            $bool = array(
+                'type'              => 'boolean',
+                'sanitize_callback' => array( $this, 'sanitize_default_bool' ),
+                'default'           => false,
+            );
+            register_setting( 'pb_settings_group', 'pb_default_anonymize', $bool );
+            register_setting( 'pb_settings_group', 'pb_default_free_for_members', $bool );
+            register_setting(
+                'pb_settings_group',
+                'pb_default_anonymize_endpoint',
+                array(
+                    'type'              => 'string',
+                    'sanitize_callback' => array( $this, 'sanitize_default_url' ),
+                    'default'           => '',
+                )
+            );
+            register_setting(
+                'pb_settings_group',
+                'pb_default_anonymize_api_key',
+                array(
+                    'type'              => 'string',
+                    'sanitize_callback' => array( $this, 'sanitize_default_api_key' ),
+                    'default'           => '',
+                )
+            );
+            register_setting(
+                'pb_settings_group',
+                'pb_default_guidelines_url',
+                array(
+                    'type'              => 'string',
+                    'sanitize_callback' => array( $this, 'sanitize_default_url' ),
+                    'default'           => '',
+                )
+            );
+            register_setting(
+                'pb_settings_group',
+                'pb_default_timezone',
+                array(
+                    'type'              => 'string',
+                    'sanitize_callback' => 'sanitize_text_field',
+                    'default'           => '',
+                )
+            );
+        }
+
+        /**
+         * @return void
+         */
+        private function add_site_default_fields() {
+            add_settings_section(
+                'pb_anonymizer_defaults_section',
+                __( 'Anonymizer & defaults', 'portal-builder' ),
+                array( $this, 'anonymizer_defaults_section_callback' ),
+                'portal-default-settings'
+            );
+            add_settings_field(
+                'pb_default_anonymize',
+                __( 'Anonymize files', 'portal-builder' ),
+                array( $this, 'render_default_anonymize_field' ),
+                'portal-default-settings',
+                'pb_anonymizer_defaults_section'
+            );
+            add_settings_field(
+                'pb_default_anonymize_endpoint',
+                __( 'Anonymize API URL', 'portal-builder' ),
+                array( $this, 'render_default_anonymize_endpoint_field' ),
+                'portal-default-settings',
+                'pb_anonymizer_defaults_section'
+            );
+            add_settings_field(
+                'pb_default_anonymize_api_key',
+                __( 'Anonymize API key', 'portal-builder' ),
+                array( $this, 'render_default_anonymize_api_key_field' ),
+                'portal-default-settings',
+                'pb_anonymizer_defaults_section'
+            );
+            add_settings_field(
+                'pb_default_guidelines_url',
+                __( 'Guidelines URL', 'portal-builder' ),
+                array( $this, 'render_default_guidelines_url_field' ),
+                'portal-default-settings',
+                'pb_anonymizer_defaults_section'
+            );
+            add_settings_field(
+                'pb_default_free_for_members',
+                __( 'Free for members', 'portal-builder' ),
+                array( $this, 'render_default_free_for_members_field' ),
+                'portal-default-settings',
+                'pb_anonymizer_defaults_section'
+            );
+            add_settings_field(
+                'pb_default_timezone',
+                __( 'Timezone', 'portal-builder' ),
+                array( $this, 'render_default_timezone_field' ),
+                'portal-default-settings',
+                'pb_anonymizer_defaults_section'
+            );
+        }
+
+        /**
+         * @return void
+         */
+        public function anonymizer_defaults_section_callback() {
+            $plugin_file = dirname( __DIR__ ) . '/portal-builder.php';
+            $contract    = plugins_url( 'docs/design/ANONYMIZER.md', $plugin_file );
+            $builtin     = class_exists( 'Portal_Site_Defaults' )
+                ? Portal_Site_Defaults::BUILTIN_ANONYMIZE_ENDPOINT
+                : 'https://api.allintersections.com';
+            echo '<p>' . esc_html__(
+                'Portals inherit these unless they override them. A blank Anonymize API URL uses All Intersections. A custom host is allowed if it speaks the same contract.',
+                'portal-builder'
+            ) . ' <a href="' . esc_url( $contract ) . '">' . esc_html__( 'Anonymizer contract', 'portal-builder' ) . '</a>.</p>';
+            echo '<p class="description">' . esc_html(
+                sprintf(
+                    /* translators: %s: built-in All Intersections URL */
+                    __( 'Built-in endpoint if the site URL is also blank: %s', 'portal-builder' ),
+                    $builtin
+                )
+            ) . '</p>';
+        }
+
+        /**
+         * Unchecked checkbox is not posted; treat missing as false.
+         *
+         * @param mixed $value Raw.
+         * @return bool
+         */
+        public function sanitize_default_bool( $value ) {
+            return ! empty( $value );
+        }
+
+        /**
+         * @param mixed $value Raw.
+         * @return string
+         */
+        public function sanitize_default_url( $value ) {
+            if ( ! is_string( $value ) ) {
+                return '';
+            }
+            $trimmed = trim( $value );
+            if ( '' === $trimmed ) {
+                return '';
+            }
+            return esc_url_raw( $trimmed );
+        }
+
+        /**
+         * Blank keeps the stored key so the password field never has to echo it.
+         *
+         * @param mixed $value Posted value.
+         * @return string
+         */
+        public function sanitize_default_api_key( $value ) {
+            $existing = function_exists( 'get_option' )
+                ? (string) get_option( 'pb_default_anonymize_api_key', '' )
+                : '';
+            if ( ! is_string( $value ) ) {
+                return $existing;
+            }
+            $trimmed = trim( $value );
+            return '' === $trimmed ? $existing : $trimmed;
+        }
+
+        /**
+         * @return void
+         */
+        public function render_default_anonymize_field() {
+            $on = ! empty( get_option( 'pb_default_anonymize', false ) );
+            echo '<label><input type="hidden" name="pb_default_anonymize" value="0" />';
+            echo '<input type="checkbox" name="pb_default_anonymize" value="1" ' . checked( $on, true, false ) . ' /> ';
+            echo esc_html__( 'Anonymize files for adjudicators by default', 'portal-builder' ) . '</label>';
+        }
+
+        /**
+         * @return void
+         */
+        public function render_default_anonymize_endpoint_field() {
+            $value   = (string) get_option( 'pb_default_anonymize_endpoint', '' );
+            $builtin = class_exists( 'Portal_Site_Defaults' )
+                ? Portal_Site_Defaults::BUILTIN_ANONYMIZE_ENDPOINT
+                : 'https://api.allintersections.com';
+            echo '<input type="url" name="pb_default_anonymize_endpoint" class="regular-text" value="' . esc_attr( $value ) . '" placeholder="' . esc_attr( $builtin ) . '" />';
+            echo '<p class="description">' . esc_html__( 'Leave blank to use All Intersections. Custom hosts must implement the same two POSTs.', 'portal-builder' ) . '</p>';
+        }
+
+        /**
+         * @return void
+         */
+        public function render_default_anonymize_api_key_field() {
+            $stored = (string) get_option( 'pb_default_anonymize_api_key', '' );
+            $hint   = class_exists( 'Portal_Site_Defaults' )
+                ? Portal_Site_Defaults::key_hint( $stored )
+                : '';
+            $placeholder = '' !== $hint
+                ? sprintf(
+                    /* translators: %s: last-four hint such as ••••1234 */
+                    __( 'Saved (%s) — leave blank to keep', 'portal-builder' ),
+                    $hint
+                )
+                : __( 'Paste API key', 'portal-builder' );
+            echo '<input type="password" name="pb_default_anonymize_api_key" class="regular-text" value="" autocomplete="new-password" placeholder="' . esc_attr( $placeholder ) . '" />';
+            echo '<p class="description">' . esc_html__( 'Never shown on the public form. Leave blank to keep the saved key.', 'portal-builder' ) . '</p>';
+        }
+
+        /**
+         * @return void
+         */
+        public function render_default_guidelines_url_field() {
+            $value = (string) get_option( 'pb_default_guidelines_url', '' );
+            echo '<input type="url" name="pb_default_guidelines_url" class="regular-text" value="' . esc_attr( $value ) . '" placeholder="https://" />';
+        }
+
+        /**
+         * @return void
+         */
+        public function render_default_free_for_members_field() {
+            $on = ! empty( get_option( 'pb_default_free_for_members', false ) );
+            echo '<label><input type="hidden" name="pb_default_free_for_members" value="0" />';
+            echo '<input type="checkbox" name="pb_default_free_for_members" value="1" ' . checked( $on, true, false ) . ' /> ';
+            echo esc_html__( 'Waive the application fee for members by default', 'portal-builder' ) . '</label>';
+        }
+
+        /**
+         * @return void
+         */
+        public function render_default_timezone_field() {
+            $value = (string) get_option( 'pb_default_timezone', '' );
+            echo '<input type="text" name="pb_default_timezone" class="regular-text" value="' . esc_attr( $value ) . '" placeholder="America/New_York" />';
+            echo '<p class="description">' . esc_html__( 'IANA timezone. Portals inherit this when their timezone field is blank.', 'portal-builder' ) . '</p>';
         }
 
         public function google_api_section_callback()

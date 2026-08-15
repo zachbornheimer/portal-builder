@@ -10,7 +10,8 @@ if ( ! class_exists( 'Portal_Open_State' ) ) {
 	/**
 	 * Derives is_open from publish config + post status, and detects editor preview.
 	 *
-	 * is_open = published ∧ ¬forceClosed ∧ (no deadline ∨ now ≤ deadline)
+	 * is_open = published ∧ ¬forceClosed ∧ (enabled is not false)
+	 *           ∧ (no launchAt ∨ now ≥ launchAt) ∧ (no deadline ∨ now ≤ deadline)
 	 */
 	class Portal_Open_State {
 
@@ -19,7 +20,7 @@ if ( ! class_exists( 'Portal_Open_State' ) ) {
 		/**
 		 * Pure open check from already-resolved publish config.
 		 *
-		 * @param array                  $publish     Keys: deadline, timezone, forceClosed.
+		 * @param array                  $publish     Keys: deadline, timezone, forceClosed, enabled, launchAt.
 		 * @param string                 $post_status WP post status (e.g. publish).
 		 * @param DateTimeInterface|null $now         Injectable clock; null = current time.
 		 * @return bool
@@ -31,49 +32,49 @@ if ( ! class_exists( 'Portal_Open_State' ) ) {
 			if ( ! empty( $publish['forceClosed'] ) ) {
 				return false;
 			}
+			if ( array_key_exists( 'enabled', $publish ) && empty( $publish['enabled'] ) ) {
+				return false;
+			}
 
-			$deadline = array_key_exists( 'deadline', $publish ) ? $publish['deadline'] : null;
-			if ( null === $deadline || '' === $deadline ) {
+			$timezone = self::publish_timezone( $publish );
+			$now_dt   = self::clock_in_timezone( $now, $timezone );
+
+			$launch_raw = array_key_exists( 'launchAt', $publish ) ? $publish['launchAt'] : null;
+			$launch_dt  = self::parse_in_timezone( $launch_raw, $timezone );
+			if ( $launch_dt && $now_dt < $launch_dt ) {
+				return false;
+			}
+
+			$deadline    = array_key_exists( 'deadline', $publish ) ? $publish['deadline'] : null;
+			$deadline_dt = self::parse_in_timezone( $deadline, $timezone );
+			if ( ! $deadline_dt ) {
 				return true;
 			}
 
-			$timezone_name = isset( $publish['timezone'] ) && is_string( $publish['timezone'] ) && '' !== $publish['timezone']
-				? $publish['timezone']
-				: self::DEFAULT_TIMEZONE;
+			return $now_dt <= $deadline_dt;
+		}
 
-			try {
-				$timezone = new DateTimeZone( $timezone_name );
-			} catch ( Exception $e ) {
-				$timezone = new DateTimeZone( self::DEFAULT_TIMEZONE );
-			}
-
-			try {
-				$deadline_dt = new DateTime( (string) $deadline, $timezone );
-			} catch ( Exception $e ) {
-				// Unparseable deadline: treat as no deadline (stay open).
-				return true;
-			}
-
-			if ( null === $now ) {
-				$now = new DateTime( 'now', $timezone );
-			} elseif ( $now instanceof DateTimeImmutable ) {
-				$now = DateTime::createFromImmutable( $now )->setTimezone( $timezone );
-			} elseif ( $now instanceof DateTime ) {
-				$now = clone $now;
-				$now->setTimezone( $timezone );
-			} else {
-				$now = new DateTime( 'now', $timezone );
-			}
-
-			// Open when now is at or before the deadline (inclusive).
-			return $now <= $deadline_dt;
+		/**
+		 * Dual-write enabled / forceClosed. enabled wins when both are present.
+		 *
+		 * @param array $publish Raw publish block.
+		 * @return array{enabled: bool, forceClosed: bool}
+		 */
+		public static function dual_write_enabled( array $publish ) {
+			$enabled = array_key_exists( 'enabled', $publish )
+				? ! empty( $publish['enabled'] )
+				: empty( $publish['forceClosed'] );
+			return array(
+				'enabled'     => $enabled,
+				'forceClosed' => ! $enabled,
+			);
 		}
 
 		/**
 		 * Resolve publish config: definition publish block when valid, else legacy meta.
 		 *
 		 * @param int $post_id Portal post ID.
-		 * @return array{deadline: mixed, timezone: string, forceClosed: bool, source: string}
+		 * @return array{deadline: mixed, timezone: string, forceClosed: bool, enabled: bool, launchAt: mixed, source: string}
 		 */
 		public static function resolve_publish_config( $post_id ) {
 			$post_id = (int) $post_id;
@@ -83,10 +84,13 @@ if ( ! class_exists( 'Portal_Open_State' ) ) {
 
 			if ( is_array( $definition ) && isset( $definition['publish'] ) && is_array( $definition['publish'] ) ) {
 				$publish = $definition['publish'];
+				$flags   = self::dual_write_enabled( $publish );
 				return array(
 					'deadline'    => array_key_exists( 'deadline', $publish ) ? $publish['deadline'] : null,
 					'timezone'    => isset( $publish['timezone'] ) ? (string) $publish['timezone'] : self::DEFAULT_TIMEZONE,
-					'forceClosed' => ! empty( $publish['forceClosed'] ),
+					'forceClosed' => $flags['forceClosed'],
+					'enabled'     => $flags['enabled'],
+					'launchAt'    => array_key_exists( 'launchAt', $publish ) ? $publish['launchAt'] : null,
 					'source'      => 'definition',
 				);
 			}
@@ -98,7 +102,7 @@ if ( ! class_exists( 'Portal_Open_State' ) ) {
 		 * Legacy `_portal_deadline` + timezone index meta.
 		 *
 		 * @param int $post_id Portal post ID.
-		 * @return array{deadline: mixed, timezone: string, forceClosed: bool, source: string}
+		 * @return array{deadline: mixed, timezone: string, forceClosed: bool, enabled: bool, launchAt: mixed, source: string}
 		 */
 		public static function legacy_publish_config( $post_id ) {
 			$deadline       = get_post_meta( $post_id, '_portal_deadline', true );
@@ -112,6 +116,8 @@ if ( ! class_exists( 'Portal_Open_State' ) ) {
 				'deadline'    => ( '' === $deadline || false === $deadline ) ? null : $deadline,
 				'timezone'    => $timezone_string,
 				'forceClosed' => false,
+				'enabled'     => true,
+				'launchAt'    => null,
 				'source'      => 'legacy',
 			);
 		}
@@ -185,10 +191,67 @@ if ( ! class_exists( 'Portal_Open_State' ) ) {
 				return 'status';
 			}
 			$publish = self::resolve_publish_config( $post_id );
-			if ( ! empty( $publish['forceClosed'] ) ) {
+			if ( ! empty( $publish['forceClosed'] ) || ( array_key_exists( 'enabled', $publish ) && empty( $publish['enabled'] ) ) ) {
 				return 'force';
 			}
+			$timezone = self::publish_timezone( $publish );
+			$now_dt   = self::clock_in_timezone( $now, $timezone );
+			$launch   = self::parse_in_timezone(
+				array_key_exists( 'launchAt', $publish ) ? $publish['launchAt'] : null,
+				$timezone
+			);
+			if ( $launch && $now_dt < $launch ) {
+				return 'launch';
+			}
 			return 'deadline';
+		}
+
+		/**
+		 * @param array $publish Publish block.
+		 * @return DateTimeZone
+		 */
+		private static function publish_timezone( array $publish ) {
+			$name = isset( $publish['timezone'] ) && is_string( $publish['timezone'] ) && '' !== $publish['timezone']
+				? $publish['timezone']
+				: self::DEFAULT_TIMEZONE;
+			try {
+				return new DateTimeZone( $name );
+			} catch ( Exception $e ) {
+				return new DateTimeZone( self::DEFAULT_TIMEZONE );
+			}
+		}
+
+		/**
+		 * @param DateTimeInterface|null $now       Injectable clock.
+		 * @param DateTimeZone           $timezone  Portal timezone.
+		 * @return DateTime
+		 */
+		private static function clock_in_timezone( $now, DateTimeZone $timezone ) {
+			if ( $now instanceof DateTimeImmutable ) {
+				return DateTime::createFromImmutable( $now )->setTimezone( $timezone );
+			}
+			if ( $now instanceof DateTime ) {
+				$clone = clone $now;
+				$clone->setTimezone( $timezone );
+				return $clone;
+			}
+			return new DateTime( 'now', $timezone );
+		}
+
+		/**
+		 * @param mixed        $value    Datetime string or empty.
+		 * @param DateTimeZone $timezone Portal timezone.
+		 * @return DateTime|null
+		 */
+		private static function parse_in_timezone( $value, DateTimeZone $timezone ) {
+			if ( null === $value || '' === $value ) {
+				return null;
+			}
+			try {
+				return new DateTime( (string) $value, $timezone );
+			} catch ( Exception $e ) {
+				return null;
+			}
 		}
 	}
 }

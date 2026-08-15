@@ -162,3 +162,132 @@ test('two sequential submits append two sheet rows (idempotent enough)', () => {
     assert.equal(row.sub_email, expectedRow.sub_email);
   }
 });
+
+const liveMapping = path.join(
+  root,
+  'tests/fixtures/portals/herbolzheimer.live-mapping.json',
+);
+const multiDestMapping = path.join(
+  root,
+  'tests/fixtures/portals/herbolzheimer.multi-dest-mapping.json',
+);
+const liveArtifactDir = path.join(root, 'tests/.artifacts/live-adapters');
+
+/**
+ * @param {string[]} extraArgs
+ * @param {NodeJS.ProcessEnv} [envOverride]
+ */
+function runLivePipeline(extraArgs = [], envOverride = {}) {
+  const env = { ...process.env, ...envOverride };
+  delete env.DG_TEST_MODE;
+  env.DG_ARTIFACT_DIR = liveArtifactDir;
+  const r = spawnSync(
+    'php',
+    [
+      harness,
+      definition,
+      submission,
+      liveArtifactDir,
+      '42',
+      '--via-for-post',
+      '--live-google',
+      `--mapping=${liveMapping}`,
+      ...extraArgs,
+    ],
+    { encoding: 'utf8', env },
+  );
+  return {
+    code: r.status,
+    out: (r.stdout || '') + (r.stderr || ''),
+    stdout: r.stdout || '',
+    stderr: r.stderr || '',
+  };
+}
+
+function parseHarnessJson(text) {
+  const start = text.indexOf('{');
+  assert.notEqual(start, -1, `no JSON in: ${text}`);
+  return JSON.parse(text.slice(start));
+}
+
+test('without DG_TEST_MODE a mapped herbolzheimer submit writes google sheet and drive', () => {
+  const { code, out } = runLivePipeline();
+  assert.equal(code, 0, out);
+  const data = parseHarnessJson(out);
+  assert.equal(data.ok, true);
+  const store = data.googleStore;
+  assert.ok(store, 'fake google store record');
+  assert.ok(
+    store.spreadsheetIds.includes('sheet_hk_fixture_not_prod'),
+    `gsheet ids: ${JSON.stringify(store.spreadsheetIds)}`,
+  );
+  const titleCells = (store.cells || []).flat();
+  assert.ok(
+    titleCells.includes('Symphony No. 1'),
+    `cells should include work title, got ${JSON.stringify(store.cells)}`,
+  );
+  assert.ok(
+    (store.driveFiles || []).length >= 1,
+    `expected store_drive_file for score, got ${JSON.stringify(store.driveFiles)}`,
+  );
+  const scoreLink = data.drivePaths?.score || '';
+  assert.match(
+    String(scoreLink),
+    /^https:\/\/drive\.google\.com\/file\/d\//,
+    `score cell/path should be a Drive URL, got ${scoreLink}`,
+  );
+});
+
+test('closed portal does not write to the fake google store', () => {
+  const { code, out } = runLivePipeline(['--open-state=closed']);
+  assert.notEqual(code, 0, out);
+  const data = parseHarnessJson(out);
+  assert.equal(data.ok, false);
+  assert.match(String(data.code || data.message || out), /closed|preview/i);
+  const calls = data.googleStore?.calls || [];
+  assert.equal(calls.length, 0, `expected zero store calls, got ${JSON.stringify(calls)}`);
+});
+
+test('preview request does not write to the fake google store', () => {
+  const { code, out } = runLivePipeline(['--open-state=preview']);
+  assert.notEqual(code, 0, out);
+  const data = parseHarnessJson(out);
+  assert.equal(data.ok, false);
+  assert.match(String(data.code || data.message || out), /preview/i);
+  const calls = data.googleStore?.calls || [];
+  assert.equal(calls.length, 0, `expected zero store calls, got ${JSON.stringify(calls)}`);
+});
+
+test('multi-dest fieldDest writes two spreadsheet ids', () => {
+  const env = { ...process.env };
+  delete env.DG_TEST_MODE;
+  env.DG_ARTIFACT_DIR = liveArtifactDir;
+  const r = spawnSync(
+    'php',
+    [
+      harness,
+      definition,
+      submission,
+      liveArtifactDir,
+      '42',
+      '--via-for-post',
+      '--live-google',
+      `--mapping=${multiDestMapping}`,
+      '--open-state=open',
+    ],
+    { encoding: 'utf8', env },
+  );
+  assert.equal(r.status, 0, (r.stdout || '') + (r.stderr || ''));
+  const data = parseHarnessJson((r.stdout || '') + (r.stderr || ''));
+  const ids = data.googleStore?.spreadsheetIds || [];
+  assert.ok(
+    ids.includes('sheet_hk_fixture_not_prod'),
+    `missing housekeeping id in ${JSON.stringify(ids)}`,
+  );
+  assert.ok(
+    ids.includes('sheet_adj_fixture_not_prod'),
+    `missing adjudicator id in ${JSON.stringify(ids)}`,
+  );
+  const unique = [...new Set(ids)];
+  assert.equal(unique.length, 2, `expected two distinct spreadsheet ids, got ${JSON.stringify(ids)}`);
+});

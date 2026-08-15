@@ -2,7 +2,7 @@
 
 **Status:** accepted (v0.1)  
 **Source of truth:** this file + `src/tokens.css` (must stay in sync)  
-**Consumers:** Svelte admin app (`src/`), `tailwind.config.js` theme.extend  
+**Consumers:** Svelte admin app (`src/` → `assets/dist/dragongate-portal.js`), `tailwind.config.js` theme.extend. Stack is Svelte 5 + Vite only — tokens are not a stepping-stone to Alpine or another framework.  
 **Visual refs:** `docs/design/mockups/01–04-*.png`, `docs/design/dragongate-brand-guide.html`
 
 Values are frozen for implementation. Change them here first, then in `src/tokens.css` and Tailwind maps.
@@ -119,6 +119,14 @@ Tailwind: extend spacing as `dg-1`…`dg-9` **or** use arbitrary `var(--s-N)`. P
 Focus ring is mandatory on interactive elements; never `outline: none` without an equivalent.
 
 ---
+
+## Measure
+
+| Token | Value | Role |
+|-------|-------|------|
+| `--measure` | `64rem` (1024px) | Public packet column. Tailwind `lg` breakpoint / `max-w-5xl`. Not `max-w-lg` (32rem). |
+
+Breakpoints on the public form match Tailwind: `sm` 40rem, `md` 48rem, `lg` 64rem.
 
 ## Wizard shell layout constants
 

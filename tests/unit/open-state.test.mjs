@@ -77,6 +77,81 @@ const CASES = [
     now: '2026-06-01T12:00:01',
     expect_open: false,
   },
+  {
+    name: 'future launchAt is closed',
+    publish: {
+      deadline: null,
+      timezone: 'America/New_York',
+      forceClosed: false,
+      enabled: true,
+      launchAt: '2026-07-01T00:00:00',
+    },
+    post_status: 'publish',
+    now: '2026-06-01T12:00:00',
+    expect_open: false,
+  },
+  {
+    name: 'past launchAt is open',
+    publish: {
+      deadline: null,
+      timezone: 'America/New_York',
+      forceClosed: false,
+      enabled: true,
+      launchAt: '2026-05-01T00:00:00',
+    },
+    post_status: 'publish',
+    now: '2026-06-01T12:00:00',
+    expect_open: true,
+  },
+  {
+    name: 'enabled false is closed',
+    publish: {
+      deadline: null,
+      timezone: 'America/New_York',
+      forceClosed: false,
+      enabled: false,
+    },
+    post_status: 'publish',
+    now: '2026-06-01T12:00:00',
+    expect_open: false,
+  },
+  {
+    name: 'launchAt plus future deadline is still closed before launch',
+    publish: {
+      deadline: '2026-12-31T23:59:59',
+      timezone: 'America/New_York',
+      forceClosed: false,
+      enabled: true,
+      launchAt: '2026-07-01T00:00:00',
+    },
+    post_status: 'publish',
+    now: '2026-06-01T12:00:00',
+    expect_open: false,
+  },
+  {
+    name: 'missing launchAt stays open when published',
+    publish: {
+      deadline: null,
+      timezone: 'America/New_York',
+      forceClosed: false,
+    },
+    post_status: 'publish',
+    now: '2026-06-01T12:00:00',
+    expect_open: true,
+  },
+  {
+    name: 'null launchAt stays open when published',
+    publish: {
+      deadline: null,
+      timezone: 'America/New_York',
+      forceClosed: false,
+      enabled: true,
+      launchAt: null,
+    },
+    post_status: 'publish',
+    now: '2026-06-01T12:00:00',
+    expect_open: true,
+  },
 ];
 
 function runCases(cases) {

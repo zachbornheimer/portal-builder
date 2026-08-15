@@ -1,0 +1,26 @@
+{
+  "portalId": "call-for-scores-poster",
+  "values": {
+    "sub_title": "Ms",
+    "sub_name": "Jane Smith",
+    "sub_email": "poster@example.com",
+    "sub_inst_affil": "ISJAC",
+    "sub_address_first_part": "456 Oak Ave",
+    "sub_city": "Durham",
+    "sub_country": "US",
+    "sub_state": "NC",
+    "sub_zip": "27701",
+    "sub_phone": "+1-919-555-0200",
+    "sub_category": "poster"
+  },
+  "files": {
+    "bio": {
+      "name": "sample-score.pdf",
+      "path": "tests/fixtures/files/sample-score.pdf"
+    },
+    "poster_description": {
+      "name": "sample-score.pdf",
+      "path": "tests/fixtures/files/sample-score.pdf"
+    }
+  }
+}

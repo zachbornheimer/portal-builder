@@ -1,0 +1,83 @@
+{
+  "ok": true,
+  "capturedAt": "2026-07-26T11:53:02.184Z",
+  "baseUrl": "http://localhost:10033",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "portalIds": [
+    "26969",
+    "26971"
+  ],
+  "openPublic": "/portal/dg-e2e-tutorial-open-1785066447623/",
+  "closedPublic": "/portal/dg-e2e-tutorial-closed-1785066450117-2/",
+  "shots": [
+    {
+      "id": "01-admin-dashboard",
+      "file": "01-admin-dashboard.png",
+      "title": "WordPress admin dashboard",
+      "caption": "Starting point after login. DragonGate lives under the Portals custom post type."
+    },
+    {
+      "id": "02-admin-portal-list",
+      "file": "02-admin-portal-list.png",
+      "title": "Portal list (admin)",
+      "caption": "All portals. Create, search, edit, and trash from this screen."
+    },
+    {
+      "id": "03-admin-portal-edit",
+      "file": "03-admin-portal-edit.png",
+      "title": "Portal editor",
+      "caption": "Classic/block edit screen for a portal post. Title and publish controls; definition is attached via REST."
+    },
+    {
+      "id": "04-admin-portal-list-seeded",
+      "file": "04-admin-portal-list-seeded.png",
+      "title": "Portal list with tutorial portals",
+      "caption": "After seeding + rename: open and closed Herbolzheimer portals in the list."
+    },
+    {
+      "id": "05-public-form-open",
+      "file": "05-public-form-open.png",
+      "title": "Public application form (open)",
+      "caption": "Anonymous visitor sees the definition-rendered form: applicant pack, work title, score, recording."
+    },
+    {
+      "id": "05b-public-form-open-full",
+      "file": "05b-public-form-open-full.png",
+      "title": "Public application form (full page)",
+      "caption": "Same open form, full scroll height — useful for layout review."
+    },
+    {
+      "id": "06-public-closed",
+      "file": "06-public-closed.png",
+      "title": "Public view when portal is closed",
+      "caption": "Deadline passed / forceClosed: visitor sees closed copy, not the live form."
+    },
+    {
+      "id": "07-editor-preview-closed",
+      "file": "07-editor-preview-closed.png",
+      "title": "Editor preview of a closed portal",
+      "caption": "Logged-in editor with ?preview=true: preview banner + definition form (not a live submission)."
+    },
+    {
+      "id": "07b-editor-preview-closed-full",
+      "file": "07b-editor-preview-closed-full.png",
+      "title": "Editor preview (full page)",
+      "caption": "Full-page editor preview for layout review of banner + form stack."
+    },
+    {
+      "id": "08-editor-view-open-form",
+      "file": "08-editor-view-open-form.png",
+      "title": "Open form while logged in as editor",
+      "caption": "Same open public URL with admin cookies — confirms form render for staff spot-checks."
+    },
+    {
+      "id": "09-admin-new-portal",
+      "file": "09-admin-new-portal.png",
+      "title": "Add new portal",
+      "caption": "Create flow entry: new portal post editor before definition is attached."
+    }
+  ]
+}

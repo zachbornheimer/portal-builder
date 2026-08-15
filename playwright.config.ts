@@ -30,7 +30,18 @@ export default defineConfig({
 	projects: [
 		{
 			name: 'chromium',
+			testIgnore: /filmed\//,
 			use: { ...devices['Desktop Chrome'] },
+		},
+		{
+			name: 'filmed',
+			testMatch: /filmed\/.*\.spec\.ts/,
+			use: {
+				...devices['Desktop Chrome'],
+				video: 'on',
+				trace: 'on',
+				screenshot: 'on',
+			},
 		},
 	],
 	timeout: TEST_TIMEOUT_MS,

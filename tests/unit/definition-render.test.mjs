@@ -28,8 +28,14 @@ test('herbolzheimer definition renders public form markers', () => {
 	assert.equal(data.checks.applicant_pack, true, 'applicant_pack block');
 	assert.equal(data.checks.work_title_name, true, 'sub_work_title input name');
 	assert.equal(data.checks.score_accept, true, 'PDF accept on score');
+	assert.equal(data.checks.file_card, true, 'file enclosure card');
+	assert.equal(data.checks.score_name, true, 'sub_score input name');
+	assert.equal(data.checks.file_open, true, 'open-to-confirm control');
 	assert.match(data.html, /data-dg-render="definition"/);
 	assert.match(data.html, /Title of Work/);
+	assert.match(data.html, /class="[^"]*dg-file/);
+	assert.match(data.html, /name="sub_score"/);
+	assert.match(data.html, /application\/pdf/);
 });
 
 test('empty fields definition renders empty string path (exit via empty)', () => {
@@ -42,6 +48,22 @@ test('empty fields definition renders empty string path (exit via empty)', () =>
 	const { code, out } = runPhp(emptyPath);
 	assert.notEqual(code, 0, out);
 	assert.match(out, /empty render|fields must be an array/i);
+});
+
+test('call-for-scores renders category radios, hidden scores panel, nested score_kind', () => {
+	const cfs = path.join(root, 'tests/fixtures/portals/call-for-scores.definition.json');
+	const { code, out } = runPhp(cfs);
+	assert.equal(code, 0, out);
+	const data = JSON.parse(out.trim());
+	assert.match(data.html, /name="sub_category"/);
+	assert.match(data.html, /name="sub_score_kind"/);
+	assert.match(
+		data.html,
+		/class="dg-branch-children"[^>]*data-dg-branch-option="scores"[^>]*hidden|data-dg-branch-option="scores"[^>]*hidden/
+	);
+	assert.match(data.html, /data-dg-field-type="branch"/);
+	assert.match(data.html, /Poster Sessions/);
+	assert.match(data.html, /New Music Masterclass Workshop \(Large Ensemble\)/);
 });
 
 test('group with short_text only renders label and input', () => {
@@ -65,7 +87,8 @@ test('group with short_text only renders label and input', () => {
 	const { code, out } = runPhp(p);
 	assert.equal(code, 0, out);
 	const data = JSON.parse(out.trim());
-	assert.match(data.html, /Piece Name\*/);
+	assert.match(data.html, /Piece Name/);
+	assert.match(data.html, /class="dg-req"[^>]*>\*/);
 	assert.match(data.html, /name="sub_piece"/);
 	assert.match(data.html, /data-dg-render="definition"/);
 });

@@ -117,7 +117,75 @@ function initWizard() {
 			return;
 		}
 
-		const app = mount(WizardShell, { target: container });
+		const portalId = Number(container.getAttribute('data-portal-id') || '0');
+		const restRoot = container.getAttribute('data-rest-root') || '';
+		const restNonce = container.getAttribute('data-rest-nonce') || '';
+		const wpRestRoot =
+			container.getAttribute('data-wp-rest-root') ||
+			(typeof window !== 'undefined' && window.wpApiSettings?.root) ||
+			'/wp-json/';
+		const portalTitle = container.getAttribute('data-portal-title') || '';
+		const publicUrl = container.getAttribute('data-public-url') || '';
+		const postStatus = container.getAttribute('data-post-status') || 'draft';
+		const productMode = container.getAttribute('data-product-mode') === '1';
+		const listUrl = container.getAttribute('data-list-url') || '';
+		const logoUrl = container.getAttribute('data-logo-url') || '';
+		const seedNode = container.querySelector('script[type="application/json"][data-dg-definition]');
+		let definitionSeed;
+		if (seedNode) {
+			try {
+				definitionSeed = JSON.parse(seedNode.textContent || 'null');
+			} catch {
+				definitionSeed = null;
+			}
+		}
+		const catalogNode = container.querySelector(
+			'script[type="application/json"][data-dg-access-catalog]',
+		);
+		let accessCatalog = { membershipPlans: [], profileFields: [] };
+		if (catalogNode) {
+			try {
+				const parsed = JSON.parse(catalogNode.textContent || 'null');
+				if (parsed && typeof parsed === 'object') {
+					accessCatalog = parsed;
+				}
+			} catch {
+				accessCatalog = { membershipPlans: [], profileFields: [] };
+			}
+		}
+		const defaultsNode = container.querySelector(
+			'script[type="application/json"][data-dg-site-defaults]',
+		);
+		let siteDefaults = {};
+		if (defaultsNode) {
+			try {
+				const parsed = JSON.parse(defaultsNode.textContent || 'null');
+				if (parsed && typeof parsed === 'object') {
+					siteDefaults = parsed;
+				}
+			} catch {
+				siteDefaults = {};
+			}
+		}
+
+		const app = mount(WizardShell, {
+			target: container,
+			props: {
+				portalId,
+				restRoot,
+				restNonce,
+				wpRestRoot,
+				portalTitle,
+				publicUrl,
+				postStatus,
+				productMode,
+				listUrl,
+				logoUrl,
+				definitionSeed,
+				accessCatalog,
+				siteDefaults,
+			},
+		});
 		container[UNMOUNT_KEY] = () => unmount(app);
 	});
 }

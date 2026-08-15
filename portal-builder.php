@@ -51,8 +51,10 @@ require_once plugin_dir_path( __FILE__ ) . 'includes/class-portal-file-handler.p
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-data-table.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-portal-about.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/Definition/class-portal-definition.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/Definition/class-portal-site-defaults.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/Definition/class-portal-definition-renderer.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/Definition/class-portal-open-state.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/Definition/class-portal-access.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/Definition/class-portal-public-render.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-files.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-test-mode.php';
@@ -61,8 +63,18 @@ require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-dri
 require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-mailer.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-submission-field-rules.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-submission-validator.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-submission-selections.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-submit-admission.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-submission-destinations.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-file-signature.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-anonymizer-api.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-anonymizer-reply.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-anonymizer-transport.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-anonymizer.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-submission-pipeline.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/adapters/class-portal-google-store.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-portal-definition-rest.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/class-portal-setup-screen.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/templates.php';
 require_once plugin_dir_path( __FILE__ ) . 'gsuite-filestore/zysys-file-store.class.php';
 
@@ -381,16 +393,13 @@ function handle_submissions() {
 }
 
 /**
- * Try definition-aware submit when DG_TEST_MODE is on and the portal has a definition.
+ * Try definition-aware submit whenever the portal has a definition.
  *
  * @param array $post_values         $_POST-like values (sub_* field names).
  * @param array $stored_file_paths   Map of input name => absolute temp path.
  * @return array|false Result payload on success; false to fall back to legacy.
  */
 function pb_try_definition_submission( $post_values, $stored_file_paths ) {
-	if ( ! class_exists( 'Portal_Test_Mode' ) || ! Portal_Test_Mode::is_enabled() ) {
-		return false;
-	}
 	if ( ! class_exists( 'Portal_Submission_Pipeline' ) || ! class_exists( 'Portal_Definition' ) ) {
 		return false;
 	}
@@ -419,12 +428,8 @@ function pb_try_definition_submission( $post_values, $stored_file_paths ) {
 
 	$result = Portal_Submission_Pipeline::process_for_post( $post_id, $post_values, $files );
 	if ( is_wp_error( $result ) ) {
-		// Validation failures should surface; other "not ready" codes fall back.
-		$code = $result->get_error_code();
-		if ( 'dg_submission_invalid' === $code || 'dg_submission_file_read' === $code ) {
-			throw new Exception( $result->get_error_message() );
-		}
-		return false;
+		// Definition exists — do not fall through to Portal_Submission.
+		throw new Exception( $result->get_error_message() );
 	}
 	return $result;
 }
