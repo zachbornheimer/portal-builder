@@ -246,7 +246,7 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 			if ( 'login' === $reason && function_exists( 'wp_login_url' ) ) {
 				$target = get_permalink( $post_id );
 				$login  = sprintf(
-					' <a href="%s">%s</a>',
+					' <a href="%s" target="_blank" rel="noopener noreferrer">%s</a>',
 					esc_url( wp_login_url( $target ? $target : '' ) ),
 					esc_html__( 'Sign in', 'dragongate-portals' )
 				);
@@ -395,7 +395,7 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 			$guidelines = isset( $options['guidelinesUrl'] ) ? (string) $options['guidelinesUrl'] : '';
 			if ( '' !== $guidelines ) {
 				$items[] = sprintf(
-					'<a class="dg-meta-link" href="%1$s">%2$s</a>',
+					'<a class="dg-meta-link" href="%1$s" target="_blank" rel="noopener noreferrer">%2$s</a>',
 					esc_url( $guidelines ),
 					esc_html__( 'Read the call →', 'dragongate-portals' )
 				);

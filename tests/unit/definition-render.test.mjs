@@ -64,6 +64,10 @@ test('definition-form.js stages via XHR and writes the staged token', () => {
 	assert.match(js, /upload\.addEventListener\(\s*['"]load['"]/);
 	assert.match(js, /enterWorking/);
 	assert.match(js, /requireStage|missingToken|staged\.value/);
+	assert.match(js, /openInNewTab/);
+	assert.match(js, /forceNewTabLinks/);
+	assert.doesNotMatch(js, /location\.assign/);
+	assert.doesNotMatch(js, /window\.open\([^)]*noopener/);
 });
 
 test('empty fields definition renders empty string path (exit via empty)', () => {

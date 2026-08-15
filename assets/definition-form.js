@@ -57,6 +57,51 @@
 		return cfg.stageUrl ? String(cfg.stageUrl) : '';
 	}
 
+	/**
+	 * Always a new tab. Do not pass the "noopener" feature to window.open —
+	 * that makes it return null and we used to navigate the form away.
+	 */
+	function openInNewTab(url) {
+		if (!url) {
+			return;
+		}
+		var opened = null;
+		if (typeof window.open === 'function') {
+			opened = window.open(url, '_blank');
+		}
+		if (opened) {
+			try {
+				opened.opener = null;
+			} catch (err) {
+				/* ignore */
+			}
+			return;
+		}
+		var a = document.createElement('a');
+		a.href = url;
+		a.target = '_blank';
+		a.rel = 'noopener noreferrer';
+		a.setAttribute('data-dg-new-tab', '1');
+		document.body.appendChild(a);
+		a.click();
+		a.remove();
+	}
+
+	function forceNewTabLinks(root) {
+		var links = (root || document).querySelectorAll('a[href]');
+		for (var i = 0; i < links.length; i += 1) {
+			var href = links[i].getAttribute('href') || '';
+			if (!href || href.charAt(0) === '#') {
+				continue;
+			}
+			links[i].target = '_blank';
+			var rel = links[i].getAttribute('rel') || '';
+			if (rel.indexOf('noopener') === -1) {
+				links[i].setAttribute('rel', (rel + ' noopener noreferrer').trim());
+			}
+		}
+	}
+
 	function bindFileCard(card) {
 		var input = card.querySelector('input[type="file"]');
 		if (!input) {
@@ -358,10 +403,7 @@
 				}
 				// Prefer staged bytes when available.
 				if (stagedUrl) {
-					var openedStaged = window.open(stagedUrl, '_blank', 'noopener');
-					if (!openedStaged) {
-						window.location.assign(stagedUrl);
-					}
+					openInNewTab(stagedUrl);
 					card.classList.add('is-opened');
 					card.classList.remove('is-invalid');
 					if (confirm) {
@@ -377,10 +419,7 @@
 					var base = cfg.stageUrl ? String(cfg.stageUrl).replace(/\/portals\/\d+\/files\/?$/, '/files/') : '';
 					if (base) {
 						var tokenUrl = base + encodeURIComponent(stagedToken);
-						var openedTok = window.open(tokenUrl, '_blank', 'noopener');
-						if (!openedTok) {
-							window.location.assign(tokenUrl);
-						}
+						openInNewTab(tokenUrl);
 						card.classList.add('is-opened');
 						card.classList.remove('is-invalid');
 						if (confirm) {
@@ -396,10 +435,7 @@
 				}
 				revokeUrl();
 				objectUrl = URL.createObjectURL(file);
-				var opened = window.open(objectUrl, '_blank', 'noopener');
-				if (!opened) {
-					window.location.assign(objectUrl);
-				}
+				openInNewTab(objectUrl);
 				card.classList.add('is-opened');
 				card.classList.remove('is-invalid');
 				if (confirm) {
@@ -621,6 +657,7 @@
 	}
 
 	function init() {
+		forceNewTabLinks(document);
 		var cards = document.querySelectorAll('.dg-file');
 		for (var i = 0; i < cards.length; i += 1) {
 			bindFileCard(cards[i]);
