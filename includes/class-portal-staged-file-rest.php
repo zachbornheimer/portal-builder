@@ -13,7 +13,7 @@ if ( ! class_exists( 'Portal_Staged_File_REST' ) ) {
 	class Portal_Staged_File_REST {
 
 		const NS           = 'dragongate/v1';
-		const NONCE_ACTION = 'dg_stage_file';
+		const NONCE_ACTION = 'wp_rest';
 		const FILE_PARAM   = 'file';
 		const FIELD_PARAM  = 'field_id';
 

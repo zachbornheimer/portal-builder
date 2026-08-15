@@ -58,8 +58,8 @@ test('definition-form.js stages via XHR and writes the staged token', () => {
 	assert.match(js, /is-uploading/);
 	assert.match(js, /is-working/);
 	assert.match(js, /is-staged/);
-	assert.match(js, /Removing identifying information/);
-	assert.match(js, /Finishing upload/);
+	assert.match(js, /Processing/);
+	assert.doesNotMatch(js, /Removing identifying information/);
 	assert.match(js, /stageUrl/);
 	assert.match(js, /upload\.addEventListener\(\s*['"]load['"]/);
 	assert.match(js, /enterWorking/);

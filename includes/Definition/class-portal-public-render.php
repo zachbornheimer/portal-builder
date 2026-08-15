@@ -575,7 +575,7 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 				array(
 					'portalId'  => $post_id,
 					'nonce'     => function_exists( 'wp_create_nonce' )
-						? wp_create_nonce( 'dg_stage_file' )
+						? wp_create_nonce( 'wp_rest' )
 						: '',
 					'stageUrl'  => $stage_url,
 					'anonymize' => $anonymize,

@@ -238,11 +238,13 @@ if ( ! class_exists( 'Portal_Staged_File' ) ) {
 			if ( ! class_exists( 'Portal_Anonymizer' ) ) {
 				return $buffer;
 			}
-			$options = class_exists( 'Portal_Site_Defaults' )
-				? Portal_Site_Defaults::resolve( $definition, array() )
-				: ( isset( $definition['options'] ) && is_array( $definition['options'] )
-					? $definition['options']
-					: array() );
+			$options = class_exists( 'Portal_Site_Defaults' ) && function_exists( 'get_option' )
+				? Portal_Site_Defaults::resolve_for_site( $definition )
+				: ( class_exists( 'Portal_Site_Defaults' )
+					? Portal_Site_Defaults::resolve( $definition, array() )
+					: ( isset( $definition['options'] ) && is_array( $definition['options'] )
+						? $definition['options']
+						: array() ) );
 			// Prefer definition options when site bag is empty (CLI).
 			if ( empty( $options['anonymize'] ) && isset( $definition['options']['anonymize'] ) ) {
 				$options = array_merge( $options, $definition['options'] );

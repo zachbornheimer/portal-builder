@@ -13,8 +13,7 @@
 
 	var KB = 1024;
 	var MB = 1024 * 1024;
-	var STATUS_ANON = 'Removing identifying information…';
-	var STATUS_FINISH = 'Finishing upload…';
+	var STATUS_WORKING = 'Processing';
 	var STAGE_FAIL = 'Upload failed. Replace the file and try again.';
 
 	/**
@@ -51,18 +50,6 @@
 		return window.dgPublicForm && typeof window.dgPublicForm === 'object'
 			? window.dgPublicForm
 			: {};
-	}
-
-	function formAnonymize(card) {
-		var cfg = publicConfig();
-		if (cfg.anonymize === true || cfg.anonymize === 1 || cfg.anonymize === '1') {
-			return true;
-		}
-		var form = card.closest('.dg-form') || card.closest('form');
-		if (form && form.getAttribute('data-dg-anonymize') === '1') {
-			return true;
-		}
-		return card.getAttribute('data-dg-anonymize') === '1';
 	}
 
 	function stageUrl() {
@@ -273,7 +260,7 @@
 				card.classList.remove('is-uploading');
 				card.classList.add('is-working');
 				setProgress(-1);
-				setStatus(formAnonymize(card) ? STATUS_ANON : STATUS_FINISH);
+				setStatus(STATUS_WORKING);
 			}
 
 			xhr.upload.addEventListener('progress', function (event) {
