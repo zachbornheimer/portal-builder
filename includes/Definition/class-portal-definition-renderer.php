@@ -367,6 +367,7 @@ if ( ! class_exists( 'Portal_Definition_Renderer' ) ) {
 		 */
 		private static function render_file_input( $field, $accept ) {
 			$name     = self::input_name( $field['id'] );
+			$staged   = $name . '_staged';
 			$label    = self::label_text( $field );
 			$required = ! empty( $field['required'] );
 			$req_a    = $required ? ' required aria-required="true"' : '';
@@ -382,7 +383,7 @@ if ( ! class_exists( 'Portal_Definition_Renderer' ) ) {
 			$error_label   = self::translate( 'Open the file and confirm it isn’t corrupt.' );
 
 			return sprintf(
-				'<div class="dg-field dg-field--%1$s dg-file is-empty" data-dg-field-id="%2$s" data-dg-field-type="%1$s"><div class="dg-file-spec"><label class="dg-field-label" for="%3$s">%4$s%5$s</label><span class="dg-file-hint">%6$s</span></div><div class="dg-file-body"><div class="dg-file-pick"><input type="file" class="dg-file-input" id="%3$s" name="%3$s"%7$s%8$s /><span class="dg-file-empty">%9$s</span><span class="dg-file-ready"><span class="dg-file-icon" aria-hidden="true">%10$s</span><span class="dg-file-meta"><span class="dg-file-name" data-dg-file-name></span><span class="dg-file-size" data-dg-file-size></span></span></span></div><div class="dg-file-confirm"><button type="button" class="dg-file-open" data-dg-file-open>%11$s</button><span class="dg-file-confirm-copy" data-dg-file-confirm-copy data-idle="%12$s" data-ready="%13$s">%12$s</span><label class="dg-file-confirm-label"><input type="checkbox" class="dg-file-confirm-input" data-dg-file-confirm value="1" disabled /><span class="screen-reader-text">%13$s</span></label><button type="button" class="dg-file-swap" data-dg-file-swap>%14$s</button></div><p class="dg-file-error" role="alert">%15$s</p></div></div>',
+				'<div class="dg-field dg-field--%1$s dg-file is-empty" data-dg-field-id="%2$s" data-dg-field-type="%1$s"><div class="dg-file-spec"><label class="dg-field-label" for="%3$s">%4$s%5$s</label><span class="dg-file-hint">%6$s</span></div><div class="dg-file-body"><div class="dg-file-pick"><input type="file" class="dg-file-input" id="%3$s" name="%3$s"%7$s%8$s /><input type="hidden" name="%16$s" value="" data-dg-file-staged /><span class="dg-file-empty">%9$s</span><span class="dg-file-ready"><span class="dg-file-icon" aria-hidden="true">%10$s</span><span class="dg-file-meta"><span class="dg-file-name" data-dg-file-name></span><span class="dg-file-size"><span data-dg-file-size></span><span class="dg-file-size-sep" data-dg-file-sep hidden> · </span><span data-dg-file-original></span></span></span></span><div class="dg-file-progress" data-dg-file-progress hidden><div class="dg-file-progress-bar" data-dg-file-progress-bar></div></div><p class="dg-file-status" data-dg-file-status hidden></p></div><div class="dg-file-confirm"><button type="button" class="dg-file-open" data-dg-file-open>%11$s</button><span class="dg-file-confirm-copy" data-dg-file-confirm-copy data-idle="%12$s" data-ready="%13$s">%12$s</span><label class="dg-file-confirm-label"><input type="checkbox" class="dg-file-confirm-input" data-dg-file-confirm value="1" disabled /><span class="screen-reader-text">%13$s</span></label><button type="button" class="dg-file-swap" data-dg-file-swap>%14$s</button></div><p class="dg-file-error" role="alert">%15$s</p></div></div>',
 				esc_attr( $field['type'] ),
 				esc_attr( $field['id'] ),
 				esc_attr( $name ),
@@ -397,7 +398,8 @@ if ( ! class_exists( 'Portal_Definition_Renderer' ) ) {
 				$confirm_idle,
 				$confirm_ready,
 				$replace_label,
-				$error_label
+				$error_label,
+				esc_attr( $staged )
 			);
 		}
 

@@ -348,13 +348,85 @@ body.single-portal form.dg-portal-submit-form fieldset {
 	align-items: stretch;
 }
 
-.dg-file.is-ready {
+.dg-file.is-ready,
+.dg-file.is-staged {
 	border-style: solid;
 }
 
 .dg-file.is-dragover {
 	border-color: var(--ember);
 	background: var(--ember-100);
+}
+
+.dg-file.is-invalid {
+	background: var(--error-100);
+	border-color: color-mix(in srgb, var(--error) 35%, var(--rule-strong));
+	border-style: solid;
+}
+
+.dg-file.is-uploading .dg-file-confirm,
+.dg-file.is-working .dg-file-confirm {
+	opacity: 0.55;
+	pointer-events: none;
+}
+
+.dg-file-progress {
+	display: none;
+	width: 100%;
+	height: 6px;
+	margin-top: var(--s-2);
+	border-radius: 999px;
+	background: var(--rule);
+	overflow: hidden;
+}
+
+.dg-file.is-uploading .dg-file-progress {
+	display: block;
+}
+
+.dg-file-progress[hidden] {
+	display: none !important;
+}
+
+.dg-file-progress-bar {
+	height: 100%;
+	width: 0%;
+	background: var(--ember);
+	transition: width 120ms linear;
+}
+
+.dg-file-status {
+	display: none;
+	margin: var(--s-2) 0 0;
+	font-size: var(--t-caption);
+	color: var(--ink-400);
+}
+
+.dg-file.is-working .dg-file-status {
+	display: flex;
+	align-items: center;
+	gap: var(--s-2);
+}
+
+.dg-file-status[hidden] {
+	display: none !important;
+}
+
+.dg-file-status::before {
+	content: '';
+	width: 12px;
+	height: 12px;
+	border: 2px solid var(--rule-strong);
+	border-top-color: var(--ember);
+	border-radius: 50%;
+	animation: dg-file-spin 0.7s linear infinite;
+	flex-shrink: 0;
+}
+
+@keyframes dg-file-spin {
+	to {
+		transform: rotate(360deg);
+	}
 }
 
 .dg-file-spec {
@@ -548,6 +620,7 @@ body.single-portal form.dg-portal-submit-form fieldset {
 
 .dg-file.is-invalid .dg-file-error {
 	display: block;
+	color: var(--error);
 }
 
 .screen-reader-text {

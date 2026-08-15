@@ -80,6 +80,7 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 			}
 
 			$file_meta = self::normalize_uploaded_files( $files );
+			$file_meta = self::apply_staged_tokens( $post, $file_meta );
 			$pipeline  = self::for_environment( $definition );
 			$result    = $pipeline->process( $portal_id, $definition, $post, $file_meta );
 
@@ -90,6 +91,8 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 					'errors' => self::$last_errors,
 				);
 			}
+
+			self::forget_staged_tokens( $file_meta );
 
 			if ( empty( $result['receipt_url'] ) && class_exists( 'Portal_Receipt' ) ) {
 				$app_id = isset( $result['row']['applicationId'] ) ? (string) $result['row']['applicationId'] : '';
@@ -157,7 +160,7 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 					continue;
 				}
 				// Skip empty file inputs.
-				if ( isset( $meta['error'] ) && (int) $meta['error'] === UPLOAD_ERR_NO_FILE ) {
+				if ( isset( $meta['error'] ) && defined( 'UPLOAD_ERR_NO_FILE' ) && (int) $meta['error'] === UPLOAD_ERR_NO_FILE ) {
 					continue;
 				}
 				$field_id = (string) $name;
@@ -167,6 +170,65 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 				$out[ $field_id ] = $meta;
 			}
 			return $out;
+		}
+
+		/**
+		 * Prefer staged tokens from POST (sub_{field}_staged) over raw $_FILES.
+		 *
+		 * @param array                  $post    $_POST-like map.
+		 * @param array                  $files   Normalized file meta.
+		 * @param Portal_Staged_File|null $staging Injectable staging owner.
+		 * @return array<string,array>
+		 */
+		public static function apply_staged_tokens( array $post, array $files, $staging = null ) {
+			if ( ! class_exists( 'Portal_Staged_File' ) ) {
+				return $files;
+			}
+			$staging = $staging instanceof Portal_Staged_File ? $staging : new Portal_Staged_File();
+			$prefix  = Portal_Submission_Field_Rules::NAME_PREFIX;
+			$suffix  = '_staged';
+			foreach ( $post as $key => $token ) {
+				if ( ! is_string( $token ) || '' === $token ) {
+					continue;
+				}
+				$key = (string) $key;
+				if ( 0 !== strpos( $key, $prefix ) ) {
+					continue;
+				}
+				$suffix_len = strlen( $suffix );
+				if ( $suffix_len > strlen( $key ) || substr( $key, -$suffix_len ) !== $suffix ) {
+					continue;
+				}
+				$field_id = substr( $key, strlen( $prefix ), -$suffix_len );
+				if ( '' === $field_id ) {
+					continue;
+				}
+				$meta = $staging->as_file_meta( $token );
+				if ( is_array( $meta ) ) {
+					$files[ $field_id ] = $meta;
+				}
+			}
+			return $files;
+		}
+
+		/**
+		 * Drop staged tokens after a successful submit.
+		 *
+		 * @param array                   $files   File meta.
+		 * @param Portal_Staged_File|null $staging Staging owner.
+		 * @return void
+		 */
+		private static function forget_staged_tokens( array $files, $staging = null ) {
+			if ( ! class_exists( 'Portal_Staged_File' ) ) {
+				return;
+			}
+			$staging = $staging instanceof Portal_Staged_File ? $staging : new Portal_Staged_File();
+			foreach ( $files as $meta ) {
+				if ( ! is_array( $meta ) || empty( $meta['staged_token'] ) ) {
+					continue;
+				}
+				$staging->forget( (string) $meta['staged_token'] );
+			}
 		}
 
 		/**
@@ -604,6 +666,10 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 		 * @return string
 		 */
 		private function anonymize_judge_bytes( array $definition, $buffer, $filename, array $meta ) {
+			// Staged uploads already ran anonymize (or deliberately skipped it).
+			if ( ! empty( $meta['already_anonymized'] ) || ! empty( $meta['staged'] ) ) {
+				return $buffer;
+			}
 			if ( ! class_exists( 'Portal_Anonymizer' ) ) {
 				return $buffer;
 			}

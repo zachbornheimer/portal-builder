@@ -31,11 +31,39 @@ test('herbolzheimer definition renders public form markers', () => {
 	assert.equal(data.checks.file_card, true, 'file enclosure card');
 	assert.equal(data.checks.score_name, true, 'sub_score input name');
 	assert.equal(data.checks.file_open, true, 'open-to-confirm control');
+	assert.equal(data.checks.file_original, true, 'data-dg-file-original');
+	assert.equal(data.checks.file_progress, true, 'data-dg-file-progress');
+	assert.equal(data.checks.file_status, true, 'data-dg-file-status');
+	assert.equal(data.checks.file_staged_input, true, 'data-dg-file-staged');
+	assert.equal(data.checks.score_staged_name, true, 'sub_score_staged hidden input');
 	assert.match(data.html, /data-dg-render="definition"/);
 	assert.match(data.html, /Title of Work/);
 	assert.match(data.html, /class="[^"]*dg-file/);
 	assert.match(data.html, /name="sub_score"/);
+	assert.match(data.html, /name="sub_score_staged"/);
+	assert.match(data.html, /data-dg-file-original/);
 	assert.match(data.html, /application\/pdf/);
+});
+
+test('definition-form.css paints error background on .dg-file.is-invalid', () => {
+	const css = fs.readFileSync(path.join(root, 'assets/definition-form.css'), 'utf8');
+	assert.match(css, /\.dg-file\.is-invalid\s*\{[^}]*background\s*:\s*var\(--error-100\)/s);
+	assert.match(css, /data-dg-file-original|dg-file-progress|is-uploading|is-working|is-staged/);
+});
+
+test('definition-form.js stages via XHR and writes the staged token', () => {
+	const js = fs.readFileSync(path.join(root, 'assets/definition-form.js'), 'utf8');
+	assert.match(js, /XMLHttpRequest/);
+	assert.match(js, /data-dg-file-staged/);
+	assert.match(js, /is-uploading/);
+	assert.match(js, /is-working/);
+	assert.match(js, /is-staged/);
+	assert.match(js, /Removing identifying information/);
+	assert.match(js, /Finishing upload/);
+	assert.match(js, /stageUrl/);
+	assert.match(js, /upload\.addEventListener\(\s*['"]load['"]/);
+	assert.match(js, /enterWorking/);
+	assert.match(js, /requireStage|missingToken|staged\.value/);
 });
 
 test('empty fields definition renders empty string path (exit via empty)', () => {

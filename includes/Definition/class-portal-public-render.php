@@ -553,6 +553,34 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 				self::asset_version( $plugin_dir . '/assets/definition-form.js' ),
 				true
 			);
+
+			$post_id   = (int) get_the_ID();
+			$anonymize = false;
+			$definition = class_exists( 'Portal_Definition' )
+				? Portal_Definition::load_for_post( $post_id )
+				: null;
+			if ( is_array( $definition ) && class_exists( 'Portal_Site_Defaults' ) ) {
+				$resolved  = Portal_Site_Defaults::resolve_for_site( $definition );
+				$anonymize = ! empty( $resolved['anonymize'] );
+			}
+
+			$stage_url = '';
+			if ( $post_id > 0 && function_exists( 'rest_url' ) ) {
+				$stage_url = rest_url( 'dragongate/v1/portals/' . $post_id . '/files' );
+			}
+
+			wp_localize_script(
+				'dg-definition-form',
+				'dgPublicForm',
+				array(
+					'portalId'  => $post_id,
+					'nonce'     => function_exists( 'wp_create_nonce' )
+						? wp_create_nonce( 'dg_stage_file' )
+						: '',
+					'stageUrl'  => $stage_url,
+					'anonymize' => $anonymize,
+				)
+			);
 		}
 
 		/**
