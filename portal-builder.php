@@ -7,6 +7,7 @@
  * Version:     0.1.0
  * Requires at least: 6.4
  * Requires PHP: 8.0
+ * Update URI:  https://github.com/zachbornheimer/portal-builder
  * Author:      Z. Bornheimer (ZYSYS)
  * Author URI:  https://zysys.org/
  * License:     GPLv2 or later
@@ -76,6 +77,7 @@ require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-spa
 require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-packet-policy.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-packet-store.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-portal-console-rest.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/class-portal-update.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-portal-definition-rest.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-portal-staged-file-rest.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-portal-setup-screen.php';

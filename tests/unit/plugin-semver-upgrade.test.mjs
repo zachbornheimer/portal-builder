@@ -21,6 +21,8 @@ const UPGRADE_FACTS = [
 	{ name: 'activate after replace', re: /activate/i },
 	{ name: '_portal_definition post meta', re: /_portal_definition/ },
 	{ name: 'do not delete portal posts', re: /do not delete.{0,80}posts|posts.{0,80}not deleted|does not delete.{0,60}posts/i },
+	{ name: 'Dashboard Updates', re: /Dashboard → Updates|Dashboard -> Updates/ },
+	{ name: 'stable GitHub Release', re: /stable.{0,40}GitHub Release|GitHub Release.{0,40}stable/i },
 ];
 
 function headerField(name) {

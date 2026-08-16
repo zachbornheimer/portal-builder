@@ -51,15 +51,17 @@ Anyone-audience portals can require Cloudflare Turnstile (set the site key and s
 
 ## Upgrade by ZIP
 
-GitHub Releases (including prereleases) are the update channel. This plugin is not on WordPress.org.
+GitHub Releases are the update channel. This plugin is not on WordPress.org.
+
+**WordPress Dashboard.** Open **Dashboard → Updates** (or **Plugins**). When a newer **stable** GitHub Release exists (`vMAJOR.MINOR.PATCH` with a `portal-builder-*.zip` asset), DragonGate Portals appears as an update. Click **Update now**. The install folder name stays put (including `portal-builder-0.0.4a` on ISJAC). Portal posts and `_portal_definition` stay in the database.
+
+Rolling / prerelease tags are ignored. Manual ZIP replace still works:
 
 1. **Download the new ZIP** from the [Releases](https://github.com/zachbornheimer/portal-builder/releases) page.
 
 2. **Replace the plugin ZIP.** In WordPress admin, go to **Plugins → Add New → Upload Plugin**. Choose the new ZIP. When WordPress offers to replace the current plugin, accept that. Do not delete the plugin folder or portal posts first.
 
 3. **Activate** if WordPress deactivated the plugin during the replace.
-
-Portal posts and their `_portal_definition` post meta stay in the database. Replacing the plugin files does not delete posts.
 
 ## Features
 
