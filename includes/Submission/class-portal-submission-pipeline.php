@@ -35,10 +35,12 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 		const NONCE_ACTION = 'dg_definition_submit';
 		const NONCE_FIELD  = 'dg_definition_submit';
 
-		const SUCCESS_COPY        = 'Your application has been submitted successfully!';
-		const RECEIPT_LINK_TEXT   = 'Click here to view the details of your application. Please print / save this for your records.';
-		const PUBLIC_FAILURE_COPY = 'Something went wrong while submitting your application. Please try again. If the problem continues, contact the host.';
-		const PUBLIC_FAILURE_CODE = 'submit';
+		const SUCCESS_COPY               = 'Your application has been submitted successfully!';
+		const RECEIPT_LINK_TEXT          = 'Click here to view the details of your application. Please print / save this for your records.';
+		const PUBLIC_FAILURE_COPY        = 'Something went wrong while submitting your application. Please try again. If the problem continues, contact the host.';
+		const PUBLIC_FAILURE_CODE        = 'submit';
+		const PORTAL_NOT_CONFIGURED_COPY = 'This portal is not configured.';
+		const PORTAL_NOT_CONFIGURED_CODE = 'definition';
 
 		/** @var array|null Last validation/pipeline errors for re-render. */
 		private static $last_errors = null;
@@ -67,6 +69,21 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 					'code'     => self::PUBLIC_FAILURE_CODE,
 					'field_id' => '',
 					'message'  => self::PUBLIC_FAILURE_COPY,
+				),
+			);
+		}
+
+		/**
+		 * Record the public-form error for a portal with no definition.
+		 *
+		 * @return void
+		 */
+		public static function record_not_configured() {
+			self::$last_errors = array(
+				array(
+					'code'     => self::PORTAL_NOT_CONFIGURED_CODE,
+					'field_id' => '',
+					'message'  => self::PORTAL_NOT_CONFIGURED_COPY,
 				),
 			);
 		}
@@ -128,13 +145,7 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 			$portal_id  = (int) $portal_id;
 			$definition = Portal_Definition::load_for_post( $portal_id );
 			if ( null === $definition ) {
-				self::$last_errors = array(
-					array(
-						'code'     => 'definition',
-						'field_id' => '',
-						'message'  => 'This portal has no form definition.',
-					),
-				);
+				self::record_not_configured();
 				return array(
 					'ok'     => false,
 					'errors' => self::$last_errors,

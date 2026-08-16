@@ -1,6 +1,7 @@
 /**
- * ZYS-614 / ZYS-618 / ZYS-619: public submit never dies raw,
- * staged/tmp purge after 24h, uploads leave the ABSPATH web root.
+ * ZYS-614 / ZYS-618 / ZYS-619 / ZYS-631: public submit never dies raw,
+ * staged/tmp purge after 24h, uploads leave the ABSPATH web root,
+ * and public POST never enters Portal_Submission.
  */
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -160,6 +161,43 @@ test('ZYS-618: cleanup hook deletes only staged/tmp files older than 24h', () =>
   assert.equal(inspect.code, 0, inspect.out);
   assert.equal(inspect.data?.schedulesCleanup, true, inspect.out);
   assert.equal(inspect.data?.clearsCleanup, true, inspect.out);
+});
+
+test('ZYS-631: ready_to_submit POST without a definition never enters Portal_Submission', () => {
+  const { code, out, data } = runScenario({
+    entry: 'ready_to_submit_no_definition',
+  });
+  assert.equal(code, 0, out);
+  assert.ok(data, out);
+  assert.equal(data.ok, true, out);
+  assert.equal(
+    data.sourceConstructsLegacy,
+    false,
+    'handle_submissions still has new Portal_Submission',
+  );
+  assert.equal(
+    data.sourceProcessesLegacy,
+    false,
+    'handle_submissions still calls process_submission',
+  );
+  assert.equal(
+    data.constructedLegacy,
+    false,
+    'ready_to_submit POST constructed Portal_Submission',
+  );
+  assert.equal(
+    data.processedLegacy,
+    false,
+    'ready_to_submit POST called process_submission',
+  );
+  assert.equal(data.died, false, `wp_die: ${data.dieMessage || out}`);
+  assert.equal(data.definedErrors, true, 'DG_DEFINITION_SUBMIT_ERRORS was not defined');
+  assert.equal(data.receiptDefined, false, 'PB_RECEIPT_LINK was defined without a definition');
+  const human = String(data.humanMessage || '');
+  assert.match(human, /this portal is not configured/i);
+  const rendered = String(data.rendered || '');
+  assert.match(rendered, /dg-submit-errors/);
+  assert.match(rendered, /this portal is not configured/i);
 });
 
 test('ZYS-619: tmp and permanent uploads resolve under uploads, not ABSPATH web root', () => {

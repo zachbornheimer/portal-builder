@@ -363,7 +363,6 @@ function handle_submissions() {
 
 			define( 'PB_FILE_LABELS', $labels );
 
-			// Definition-aware path (test mode → mock Sheet/Drive/Mail artifacts).
 			$definition_submit = pb_try_definition_submission( $_POST, $stored_file_paths );
 			if ( is_array( $definition_submit ) && ! empty( $definition_submit['ok'] ) ) {
 				$raw_notification_date = get_post_meta( $_POST['post_id'], '_portal_applicant_notification_date', true );
@@ -373,17 +372,8 @@ function handle_submissions() {
 				$receipt = ! empty( $definition_submit['mailPath'] ) ? $definition_submit['mailPath'] : '';
 				Portal_Submission_Pipeline::finish_public_submit( true, $receipt, $application_notification_date );
 			} else {
-				$submission = new Portal_Submission( 'ready_to_submit_nonce', $file_handler );
-				if ( ! $submission->process_submission( $_POST ) ) {
-					return;
-				}
-				$raw_notification_date = get_post_meta( $_POST['post_id'], '_portal_applicant_notification_date', true );
-				$application_notification_date = date( 'l, F j, Y', strtotime( $raw_notification_date ) );
-				Portal_Submission_Pipeline::finish_public_submit(
-					true,
-					$submission->get_receipt_link(),
-					$application_notification_date
-				);
+				Portal_Submission_Pipeline::record_not_configured();
+				Portal_Submission_Pipeline::mark_public_errors();
 			}
 		}
 	} catch ( Exception $e ) {
@@ -415,7 +405,7 @@ function pb_record_public_submit_failure( $exception ) {
  *
  * @param array $post_values         $_POST-like values (sub_* field names).
  * @param array $stored_file_paths   Map of input name => absolute temp path.
- * @return array|false Result payload on success; false to fall back to legacy.
+ * @return array|false Result payload on success; false when the portal has no definition.
  */
 function pb_try_definition_submission( $post_values, $stored_file_paths ) {
 	if ( ! class_exists( 'Portal_Submission_Pipeline' ) || ! class_exists( 'Portal_Definition' ) ) {
