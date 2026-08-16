@@ -1,0 +1,30 @@
+/* DragonGate — Spacing (4px scale), radius, shadow, motion. */
+:root {
+	--space-1: 4px;
+	--space-2: 8px;
+	--space-3: 12px;
+	--space-4: 16px;
+	--space-5: 20px;
+	--space-6: 24px;
+	--space-8: 32px;
+	--space-10: 40px;
+	--space-12: 48px;
+	--space-16: 64px;
+	--space-20: 80px;
+
+	--radius-sm: 3px;
+	--radius-md: 6px;
+	--radius-lg: 10px;
+	--radius-pill: 999px;
+
+	--shadow-hair: 0 1px 0 color-mix(in srgb, var(--ink-900) 6%, transparent);
+	--shadow-raised: 0 1px 2px color-mix(in srgb, var(--ink-900) 8%, transparent), 0 4px 12px color-mix(in srgb, var(--ink-900) 6%, transparent);
+	--shadow-pop: 0 8px 28px color-mix(in srgb, var(--ink-900) 14%, transparent), 0 2px 6px color-mix(in srgb, var(--ink-900) 8%, transparent);
+	--shadow-inset: inset 0 1px 2px color-mix(in srgb, var(--ink-900) 10%, transparent);
+
+	--ease-standard: cubic-bezier(0.2, 0, 0.1, 1);
+	--ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+	--dur-fast: 120ms;
+	--dur-med: 200ms;
+	--dur-slow: 320ms;
+}
