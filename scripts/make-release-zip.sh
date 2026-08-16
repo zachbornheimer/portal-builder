@@ -7,8 +7,8 @@ cd "${ROOT}"
 
 VERSION="$(grep 'Version:' portal-builder.php | awk '{print $3}')"
 if [[ ! "${VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-	echo "plugin Version is not semver: ${VERSION}" >&2
-	exit 1
+  echo "plugin Version is not semver: ${VERSION}" >&2
+  exit 1
 fi
 
 mkdir -p dist
@@ -26,18 +26,18 @@ git submodule foreach --quiet --recursive '
 '
 
 if [[ -d vendor ]]; then
-	mkdir -p "${TMP}/${PREFIX}/vendor"
-	cp -R vendor/. "${TMP}/${PREFIX}/vendor/"
+  mkdir -p "${TMP}/${PREFIX}/vendor"
+  cp -R vendor/. "${TMP}/${PREFIX}/vendor/"
 fi
 if [[ -d assets/dist ]]; then
-	mkdir -p "${TMP}/${PREFIX}/assets/dist"
-	cp -R assets/dist/. "${TMP}/${PREFIX}/assets/dist/"
+  mkdir -p "${TMP}/${PREFIX}/assets/dist"
+  cp -R assets/dist/. "${TMP}/${PREFIX}/assets/dist/"
 fi
 
 rm -f "${OUT}"
 (
-	cd "${TMP}"
-	zip -qr "${OUT}" "${PREFIX}"
+  cd "${TMP}"
+  zip -qr "${OUT}" "${PREFIX}"
 )
 
 echo "${OUT}"
