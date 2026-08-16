@@ -728,6 +728,10 @@ if ( ! class_exists( 'Portal_Setup_Screen' ) ) {
 			echo '</script>';
 			echo '</div>';
 
+			if ( class_exists( 'Portal_Submit_Log' ) ) {
+				echo Portal_Submit_Log::for_uploads()->render_admin( $portal_id );
+			}
+
 			echo '</div>';
 		}
 	}
