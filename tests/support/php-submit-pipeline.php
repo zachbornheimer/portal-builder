@@ -64,6 +64,47 @@ require_once $repo_root . '/includes/Submission/class-portal-staged-file.php';
 require_once $repo_root . '/includes/Submission/class-portal-submission-pipeline.php';
 require_once $repo_root . '/includes/adapters/class-portal-google-store.php';
 
+/**
+ * Mailer that throws or returns false so fail-open can be proven.
+ */
+class Portal_Harness_Mailer extends Portal_Mailer {
+	/** @var string */
+	private $fail_mode;
+
+	/**
+	 * @param string            $artifact_dir Artifact root.
+	 * @param Portal_Files|null $files        Files facade.
+	 * @param callable|null     $now_ms       Clock.
+	 * @param string            $fail_mode    throw|false.
+	 */
+	public function __construct( $artifact_dir, $files, $now_ms, $fail_mode ) {
+		parent::__construct( $artifact_dir, $files, $now_ms );
+		$this->fail_mode = (string) $fail_mode;
+	}
+
+	/**
+	 * @param array<string,mixed> $message Message.
+	 * @return string|false
+	 */
+	public function send( array $message ) {
+		if ( 'throw' === $this->fail_mode ) {
+			throw new Exception( 'harness mail send failed' );
+		}
+		if ( 'false' === $this->fail_mode ) {
+			return false;
+		}
+		return parent::send( $message );
+	}
+
+	/**
+	 * @param array<string,mixed> $message Message.
+	 * @return string|false
+	 */
+	public function send_operator_notify( array $message ) {
+		return $this->send( $message );
+	}
+}
+
 $def_path  = $argv[1] ?? '';
 $sub_path  = $argv[2] ?? '';
 $artifact  = $argv[3] ?? null;
@@ -128,6 +169,11 @@ $live_google     = in_array( '--live-google', $argv, true );
 $open_state_flag = harness_flag_value( $argv, '--open-state' );
 $mapping_path    = harness_flag_value( $argv, '--mapping' );
 $seed_headers    = harness_decode_headers( harness_flag_value( $argv, '--seed-headers' ) );
+$mail_fail       = harness_flag_value( $argv, '--mail-fail' );
+$operator_email  = harness_flag_value( $argv, '--operator-email' );
+$admin_email     = harness_flag_value( $argv, '--admin-email' );
+
+harness_stub_mail_options( $operator_email, $admin_email );
 
 if ( is_string( $mapping_path ) && '' !== $mapping_path ) {
 	if ( ! is_absolute_path( $mapping_path ) ) {
@@ -214,7 +260,7 @@ if ( $via_for_post ) {
 	);
 	$result     = $pipeline->process( $portal_id, $definition, $values, $files );
 } else {
-	$pipeline = Portal_Submission_Pipeline::for_artifacts( $artifact, $files_facade, $fixed_ms );
+	$pipeline = harness_artifact_pipeline( $artifact, $files_facade, $fixed_ms, $sheets, $drive, $mail_fail );
 	if ( null !== $open_state && method_exists( $pipeline, 'with_open_state' ) ) {
 		$pipeline->with_open_state( $open_state );
 	}
@@ -241,6 +287,56 @@ if ( $fake_store instanceof Portal_Fake_File_Store ) {
 }
 echo json_encode( $result, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES ) . "\n";
 exit( 0 );
+
+/**
+ * Stub get_option for operator notify resolution tests.
+ *
+ * @param string|null $operator_email pb_operator_notify_email, or null to leave unset.
+ * @param string|null $admin_email    admin_email, or null to leave unset.
+ * @return void
+ */
+function harness_stub_mail_options( $operator_email, $admin_email ) {
+	if ( function_exists( 'get_option' ) ) {
+		return;
+	}
+	if ( null === $operator_email && null === $admin_email ) {
+		return;
+	}
+	$GLOBALS['dg_harness_options'] = array(
+		'pb_operator_notify_email' => is_string( $operator_email ) ? $operator_email : '',
+		'admin_email'              => is_string( $admin_email ) ? $admin_email : '',
+	);
+	/**
+	 * @param string $key     Option name.
+	 * @param mixed  $default Default.
+	 * @return mixed
+	 */
+	function get_option( $key, $default = false ) {
+		$opts = isset( $GLOBALS['dg_harness_options'] ) && is_array( $GLOBALS['dg_harness_options'] )
+			? $GLOBALS['dg_harness_options']
+			: array();
+		return array_key_exists( $key, $opts ) ? $opts[ $key ] : $default;
+	}
+}
+
+/**
+ * Artifact pipeline, optionally wrapped in a mailer that throws or returns false.
+ *
+ * @param string            $artifact     Artifact root.
+ * @param Portal_Files      $files        Files facade.
+ * @param callable          $now_ms       Clock.
+ * @param Portal_Sheet_Store $sheets      Sheet store.
+ * @param Portal_Drive_Store $drive       Drive store.
+ * @param string|null       $mail_fail    throw|false|null.
+ * @return Portal_Submission_Pipeline
+ */
+function harness_artifact_pipeline( $artifact, $files, $now_ms, $sheets, $drive, $mail_fail ) {
+	if ( ! is_string( $mail_fail ) || '' === $mail_fail ) {
+		return Portal_Submission_Pipeline::for_artifacts( $artifact, $files, $now_ms );
+	}
+	$mailer = new Portal_Harness_Mailer( $artifact, $files, $now_ms, $mail_fail );
+	return new Portal_Submission_Pipeline( $sheets, $drive, $mailer, $files );
+}
 
 /**
  * @param string $path Path.

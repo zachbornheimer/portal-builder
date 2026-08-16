@@ -78,6 +78,15 @@ if (! class_exists('Portal_Settings')) {
             register_setting('pb_settings_group', 'pb_receipt_subject');
             register_setting(
                 'pb_settings_group',
+                'pb_operator_notify_email',
+                array(
+                    'type'              => 'string',
+                    'sanitize_callback' => 'sanitize_email',
+                    'default'           => '',
+                )
+            );
+            register_setting(
+                'pb_settings_group',
                 'pb_receipt_body',
                 array(
                     'sanitize_callback' => 'wp_kses_post', // This allows standard HTML tags
@@ -246,6 +255,13 @@ if (! class_exists('Portal_Settings')) {
                 'portal-default-settings',
                 'pb_email_section'
             );
+            add_settings_field(
+                'pb_operator_notify_email',
+                __('Operator notify email', 'portal-builder'),
+                array( $this, 'render_operator_notify_email_field' ),
+                'portal-default-settings',
+                'pb_email_section'
+            );
 
             $this->add_site_default_fields();
         }
@@ -294,6 +310,15 @@ if (! class_exists('Portal_Settings')) {
                 array(
                     'type'              => 'string',
                     'sanitize_callback' => array( $this, 'sanitize_default_url' ),
+                    'default'           => '',
+                )
+            );
+            register_setting(
+                'pb_settings_group',
+                'pb_default_guidelines_link_label',
+                array(
+                    'type'              => 'string',
+                    'sanitize_callback' => 'sanitize_text_field',
                     'default'           => '',
                 )
             );
@@ -359,6 +384,13 @@ if (! class_exists('Portal_Settings')) {
                 'pb_default_guidelines_url',
                 __( 'Guidelines URL', 'portal-builder' ),
                 array( $this, 'render_default_guidelines_url_field' ),
+                'portal-default-settings',
+                'pb_anonymizer_defaults_section'
+            );
+            add_settings_field(
+                'pb_default_guidelines_link_label',
+                __( 'Guidelines link label', 'portal-builder' ),
+                array( $this, 'render_default_guidelines_link_label_field' ),
                 'portal-default-settings',
                 'pb_anonymizer_defaults_section'
             );
@@ -515,6 +547,18 @@ if (! class_exists('Portal_Settings')) {
         public function render_default_guidelines_url_field() {
             $value = (string) get_option( 'pb_default_guidelines_url', '' );
             echo '<input type="url" name="pb_default_guidelines_url" class="regular-text" value="' . esc_attr( $value ) . '" placeholder="https://" />';
+        }
+
+        /**
+         * @return void
+         */
+        public function render_default_guidelines_link_label_field() {
+            $value   = (string) get_option( 'pb_default_guidelines_link_label', '' );
+            $builtin = class_exists( 'Portal_Site_Defaults' )
+                ? Portal_Site_Defaults::BUILTIN_GUIDELINES_LINK_LABEL
+                : 'Link to Guidelines';
+            echo '<input type="text" name="pb_default_guidelines_link_label" class="regular-text" value="' . esc_attr( $value ) . '" placeholder="' . esc_attr( $builtin ) . '" />';
+            echo '<p class="description">' . esc_html__( 'Text of the public guidelines link. Leave blank to use the built-in label. Portals may override.', 'portal-builder' ) . '</p>';
         }
 
         /**
@@ -789,6 +833,19 @@ if (! class_exists('Portal_Settings')) {
             ?>
 			<textarea rows="5" style="width:100%" name="pb_receipt_alt_body" id="pb_receipt_alt_body" class="form-control" placeholder="<?php _e('Your {{$receiptLink }} ...', 'portal-builder'); ?>"><?php echo $value; ?></textarea>
 
+			<?php
+        }
+
+        /**
+         * Empty value falls back to WordPress admin_email at send time.
+         */
+        public function render_operator_notify_email_field()
+        {
+            $value = get_option('pb_operator_notify_email', '');
+            $admin = get_option('admin_email', '');
+            ?>
+			<input type="email" name="pb_operator_notify_email" id="pb_operator_notify_email" class="form-control" style="width:100%" value="<?php echo esc_attr($value); ?>" placeholder="<?php echo esc_attr($admin); ?>" />
+			<p class="description"><?php _e('Receives one notify per successful application (title, application id, applicant email, receipt URL). Leave blank to use the WordPress admin email.', 'portal-builder'); ?></p>
 			<?php
         }
 

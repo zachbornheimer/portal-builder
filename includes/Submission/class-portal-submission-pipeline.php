@@ -527,35 +527,39 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 			}
 
 			$sheet_path = $this->sheets->append_row( $portal_id, $row );
-			$mail_path  = $this->send_receipt_mail(
+			$tokens     = array(
+				'application_id'    => $submission_id,
+				'applicant_name'    => $applicant,
+				'applicant_email'   => $to ? $to : '',
+				'portal_title'      => $title,
+				'receipt_url'       => $receipt_url,
+				'selection'         => $selection,
+				'submitted_at'      => $date_received,
+				'notification_date' => self::notification_date( $portal_id ),
+			);
+			$mail_path          = $this->send_receipt_mail(
 				$to,
 				$portal_id,
 				$title,
-				array(
-					'application_id'    => $submission_id,
-					'applicant_name'    => $applicant,
-					'portal_title'      => $title,
-					'receipt_url'       => $receipt_url,
-					'selection'         => $selection,
-					'submitted_at'      => $date_received,
-					'notification_date' => self::notification_date( $portal_id ),
-				),
+				$tokens,
 				$validated['values'],
 				$file_meta
 			);
+			$operator_mail_path = $this->send_operator_mail( $portal_id, $title, $tokens );
 
 			return array(
-				'ok'          => true,
-				'status'      => self::STATUS_SYNCED,
-				'portalId'    => $portal_id,
-				'sheetPath'   => $sheet_path,
-				'drivePaths'  => $drive_paths,
-				'mailPath'    => $mail_path,
-				'receipt_url' => $receipt_url,
-				'row'         => $row,
-				'values'      => $validated['values'],
-				'files'       => $file_meta,
-				'applicant'   => $validated['applicant'],
+				'ok'               => true,
+				'status'           => self::STATUS_SYNCED,
+				'portalId'         => $portal_id,
+				'sheetPath'        => $sheet_path,
+				'drivePaths'       => $drive_paths,
+				'mailPath'         => $mail_path,
+				'operatorMailPath' => $operator_mail_path,
+				'receipt_url'      => $receipt_url,
+				'row'              => $row,
+				'values'           => $validated['values'],
+				'files'            => $file_meta,
+				'applicant'        => $validated['applicant'],
 			);
 		}
 
@@ -703,10 +707,54 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 				'values'   => $values,
 				'files'    => $files,
 			);
-			if ( method_exists( $this->mailer, 'send' ) ) {
-				return $this->mailer->send( $message );
+			return $this->safe_send( $message, false );
+		}
+
+		/**
+		 * Fail-open operator notify after dest writes.
+		 *
+		 * @param string               $portal_id Portal id.
+		 * @param string               $title     Portal title.
+		 * @param array<string,string> $tokens    Closed token set.
+		 * @return string Capture path or empty.
+		 */
+		private function send_operator_mail( $portal_id, $title, array $tokens ) {
+			$message = array(
+				'to'       => Portal_Mailer::operator_recipient(),
+				'kind'     => Portal_Mailer::KIND_OPERATOR,
+				'portalId' => $portal_id,
+				'title'    => $title,
+				'tokens'   => $tokens,
+			);
+			return $this->safe_send( $message, true );
+		}
+
+		/**
+		 * Capture mail failure; never throw to the submit caller.
+		 *
+		 * @param array<string,mixed> $message  Mailer payload.
+		 * @param bool                $operator True for operator notify.
+		 * @return string Capture path or empty.
+		 */
+		private function safe_send( array $message, $operator ) {
+			try {
+				if ( $operator && method_exists( $this->mailer, 'send_operator_notify' ) ) {
+					$path = $this->mailer->send_operator_notify( $message );
+				} elseif ( method_exists( $this->mailer, 'send' ) ) {
+					$path = $this->mailer->send( $message );
+				} else {
+					$path = $this->mailer->capture( $message );
+				}
+				return is_string( $path ) ? $path : '';
+			} catch ( Exception $e ) {
+				try {
+					$message['error'] = $e->getMessage();
+					$path             = $this->mailer->capture( $message );
+					return is_string( $path ) ? $path : '';
+				} catch ( Exception $ignored ) {
+					return '';
+				}
 			}
-			return $this->mailer->capture( $message );
 		}
 
 		/**

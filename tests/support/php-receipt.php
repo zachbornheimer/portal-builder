@@ -70,6 +70,10 @@ function add_query_arg( $args, $url ) {
 }
 function add_action() {}
 function add_filter() {}
+function plugins_url( $path = '', $plugin = '' ) {
+	unset( $plugin );
+	return 'http://localhost:10033/wp-content/plugins/portal-builder/' . ltrim( (string) $path, '/' );
+}
 
 $repo_root = dirname( __DIR__, 2 );
 
