@@ -310,6 +310,15 @@ if (! class_exists('Portal_Settings')) {
                     'default'           => '',
                 )
             );
+            register_setting(
+                'pb_settings_group',
+                'pb_default_brand',
+                array(
+                    'type'              => 'array',
+                    'sanitize_callback' => array( $this, 'sanitize_default_brand' ),
+                    'default'           => array(),
+                )
+            );
         }
 
         /**
@@ -370,6 +379,20 @@ if (! class_exists('Portal_Settings')) {
                 array( $this, 'render_default_timezone_field' ),
                 'portal-default-settings',
                 'pb_anonymizer_defaults_section'
+            );
+
+            add_settings_section(
+                'pb_white_label_section',
+                __( 'White label', 'portal-builder' ),
+                array( $this, 'white_label_section_callback' ),
+                'portal-default-settings'
+            );
+            add_settings_field(
+                'pb_default_brand',
+                __( 'Look', 'portal-builder' ),
+                array( $this, 'render_default_brand_field' ),
+                'portal-default-settings',
+                'pb_white_label_section'
             );
         }
 
@@ -515,6 +538,88 @@ if (! class_exists('Portal_Settings')) {
             $value = (string) get_option( 'pb_default_timezone', '' );
             echo '<input type="text" name="pb_default_timezone" class="regular-text" value="' . esc_attr( $value ) . '" placeholder="America/New_York" />';
             echo '<p class="description">' . esc_html__( 'IANA timezone. Portals inherit this when their timezone field is blank.', 'portal-builder' ) . '</p>';
+        }
+
+        /**
+         * @return void
+         */
+        public function white_label_section_callback() {
+            echo '<p>' . esc_html__(
+                'This look applies to public application pages. The setup wizard stays DragonGate.',
+                'portal-builder'
+            ) . '</p>';
+            $example = class_exists( 'Portal_Brand' )
+                ? Portal_Brand::preset( Portal_Brand::PRESET_ISJAC )
+                : array();
+            echo '<script type="application/json" id="pb-brand-isjac">' . wp_json_encode( $example ) . '</script>';
+        }
+
+        /**
+         * @param mixed $value Posted bag.
+         * @return array
+         */
+        public function sanitize_default_brand( $value ) {
+            if ( class_exists( 'Portal_Brand' ) ) {
+                return Portal_Brand::sanitize( $value );
+            }
+            return array();
+        }
+
+        /**
+         * @return void
+         */
+        public function render_default_brand_field() {
+            $brand  = get_option( 'pb_default_brand', array() );
+            $brand  = is_array( $brand ) ? $brand : array();
+            $preset = isset( $brand['preset'] ) ? (string) $brand['preset'] : 'product';
+            $choices = array(
+                'product' => __( 'DragonGate (product tokens)', 'portal-builder' ),
+                'custom'  => __( 'Custom', 'portal-builder' ),
+                'isjac'   => __( 'Example host (ISJAC guide)', 'portal-builder' ),
+            );
+            echo '<p><label for="pb_default_brand_preset">' . esc_html__( 'Preset', 'portal-builder' ) . '</label><br />';
+            echo '<select name="pb_default_brand[preset]" id="pb_default_brand_preset">';
+            foreach ( $choices as $value => $label ) {
+                echo '<option value="' . esc_attr( $value ) . '" ' . selected( $preset, $value, false ) . '>' . esc_html( $label ) . '</option>';
+            }
+            echo '</select></p>';
+
+            $colors = array(
+                'ink'         => __( 'Ink', 'portal-builder' ),
+                'paper'       => __( 'Paper', 'portal-builder' ),
+                'accent'      => __( 'Accent', 'portal-builder' ),
+                'accentHover' => __( 'Accent hover', 'portal-builder' ),
+                'wash'        => __( 'Wash', 'portal-builder' ),
+                'eyebrow'     => __( 'Eyebrow', 'portal-builder' ),
+                'rule'        => __( 'Rule', 'portal-builder' ),
+                'error'       => __( 'Error', 'portal-builder' ),
+                'success'     => __( 'Success', 'portal-builder' ),
+            );
+            echo '<div class="pb-brand-colors" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(12rem,1fr));gap:0.75rem;max-width:48rem;">';
+            foreach ( $colors as $key => $label ) {
+                $hex = isset( $brand[ $key ] ) ? (string) $brand[ $key ] : '';
+                echo '<label>' . esc_html( $label ) . '<br />';
+                echo '<input type="text" class="regular-text pb-brand-token" data-brand-key="' . esc_attr( $key ) . '" name="pb_default_brand[' . esc_attr( $key ) . ']" value="' . esc_attr( $hex ) . '" placeholder="#000000" /></label>';
+            }
+            echo '</div>';
+
+            $fonts = array(
+                'fontDisplay' => __( 'Display font', 'portal-builder' ),
+                'fontUi'      => __( 'UI font', 'portal-builder' ),
+                'fontMono'    => __( 'Mono font', 'portal-builder' ),
+                'fontsUrl'    => __( 'Fonts stylesheet URL', 'portal-builder' ),
+            );
+            echo '<div style="margin-top:1rem;max-width:40rem;">';
+            foreach ( $fonts as $key => $label ) {
+                $val = isset( $brand[ $key ] ) ? (string) $brand[ $key ] : '';
+                echo '<p><label>' . esc_html( $label ) . '<br />';
+                echo '<input type="text" class="large-text pb-brand-token" data-brand-key="' . esc_attr( $key ) . '" name="pb_default_brand[' . esc_attr( $key ) . ']" value="' . esc_attr( $val ) . '" /></label></p>';
+            }
+            $logo = isset( $brand['logoUrl'] ) ? (string) $brand['logoUrl'] : '';
+            echo '<p><label>' . esc_html__( 'Logo URL', 'portal-builder' ) . '<br />';
+            echo '<input type="url" class="large-text pb-brand-token" data-brand-key="logoUrl" name="pb_default_brand[logoUrl]" value="' . esc_attr( $logo ) . '" placeholder="https://" /></label></p>';
+            echo '</div>';
+            echo '<script>(function(){var s=document.getElementById("pb_default_brand_preset");var j=document.getElementById("pb-brand-isjac");if(!s||!j)return;var example={};try{example=JSON.parse(j.textContent||"{}");}catch(e){example={};}s.addEventListener("change",function(){if(s.value!=="isjac")return;document.querySelectorAll(".pb-brand-token").forEach(function(el){var k=el.getAttribute("data-brand-key");if(k&&example[k])el.value=example[k];});});})();</script>';
         }
 
         public function google_api_section_callback()

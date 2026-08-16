@@ -160,7 +160,56 @@ test('setup screen and wizard mount site defaults on the same channel as accessC
 	assert.match(settings, /pb_default_guidelines_url/);
 	assert.match(settings, /pb_default_free_for_members/);
 	assert.match(settings, /pb_default_timezone/);
+	assert.match(settings, /pb_default_brand/);
+	assert.match(settings, /White label/);
 	assert.match(settings, /docs\/design\/ANONYMIZER\.md/);
+});
+
+test('portal brand empty + empty site → brand is null', () => {
+	const missing = resolve({
+		name: 'brand-missing',
+		definition: { options: {} },
+		site: {},
+	});
+	assert.equal(missing.code, 0, missing.out);
+	assert.equal(missing.data.brand, null);
+
+	const emptied = resolve({
+		name: 'brand-empty',
+		definition: { options: { brand: null } },
+		site: { brand: null },
+	});
+	assert.equal(emptied.code, 0, emptied.out);
+	assert.equal(emptied.data.brand, null);
+});
+
+test('portal brand null + site brand set → site brand wins', () => {
+	const siteBrand = {
+		preset: 'isjac',
+		ink: '#020726',
+		paper: '#FFFAFC',
+		accent: '#15526F',
+	};
+	const { code, out, data } = resolve({
+		name: 'brand-site',
+		definition: { options: { brand: null } },
+		site: { brand: siteBrand },
+	});
+	assert.equal(code, 0, out);
+	assert.deepEqual(data.brand, siteBrand);
+});
+
+test('portal brand set → portal wins over site brand', () => {
+	const { code, out, data } = resolve({
+		name: 'brand-portal',
+		definition: {
+			options: { brand: { preset: 'custom', ink: '#111111' } },
+		},
+		site: { brand: { preset: 'isjac', ink: '#020726' } },
+	});
+	assert.equal(code, 0, out);
+	assert.equal(data.brand.preset, 'custom');
+	assert.equal(data.brand.ink, '#111111');
 });
 
 test('portal anonymizeAck null + site text set → site text', () => {
