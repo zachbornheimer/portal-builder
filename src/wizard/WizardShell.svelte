@@ -31,7 +31,7 @@
 	 * @property {string} [listUrl]
 	 * @property {string} [logoUrl]
 	 * @property {unknown} [definitionSeed]
-	 * @property {{ membershipPlans?: {id: string, name: string}[], profileFields?: {key: string, label: string}[] }} [accessCatalog]
+	 * @property {{ membershipPlans?: {id: string, name: string}[], profileFields?: {key: string, label: string}[], roles?: {id: string, name: string}[] }} [accessCatalog]
 	 * @property {object} [siteDefaults]
 	 */
 

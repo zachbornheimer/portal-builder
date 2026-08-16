@@ -24,7 +24,7 @@
 	 * @property {string} applicantStatus
 	 * @property {string} publicUrl
 	 * @property {string} [listUrl]
-	 * @property {{ membershipPlans?: {id: string, name: string}[], profileFields?: {key: string, label: string}[] }} [accessCatalog]
+	 * @property {{ membershipPlans?: {id: string, name: string}[], profileFields?: {key: string, label: string}[], roles?: {id: string, name: string}[] }} [accessCatalog]
 	 * @property {object} [siteDefaults]
 	 */
 
@@ -40,11 +40,19 @@
 		applicantStatus,
 		publicUrl,
 		listUrl = '',
-		accessCatalog = { membershipPlans: [], profileFields: [] },
+		accessCatalog = { membershipPlans: [], profileFields: [], roles: [] },
 		siteDefaults = {},
 	} = $props();
 
 	let copyOk = $state(false);
+
+	const WORDPRESS_ROLES = [
+		{ id: 'administrator', name: 'Administrator' },
+		{ id: 'editor', name: 'Editor' },
+		{ id: 'author', name: 'Author' },
+		{ id: 'contributor', name: 'Contributor' },
+		{ id: 'subscriber', name: 'Subscriber' },
+	];
 
 	const fieldCount = $derived(countLeafFields(definition?.fields || []));
 	const unmapped = $derived(
@@ -62,6 +70,11 @@
 	);
 	const profileFields = $derived(
 		Array.isArray(accessCatalog?.profileFields) ? accessCatalog.profileFields : [],
+	);
+	const siteRoles = $derived(
+		Array.isArray(accessCatalog?.roles) && accessCatalog.roles.length > 0
+			? accessCatalog.roles
+			: WORDPRESS_ROLES,
 	);
 
 	/**
@@ -163,6 +176,18 @@
 			return;
 		}
 		setAccess({ membershipPlanIds: next });
+	}
+
+	/**
+	 * @param {string} roleId
+	 * @param {boolean} on
+	 */
+	function toggleRole(roleId, on) {
+		const current = access.roles;
+		const next = on
+			? Array.from(new Set([...current, roleId]))
+			: current.filter((id) => id !== roleId);
+		setAccess({ roles: next });
 	}
 
 	function addProfileRule() {
@@ -474,7 +499,7 @@
 				checked={access.audience === 'members'}
 				onchange={() => setAccess({ audience: 'members' })}
 			/>
-			<span>Members only</span>
+			<span>{membershipPlans.length > 0 ? 'Members only' : 'Specific WordPress role'}</span>
 		</label>
 		{#if access.audience === 'members' && membershipPlans.length > 0}
 			<p class="dg-field-help">Leave every plan unchecked to allow any active membership.</p>
@@ -490,8 +515,22 @@
 					</label>
 				{/each}
 			</div>
-		{:else if access.audience === 'members' && membershipPlans.length === 0}
-			<p class="dg-field-help">No WooCommerce membership plans found. Any active membership will be accepted.</p>
+		{:else if access.audience === 'members'}
+			<p class="dg-field-help">
+				Restrict to a WordPress role. Leave every role unchecked to allow any signed-in user.
+			</p>
+			<div class="dg-plan-list">
+				{#each siteRoles as role (role.id)}
+					<label class="dg-check-row">
+						<input
+							type="checkbox"
+							checked={access.roles.includes(String(role.id))}
+							onchange={(e) => toggleRole(String(role.id), e.currentTarget.checked)}
+						/>
+						<span>{role.name}</span>
+					</label>
+				{/each}
+			</div>
 		{/if}
 	</div>
 	<div class="dg-publish-block">

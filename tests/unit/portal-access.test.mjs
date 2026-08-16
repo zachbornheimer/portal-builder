@@ -49,30 +49,72 @@ test('logged_in audience denies guests and allows signed-in users', () => {
 });
 
 test('members audience requires a held plan; empty required list means any plan', () => {
+	const woo = { membership_provider: true, meta: {} };
 	const none = decide({
 		access: { audience: 'members', membershipPlanIds: [] },
-		applicant: { logged_in: true, plan_ids: [], meta: {} },
+		applicant: { ...woo, logged_in: true, plan_ids: [] },
 	});
 	assert.equal(none.allowed, false);
 	assert.equal(none.reason, 'membership');
 
 	const any = decide({
 		access: { audience: 'members', membershipPlanIds: [] },
-		applicant: { logged_in: true, plan_ids: ['17214'], meta: {} },
+		applicant: { ...woo, logged_in: true, plan_ids: ['17214'] },
 	});
 	assert.equal(any.allowed, true);
 
 	const wrong = decide({
 		access: { audience: 'members', membershipPlanIds: ['17276'] },
-		applicant: { logged_in: true, plan_ids: ['17214'], meta: {} },
+		applicant: { ...woo, logged_in: true, plan_ids: ['17214'] },
 	});
 	assert.equal(wrong.allowed, false);
 
 	const right = decide({
 		access: { audience: 'members', membershipPlanIds: ['17276', '17214'] },
-		applicant: { logged_in: true, plan_ids: ['17214'], meta: {} },
+		applicant: { ...woo, logged_in: true, plan_ids: ['17214'] },
 	});
 	assert.equal(right.allowed, true);
+});
+
+test('vanilla members allows signed-in users and gates a named WordPress role', () => {
+	const vanilla = { membership_provider: false, plan_ids: [], meta: {} };
+
+	const guest = decide({
+		access: { audience: 'members' },
+		applicant: { ...vanilla, logged_in: false },
+	});
+	assert.equal(guest.allowed, false);
+	assert.equal(guest.reason, 'login');
+
+	const signedIn = decide({
+		access: { audience: 'members', roles: [] },
+		applicant: { ...vanilla, logged_in: true, roles: ['subscriber'] },
+	});
+	assert.equal(signedIn.allowed, true);
+
+	const editor = decide({
+		access: { audience: 'members', roles: ['editor'] },
+		applicant: { ...vanilla, logged_in: true, roles: ['editor'] },
+	});
+	assert.equal(editor.allowed, true);
+
+	const subscriber = decide({
+		access: { audience: 'members', roles: ['editor'] },
+		applicant: { ...vanilla, logged_in: true, roles: ['subscriber'] },
+	});
+	assert.equal(subscriber.allowed, false);
+	assert.equal(subscriber.reason, 'membership');
+
+	const viaCap = decide({
+		access: { audience: 'members', roles: ['edit_pages'] },
+		applicant: {
+			...vanilla,
+			logged_in: true,
+			roles: ['author'],
+			capabilities: ['edit_pages'],
+		},
+	});
+	assert.equal(viaCap.allowed, true);
 });
 
 test('profile rule country eq / institution alias / age lte', () => {
@@ -144,13 +186,42 @@ test('normalizeAccess defaults to anyone and keeps a profile rule', () => {
 	const kept = normalizeAccess({
 		audience: 'members',
 		membershipPlanIds: [17214],
+		roles: ['editor'],
+		capabilities: ['edit_pages'],
 		profileRules: [{ key: 'COUNTRY', op: 'eq', value: 'Canada' }],
 		denyMessage: 'Members in Canada only.',
 	});
 	assert.equal(kept.audience, 'members');
 	assert.deepEqual(kept.membershipPlanIds, ['17214']);
+	assert.deepEqual(kept.roles, ['editor']);
+	assert.deepEqual(kept.capabilities, ['edit_pages']);
 	assert.equal(kept.profileRules[0].key, 'COUNTRY');
 	assert.equal(kept.denyMessage, 'Members in Canada only.');
+});
+
+test('PHP definition validate keeps access.roles', () => {
+	const file = path.join(root, 'tests/.artifacts/access-roles-persist.json');
+	fs.mkdirSync(path.dirname(file), { recursive: true });
+	fs.writeFileSync(
+		file,
+		JSON.stringify({
+			version: 1,
+			title: 'Role gate',
+			fields: [{ id: 'work_title', type: 'short_text', label: 'Title' }],
+			access: {
+				audience: 'members',
+				roles: ['editor'],
+				capabilities: ['edit_pages'],
+			},
+		}),
+	);
+	const r = spawnSync('php', [path.join(root, 'tests/support/php-validate-definition.php'), file], {
+		encoding: 'utf8',
+	});
+	assert.equal(r.status, 0, (r.stdout || '') + (r.stderr || ''));
+	const data = JSON.parse((r.stdout || '').trim());
+	assert.deepEqual(data.definition.access.roles, ['editor']);
+	assert.deepEqual(data.definition.access.capabilities, ['edit_pages']);
 });
 
 test('settings and meta PHP use generic members wording, not Consortium', () => {
@@ -176,4 +247,58 @@ test('settings and meta PHP use generic members wording, not Consortium', () => 
 	assert.match(settings, /Free for members/);
 	assert.match(publishStep, /Free for members/);
 	assert.match(brand, /PRESET_ISJAC/);
+	assert.doesNotMatch(publishStep, /Any active membership will be accepted/);
+	assert.match(publishStep, /Signed-in users/);
+	assert.match(publishStep, /WordPress role/);
+});
+
+/**
+ * @param {object} payload
+ */
+function snapshotApplicant(payload) {
+	const file = path.join(root, 'tests/.artifacts/access-applicant.json');
+	fs.mkdirSync(path.dirname(file), { recursive: true });
+	fs.writeFileSync(file, JSON.stringify({ call: 'applicant', ...payload }));
+	const r = spawnSync('php', [harness, file], { encoding: 'utf8' });
+	assert.equal(r.status, 0, (r.stdout || '') + (r.stderr || ''));
+	return JSON.parse((r.stdout || '').trim());
+}
+
+test('live applicant snapshot without Woo reports no provider and the user role', () => {
+	const snap = snapshotApplicant({
+		wp: {
+			logged_in: true,
+			user_id: 7,
+			roles: ['editor'],
+			capabilities: { edit_pages: true, read: true },
+		},
+	});
+	assert.equal(snap.logged_in, true);
+	assert.equal(snap.membership_provider, false);
+	assert.deepEqual(snap.roles, ['editor']);
+	assert.ok(snap.capabilities.includes('edit_pages'));
+	assert.deepEqual(snap.plan_ids, []);
+});
+
+test('live applicant snapshot with Woo stubs still gates plan IDs 17214 and 17276', () => {
+	const snap = snapshotApplicant({
+		wp: { logged_in: true, user_id: 7, roles: ['subscriber'] },
+		stub_woo: true,
+		stub_woo_plans: ['17214'],
+	});
+	assert.equal(snap.membership_provider, true);
+	assert.deepEqual(snap.plan_ids, ['17214']);
+
+	const allowed = decide({
+		access: { audience: 'members', membershipPlanIds: ['17214'] },
+		applicant: snap,
+	});
+	assert.equal(allowed.allowed, true);
+
+	const denied = decide({
+		access: { audience: 'members', membershipPlanIds: ['17276'] },
+		applicant: snap,
+	});
+	assert.equal(denied.allowed, false);
+	assert.equal(denied.reason, 'membership');
 });

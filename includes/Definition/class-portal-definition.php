@@ -187,6 +187,12 @@ if ( ! class_exists( 'Portal_Definition' ) ) {
 				'membershipPlanIds' => self::string_id_list(
 					isset( $access['membershipPlanIds'] ) ? $access['membershipPlanIds'] : array()
 				),
+				'roles'             => self::string_id_list(
+					isset( $access['roles'] ) ? $access['roles'] : array()
+				),
+				'capabilities'      => self::string_id_list(
+					isset( $access['capabilities'] ) ? $access['capabilities'] : array()
+				),
 				'profileRules'      => $rules,
 				'denyMessage'       => isset( $access['denyMessage'] ) ? (string) $access['denyMessage'] : '',
 			);

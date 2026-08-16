@@ -24,7 +24,7 @@ if ( ! class_exists( 'Portal_Access' ) ) {
 		 *
 		 * @param array $access    Validated access block.
 		 * @param array $options   Definition options (freeForMembers, freeMembershipPlanIds).
-		 * @param array $applicant Keys: logged_in (bool), plan_ids (string[]), meta (string[]).
+		 * @param array $applicant Keys: logged_in, plan_ids, meta, membership_provider, roles, capabilities.
 		 * @return array{allowed: bool, feeWaived: bool, reason: string|null}
 		 */
 		public static function decide( array $access, array $options, array $applicant ) {
@@ -41,14 +41,9 @@ if ( ! class_exists( 'Portal_Access' ) ) {
 				return self::denied( self::REASON_LOGIN );
 			}
 			if ( self::AUDIENCE_MEMBERS === $audience ) {
-				if ( ! $logged_in ) {
-					return self::denied( self::REASON_LOGIN );
-				}
-				$required = isset( $access['membershipPlanIds'] ) && is_array( $access['membershipPlanIds'] )
-					? array_map( 'strval', $access['membershipPlanIds'] )
-					: array();
-				if ( ! self::holds_membership( $plan_ids, $required ) ) {
-					return self::denied( self::REASON_MEMBERSHIP );
+				$denied = self::members_denial( $access, $applicant, $logged_in, $plan_ids );
+				if ( null !== $denied ) {
+					return $denied;
 				}
 			}
 
@@ -79,28 +74,36 @@ if ( ! class_exists( 'Portal_Access' ) ) {
 		/**
 		 * Snapshot of the current WP user for decide().
 		 *
-		 * @return array{logged_in: bool, plan_ids: string[], meta: array<string,string>}
+		 * @return array{logged_in: bool, plan_ids: string[], meta: array<string,string>, membership_provider: bool, roles: string[], capabilities: string[]}
 		 */
 		public static function current_applicant() {
+			$provider = self::site_has_membership_provider();
 			if ( ! function_exists( 'is_user_logged_in' ) || ! is_user_logged_in() ) {
 				return array(
-					'logged_in' => false,
-					'plan_ids'  => array(),
-					'meta'      => array(),
+					'logged_in'           => false,
+					'plan_ids'            => array(),
+					'meta'                => array(),
+					'membership_provider' => $provider,
+					'roles'               => array(),
+					'capabilities'        => array(),
 				);
 			}
 			$user_id = function_exists( 'get_current_user_id' ) ? (int) get_current_user_id() : 0;
+			$grants  = self::user_grants( $user_id );
 			return array(
-				'logged_in' => true,
-				'plan_ids'  => self::user_plan_ids( $user_id ),
-				'meta'      => self::user_profile_meta( $user_id ),
+				'logged_in'           => true,
+				'plan_ids'            => self::user_plan_ids( $user_id ),
+				'meta'                => self::user_profile_meta( $user_id ),
+				'membership_provider' => $provider,
+				'roles'               => $grants['roles'],
+				'capabilities'        => $grants['capabilities'],
 			);
 		}
 
 		/**
 		 * Membership plans + profile keys the Publish UI can pick.
 		 *
-		 * @return array{membershipPlans: array<int, array{id: string, name: string}>, profileFields: array<int, array{key: string, label: string}>}
+		 * @return array{membershipPlans: array<int, array{id: string, name: string}>, profileFields: array<int, array{key: string, label: string}>, roles: array<int, array{id: string, name: string}>}
 		 */
 		public static function catalog() {
 			$plans = array();
@@ -139,6 +142,7 @@ if ( ! class_exists( 'Portal_Access' ) ) {
 			return array(
 				'membershipPlans' => $plans,
 				'profileFields'   => $fields,
+				'roles'           => self::catalog_roles(),
 			);
 		}
 
@@ -159,6 +163,99 @@ if ( ! class_exists( 'Portal_Access' ) ) {
 				return 'This portal is for members.';
 			}
 			return 'Your profile does not match this portal’s requirements.';
+		}
+
+		/**
+		 * Deny members who fail the Woo plan check or the vanilla role check.
+		 *
+		 * @param array    $access    Validated access block.
+		 * @param array    $applicant Applicant snapshot.
+		 * @param bool     $logged_in Whether the applicant is signed in.
+		 * @param string[] $plan_ids  Held membership plan IDs.
+		 * @return array{allowed: bool, feeWaived: bool, reason: string}|null
+		 */
+		private static function members_denial( array $access, array $applicant, $logged_in, array $plan_ids ) {
+			if ( ! $logged_in ) {
+				return self::denied( self::REASON_LOGIN );
+			}
+			if ( self::has_membership_provider( $applicant ) ) {
+				$required = isset( $access['membershipPlanIds'] ) && is_array( $access['membershipPlanIds'] )
+					? array_map( 'strval', $access['membershipPlanIds'] )
+					: array();
+				if ( ! self::holds_membership( $plan_ids, $required ) ) {
+					return self::denied( self::REASON_MEMBERSHIP );
+				}
+				return null;
+			}
+			if ( ! self::holds_required_role( $access, $applicant ) ) {
+				return self::denied( self::REASON_MEMBERSHIP );
+			}
+			return null;
+		}
+
+		/**
+		 * Whether this snapshot was taken on a site with Woo memberships.
+		 *
+		 * @param array $applicant Applicant snapshot.
+		 * @return bool
+		 */
+		private static function has_membership_provider( array $applicant ) {
+			if ( array_key_exists( 'membership_provider', $applicant ) ) {
+				return ! empty( $applicant['membership_provider'] );
+			}
+			return self::site_has_membership_provider();
+		}
+
+		/**
+		 * Whether WooCommerce Memberships functions exist on this site.
+		 *
+		 * @return bool
+		 */
+		private static function site_has_membership_provider() {
+			return function_exists( 'wc_memberships_get_user_active_memberships' )
+				|| function_exists( 'wc_memberships_get_membership_plans' );
+		}
+
+		/**
+		 * Empty required list = any signed-in user. A listed slug matches a role or capability.
+		 *
+		 * @param array $access    Validated access block.
+		 * @param array $applicant Applicant snapshot.
+		 * @return bool
+		 */
+		private static function holds_required_role( array $access, array $applicant ) {
+			$required = array_merge(
+				self::string_list( isset( $access['roles'] ) ? $access['roles'] : array() ),
+				self::string_list( isset( $access['capabilities'] ) ? $access['capabilities'] : array() )
+			);
+			if ( empty( $required ) ) {
+				return true;
+			}
+			$held = array_merge(
+				self::string_list( isset( $applicant['roles'] ) ? $applicant['roles'] : array() ),
+				self::string_list( isset( $applicant['capabilities'] ) ? $applicant['capabilities'] : array() )
+			);
+			return count( array_intersect( $required, $held ) ) > 0;
+		}
+
+		/**
+		 * Fold a raw id list to lowercase non-empty strings.
+		 *
+		 * @param mixed $values Raw list.
+		 * @return string[]
+		 */
+		private static function string_list( $values ) {
+			if ( ! is_array( $values ) ) {
+				return array();
+			}
+			$out = array();
+			foreach ( $values as $value ) {
+				$value = strtolower( trim( (string) $value ) );
+				if ( '' !== $value ) {
+					$out[] = $value;
+				}
+			}
+			return $out;
 		}
 
 		/**
@@ -267,6 +364,64 @@ if ( ! class_exists( 'Portal_Access' ) ) {
 				return $ids;
 			}
 			return array();
+		}
+
+		/**
+		 * Roles and granted capabilities for the signed-in user.
+		 *
+		 * @param int $user_id WordPress user id.
+		 * @return array{roles: string[], capabilities: string[]}
+		 */
+		private static function user_grants( $user_id ) {
+			$empty = array(
+				'roles'        => array(),
+				'capabilities' => array(),
+			);
+			if ( $user_id <= 0 || ! function_exists( 'wp_get_current_user' ) ) {
+				return $empty;
+			}
+			$user = wp_get_current_user();
+			if ( ! is_object( $user ) ) {
+				return $empty;
+			}
+			$roles = isset( $user->roles ) && is_array( $user->roles )
+				? array_values( array_map( 'strval', $user->roles ) )
+				: array();
+			$caps  = array();
+			if ( isset( $user->allcaps ) && is_array( $user->allcaps ) ) {
+				foreach ( $user->allcaps as $cap => $on ) {
+					if ( $on ) {
+						$caps[] = (string) $cap;
+					}
+				}
+			}
+			return array(
+				'roles'        => $roles,
+				'capabilities' => $caps,
+			);
+		}
+
+		/**
+		 * WordPress roles the Publish UI can pick when Woo is absent.
+		 *
+		 * @return array<int, array{id: string, name: string}>
+		 */
+		private static function catalog_roles() {
+			if ( ! function_exists( 'wp_roles' ) ) {
+				return array();
+			}
+			$wp_roles = wp_roles();
+			if ( ! is_object( $wp_roles ) || ! method_exists( $wp_roles, 'get_names' ) ) {
+				return array();
+			}
+			$out = array();
+			foreach ( $wp_roles->get_names() as $slug => $name ) {
+				$out[] = array(
+					'id'   => (string) $slug,
+					'name' => (string) $name,
+				);
+			}
+			return $out;
 		}
 
 		/**

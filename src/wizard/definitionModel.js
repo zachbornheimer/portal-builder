@@ -206,9 +206,19 @@ export function defaultAccess() {
 	return {
 		audience: 'anyone',
 		membershipPlanIds: [],
+		roles: [],
+		capabilities: [],
 		profileRules: [],
 		denyMessage: '',
 	};
+}
+
+/**
+ * @param {unknown} raw
+ * @returns {string[]}
+ */
+function stringIdList(raw) {
+	return Array.isArray(raw) ? raw.map((id) => String(id)).filter(Boolean) : [];
 }
 
 /**
@@ -218,9 +228,6 @@ export function normalizeAccess(raw) {
 	const src = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
 	const audience = src.audience;
 	const allowed = audience === 'logged_in' || audience === 'members' ? audience : 'anyone';
-	const planIds = Array.isArray(src.membershipPlanIds)
-		? src.membershipPlanIds.map((id) => String(id)).filter(Boolean)
-		: [];
 	const profileRules = Array.isArray(src.profileRules)
 		? src.profileRules
 				.filter((rule) => rule && typeof rule === 'object' && rule.key)
@@ -232,7 +239,9 @@ export function normalizeAccess(raw) {
 		: [];
 	return {
 		audience: allowed,
-		membershipPlanIds: planIds,
+		membershipPlanIds: stringIdList(src.membershipPlanIds),
+		roles: stringIdList(src.roles),
+		capabilities: stringIdList(src.capabilities),
 		profileRules,
 		denyMessage: typeof src.denyMessage === 'string' ? src.denyMessage : '',
 	};
