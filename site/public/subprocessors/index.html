@@ -3,8 +3,8 @@
 <head>
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<title>Join the list — DragonGate Portals</title>
-	<meta name="description" content="Join the DragonGate Portals waitlist. Launch notes only. We will not sell your email.">
+	<title>Subprocessors — DragonGate Portals</title>
+	<meta name="description" content="Who can see DragonGate Portals data. This is a processor list, not a signed DPA.">
 	<link rel="icon" href="/icon.svg" type="image/svg+xml">
 	<link rel="preconnect" href="https://fonts.bunny.net">
 	<link rel="stylesheet" href="https://fonts.bunny.net/css?family=fraunces:500,600,700|ibm-plex-mono:400,500|inter:400,500,600&display=swap">
@@ -24,25 +24,29 @@
 				<a href="/features">Features</a>
 				<a href="/hosts">Hosts</a>
 				<a href="/about">About</a>
-				<a class="nav-join" href="/waitlist" aria-current="page">Join the list</a>
+				<a class="nav-join" href="/waitlist">Join the list</a>
 			</nav>
 		</div>
 	</header>
 
 	<main id="main" class="page">
-		<div class="frame">
-			<p class="eyebrow">Waitlist</p>
-			<h1>Join the list</h1>
-			<p class="page-lede">Leave an email for launch notes when DragonGate Portals ships. We will not sell it. The same address twice is still one seat.</p>
-			<form class="waitlist" data-waitlist>
-				<div class="waitlist-row">
-					<label class="sr-only" for="waitlist-email">Email</label>
-					<input class="field" id="waitlist-email" name="email" type="email" autocomplete="email" required placeholder="you@festival.org">
-					<button class="btn btn-primary" type="submit">Join the list</button>
-				</div>
-				<p class="waitlist-status" data-waitlist-status role="status" aria-live="polite"></p>
-			</form>
-			<p>Read the <a href="/privacy">privacy note</a> if you want the short version of what we store.</p>
+		<div class="frame prose">
+			<p class="eyebrow">Subprocessors</p>
+			<h1>Who can see data</h1>
+			<p class="page-lede">This is a processor list, not a signed DPA. We are not your counsel. If you need one, hire counsel.</p>
+
+			<h2>Google (customer project)</h2>
+			<p>When a host runs the plugin, application files and rows go to <em>that host’s</em> Google Drive and Sheets, under OAuth scopes they approve. DragonGate does not operate that Google project and does not take a second copy of the packet.</p>
+
+			<h2>WordPress host</h2>
+			<p>The host’s WordPress — and whoever hosts that WordPress — sees public form traffic and whatever WordPress stores (portal definitions, settings). Application packets are not kept as a WordPress inbox.</p>
+
+			<h2>All Intersections</h2>
+			<p>The plugin About screen links to <a href="https://allintersections.com">allintersections.com</a> for documentation. Application packets are not sent there.</p>
+
+			<h2>This website</h2>
+			<p>The marketing site and waitlist run on Cloudflare. Waitlist email is stored in Cloudflare KV so we can send launch notes. See the <a href="/privacy">privacy note</a>.</p>
+			<p>Questions: <a href="https://zysys.org">zysys.org</a>.</p>
 		</div>
 	</main>
 
@@ -61,6 +65,5 @@
 			<p class="legal">© 2026 DragonGate Portals · ZYSYS</p>
 		</div>
 	</footer>
-	<script src="/js/waitlist.js" type="module"></script>
 </body>
 </html>
