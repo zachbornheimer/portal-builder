@@ -152,3 +152,28 @@ test('normalizeAccess defaults to anyone and keeps a profile rule', () => {
 	assert.equal(kept.profileRules[0].key, 'COUNTRY');
 	assert.equal(kept.denyMessage, 'Members in Canada only.');
 });
+
+test('settings and meta PHP use generic members wording, not Consortium', () => {
+	const meta = fs.readFileSync(path.join(root, 'portal-builder.php'), 'utf8');
+	const settings = fs.readFileSync(
+		path.join(root, 'includes/class-portal-settings.php'),
+		'utf8',
+	);
+	const publishStep = fs.readFileSync(
+		path.join(root, 'src/wizard/steps/PublishStep.svelte'),
+		'utf8',
+	);
+	const brand = fs.readFileSync(
+		path.join(root, 'includes/Definition/class-portal-brand.php'),
+		'utf8',
+	);
+	assert.doesNotMatch(meta, /Consortium/);
+	assert.doesNotMatch(settings, /Consortium/);
+	assert.doesNotMatch(publishStep, /consortium/i);
+	assert.match(meta, /_portal_free_for_members/);
+	assert.match(meta, /Free for members/);
+	assert.match(settings, /pb_default_free_for_members/);
+	assert.match(settings, /Free for members/);
+	assert.match(publishStep, /Free for members/);
+	assert.match(brand, /PRESET_ISJAC/);
+});

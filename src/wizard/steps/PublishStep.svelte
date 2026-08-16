@@ -352,7 +352,7 @@
 			</button>
 		{/if}
 		{#if freeForMembersOn && membershipPlans.length > 0}
-			<p class="dg-field-help">Leave every plan unchecked to waive the fee for any active membership (including a school or consortium plan).</p>
+			<p class="dg-field-help">Leave every plan unchecked to waive the fee for any active membership.</p>
 			<div class="dg-plan-list">
 				{#each membershipPlans as plan (plan.id)}
 					<label class="dg-check-row">
