@@ -52,6 +52,7 @@ test('ISJAC preset CSS remaps public-form tokens and has no .isjac- classes', ()
 	assert.match(css, /--font-display/);
 	assert.match(css, /--r-pill:8px/);
 	assert.doesNotMatch(css, /--isjac-/);
+	assert.equal(data.hides_logo, true);
 	console.log('ISJAC CSS contains #15526F:', css.includes('#15526F'));
 	console.log('ISJAC CSS contains DM Sans:', css.includes('DM Sans'));
 	console.log('ISJAC CSS contains #020726:', css.includes('#020726'));
@@ -68,6 +69,7 @@ test('product preset emits no host CSS', () => {
 	assert.equal(code, 0, out);
 	assert.equal(data.css, '');
 	assert.equal(data.is_host, false);
+	assert.equal(data.hides_logo, false);
 });
 
 test('isjac sanitize fills mapped tokens so one color can change later', () => {
@@ -84,6 +86,24 @@ test('isjac sanitize fills mapped tokens so one color can change later', () => {
 	assert.match(data.css, /#111111/);
 	assert.match(data.css, /#FFFAFC/);
 	assert.match(data.css, /DM Sans/);
+	assert.equal(data.brand.hideLogo, true);
+});
+
+test('preset-only isjac bag hides the seal; hideLogo 0 unhides', () => {
+	const hidden = runBrand({
+		name: 'isjac-hide-default',
+		action: 'sanitize',
+		raw: { preset: 'isjac' },
+	});
+	assert.equal(hidden.code, 0, hidden.out);
+	assert.equal(hidden.data.brand.hideLogo, true);
+	const shown = runBrand({
+		name: 'isjac-unhide',
+		action: 'sanitize',
+		raw: { preset: 'isjac', hideLogo: '0' },
+	});
+	assert.equal(shown.code, 0, shown.out);
+	assert.equal(shown.data.brand.hideLogo, false);
 });
 
 test('public render prints host style id and settings own White label', () => {
@@ -99,6 +119,8 @@ test('public render prints host style id and settings own White label', () => {
 		path.join(root, 'includes/Definition/class-portal-brand.php'),
 		'utf8',
 	);
+	assert.match(render, /dg-packet-head--no-seal/);
+	assert.match(render, /hides_logo/);
 	assert.match(render, /<style id="dg-host-brand">/);
 	assert.match(render, /dg-host-fonts/);
 	assert.match(settings, /White label/);

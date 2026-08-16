@@ -342,25 +342,34 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 		 */
 		public static function render_packet_head( $title ) {
 			$plugin_file = dirname( __DIR__, 2 ) . '/portal-builder.php';
-			$seal_src    = plugins_url( 'assets/icon.svg', $plugin_file );
-			if ( class_exists( 'Portal_Brand' ) ) {
-				$logo = Portal_Brand::logo_url( self::effective_brand() );
-				if ( '' !== $logo ) {
-					$seal_src = $logo;
+			$brand       = self::effective_brand();
+			$hide_seal   = class_exists( 'Portal_Brand' ) && Portal_Brand::hides_logo( $brand );
+			$seal        = '';
+			$head_class  = 'dg-packet-head dg-public-application-head';
+			if ( ! $hide_seal ) {
+				$seal_src = plugins_url( 'assets/icon.svg', $plugin_file );
+				if ( class_exists( 'Portal_Brand' ) ) {
+					$logo = Portal_Brand::logo_url( $brand );
+					if ( '' !== $logo ) {
+						$seal_src = $logo;
+					}
 				}
+				$seal       = sprintf(
+					'<img class="dg-seal" src="%s" alt="" width="56" height="56" />',
+					esc_url( $seal_src )
+				);
+			} else {
+				$head_class .= ' dg-packet-head--no-seal';
 			}
-			$seal = sprintf(
-				'<img class="dg-seal" src="%s" alt="" width="56" height="56" />',
-				esc_url( $seal_src )
-			);
 			$rule = '<div class="dg-rule-ornament" aria-hidden="true"><svg width="10" height="10" viewBox="0 0 10 10"><path d="M5 0.6 9.2 5 5 9.4 0.8 5Z" fill="currentColor"/></svg></div>';
 
 			return sprintf(
-				'<header class="dg-packet-head dg-public-application-head">%1$s<div><p class="dg-public-eyebrow">%2$s</p><h1 class="dg-packet-title">%3$s</h1></div></header>%4$s',
+				'<header class="%5$s">%1$s<div><p class="dg-public-eyebrow">%2$s</p><h1 class="dg-packet-title">%3$s</h1></div></header>%4$s',
 				$seal,
 				esc_html__( 'Application', 'dragongate-portals' ),
 				esc_html( $title ),
-				$rule
+				$rule,
+				esc_attr( $head_class )
 			);
 		}
 

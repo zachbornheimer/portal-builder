@@ -73,6 +73,7 @@ echo json_encode(
 		'has_accent'    => false !== strpos( $css, '#15526F' ),
 		'has_dm_sans'   => false !== strpos( $css, 'DM Sans' ),
 		'has_isjac_cls' => false !== strpos( $css, '.isjac-' ),
+		'hides_logo'    => Portal_Brand::hides_logo( $brand ),
 	)
 ) . "\n";
 exit( 0 );

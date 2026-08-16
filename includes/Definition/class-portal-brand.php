@@ -79,6 +79,7 @@ if ( ! class_exists( 'Portal_Brand' ) ) {
 					'fontMono'    => '"IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace',
 					'fontsUrl'    => self::ISJAC_FONTS_URL,
 					'logoUrl'     => '',
+					'hideLogo'    => true,
 					'rPill'       => '8px',
 					'r2'          => '6px',
 					'r3'          => '12px',
@@ -110,9 +111,13 @@ if ( ! class_exists( 'Portal_Brand' ) ) {
 			if ( self::PRESET_ISJAC === $preset ) {
 				$merged           = array_merge( self::preset( self::PRESET_ISJAC ), self::non_empty_fields( $fields ) );
 				$merged['preset'] = self::PRESET_ISJAC;
+				if ( array_key_exists( 'hideLogo', $raw ) ) {
+					$merged['hideLogo'] = self::truthy( $raw['hideLogo'] );
+				}
 				return $merged;
 			}
-			$fields['preset'] = self::PRESET_CUSTOM;
+			$fields['preset']   = self::PRESET_CUSTOM;
+			$fields['hideLogo'] = self::truthy( isset( $raw['hideLogo'] ) ? $raw['hideLogo'] : false );
 			return $fields;
 		}
 
@@ -144,6 +149,17 @@ if ( ! class_exists( 'Portal_Brand' ) ) {
 		 */
 		public static function logo_url( $brand ) {
 			return self::url_field( self::sanitize( $brand ), 'logoUrl' );
+		}
+
+		/**
+		 * Host white-label may omit the product seal entirely.
+		 *
+		 * @param mixed $brand Brand bag.
+		 * @return bool
+		 */
+		public static function hides_logo( $brand ) {
+			$clean = self::sanitize( $brand );
+			return ! empty( $clean['hideLogo'] );
 		}
 
 		/**
@@ -267,6 +283,13 @@ if ( ! class_exists( 'Portal_Brand' ) ) {
 			}
 			$clean = filter_var( $trimmed, FILTER_SANITIZE_URL );
 			return is_string( $clean ) ? $clean : '';
+		}
+
+		private static function truthy( $value ) {
+			if ( true === $value || 1 === $value || '1' === $value || 'true' === $value ) {
+				return true;
+			}
+			return false;
 		}
 
 		private static function sanitize_length( $value ) {

@@ -618,6 +618,12 @@ if (! class_exists('Portal_Settings')) {
             $logo = isset( $brand['logoUrl'] ) ? (string) $brand['logoUrl'] : '';
             echo '<p><label>' . esc_html__( 'Logo URL', 'portal-builder' ) . '<br />';
             echo '<input type="url" class="large-text pb-brand-token" data-brand-key="logoUrl" name="pb_default_brand[logoUrl]" value="' . esc_attr( $logo ) . '" placeholder="https://" /></label></p>';
+            $hide = array_key_exists( 'hideLogo', $brand )
+                ? ! empty( $brand['hideLogo'] )
+                : ( 'isjac' === $preset );
+            echo '<p><label><input type="hidden" name="pb_default_brand[hideLogo]" value="0" />';
+            echo '<input type="checkbox" name="pb_default_brand[hideLogo]" value="1" ' . checked( $hide, true, false ) . ' /> ';
+            echo esc_html__( 'Hide the seal on public applications', 'portal-builder' ) . '</label></p>';
             echo '</div>';
             echo '<script>(function(){var s=document.getElementById("pb_default_brand_preset");var j=document.getElementById("pb-brand-isjac");if(!s||!j)return;var example={};try{example=JSON.parse(j.textContent||"{}");}catch(e){example={};}s.addEventListener("change",function(){if(s.value!=="isjac")return;document.querySelectorAll(".pb-brand-token").forEach(function(el){var k=el.getAttribute("data-brand-key");if(k&&example[k])el.value=example[k];});});})();</script>';
         }
