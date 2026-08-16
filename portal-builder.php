@@ -174,7 +174,7 @@ function pb_register_meta_boxes( $portal_meta ) {
 			),
 			array(
 				'id'    => '_portal_free_for_members',
-				'label' => 'Free for Consortium Members?',
+				'label' => 'Free for members',
 				'type'  => 'switch',
 			),
 			array(
