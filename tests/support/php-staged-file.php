@@ -548,6 +548,10 @@ if ( 'pipeline' === $entry ) {
 			'extraAnonCalls'     => max( 0, count( $transport->calls ) - $calls_after_stage ),
 			'submitOk'           => ! empty( $result['ok'] ),
 			'dests'              => dests_from_staged_log( $log, $portal_id ),
+			'alreadyAnonymized'  => ! empty( $files[ $field_id ]['already_anonymized'] ),
+			'anonymizeDest'      => isset( $files[ $field_id ]['anonymize_dest'] )
+				? (string) $files[ $field_id ]['anonymize_dest']
+				: null,
 		)
 	) . "\n";
 	exit( 0 );

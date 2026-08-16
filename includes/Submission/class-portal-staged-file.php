@@ -220,14 +220,15 @@ if ( ! class_exists( 'Portal_Staged_File' ) ) {
 			if ( ! is_array( $rec ) ) {
 				return null;
 			}
+			$dest = isset( $rec['dest'] ) ? $rec['dest'] : 'skip';
 			return array(
 				'name'               => $rec['storedName'],
 				'path'               => $rec['path'],
 				'contents'           => $rec['bytes'],
-				'already_anonymized' => true,
+				'already_anonymized' => 'ok' === $dest,
 				'staged'             => true,
 				'staged_token'       => $token,
-				'anonymize_dest'     => isset( $rec['dest'] ) ? $rec['dest'] : 'skip',
+				'anonymize_dest'     => $dest,
 			);
 		}
 

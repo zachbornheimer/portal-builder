@@ -215,8 +215,23 @@ test('pipeline uses staged token; drive has staged bytes; no second anonymize', 
   assert.equal(data.driveEqualsStaged, true, out);
   assert.equal(data.driveEqualsOrig, false);
   assert.equal(data.extraAnonCalls, 0, `second anonymize fired: ${JSON.stringify(data)}`);
+  assert.equal(data.dests && data.dests.anonymize, 'ok');
+  assert.equal(data.alreadyAnonymized, true);
+  assert.equal(data.anonymizeDest, 'ok');
   assert.ok(data.drivePath, 'drive path present');
   assert.ok(fs.existsSync(data.drivePath), `drive file missing: ${data.drivePath}`);
+});
+
+test('as_file_meta does not hardcode already_anonymized true', () => {
+  const src = fs.readFileSync(
+    path.join(root, 'includes/Submission/class-portal-staged-file.php'),
+    'utf8',
+  );
+  assert.doesNotMatch(
+    src,
+    /'already_anonymized'\s*=>\s*true/,
+    'as_file_meta must derive already_anonymized from dest, not hardcode true',
+  );
 });
 
 test('pipeline without anonymize stages suffix and writes original bytes', () => {
@@ -238,6 +253,8 @@ test('pipeline without anonymize stages suffix and writes original bytes', () =>
   assert.equal(data.driveEqualsStaged, true);
   assert.equal(data.extraAnonCalls, 0);
   assert.equal(data.dests && data.dests.anonymize, 'skip');
+  assert.equal(data.alreadyAnonymized, false);
+  assert.equal(data.anonymizeDest, 'skip');
 });
 
 test('staged-token submit dest is fail when anonymize fail-open keeps original', () => {
@@ -260,6 +277,8 @@ test('staged-token submit dest is fail when anonymize fail-open keeps original',
   assert.equal(data.driveEqualsOrig, true);
   assert.equal(data.extraAnonCalls, 0, `second anonymize fired: ${JSON.stringify(data)}`);
   assert.equal(data.dests && data.dests.anonymize, 'fail');
+  assert.equal(data.alreadyAnonymized, false);
+  assert.equal(data.anonymizeDest, 'fail');
 });
 
 test('forget removes staged token', () => {
