@@ -69,6 +69,7 @@ require_once plugin_dir_path( __FILE__ ) . 'includes/adapters/class-portal-googl
 require_once plugin_dir_path( __FILE__ ) . 'includes/adapters/class-portal-google-probe-failure.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/adapters/class-portal-google-probe-store.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/adapters/class-portal-google-probe.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/class-portal-google-connect.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-portal-definition-rest.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-portal-staged-file-rest.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-portal-setup-screen.php';
@@ -92,6 +93,7 @@ function portal_plugin_activate() {
 	flush_rewrite_rules();
 	Portal_Upload_Store::schedule_cleanup();
 	Portal_Upload_Store::ensure_plugin_roots();
+	Portal_Google_Connect::on_activate();
 }
 
 // Function to run on plugin deactivation
@@ -123,6 +125,7 @@ function pb_initialize_plugin() {
 	if ( is_admin() ) {
 		pb_register_meta_boxes( $portal_meta );
 		add_action( 'admin_notices', 'pb_duplicate_success_notice' );
+		add_action( 'admin_notices', array( 'Portal_Google_Connect', 'render_admin_notice' ) );
 	}
 
 	handle_submissions();

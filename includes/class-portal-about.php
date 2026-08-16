@@ -261,6 +261,20 @@ if ( ! class_exists( 'Portal_About' ) ) {
 			$repo_releases  = 'https://github.com/zachbornheimer/portal-builder/releases';
 			?>
 			<div id="dgp-about" class="wrap">
+				<?php
+				if (
+					class_exists( 'Portal_Google_Connect' )
+					&& Portal_Google_Connect::should_show_checklist(
+						Portal_Google_Connect::SCREEN_ABOUT,
+						Portal_Google_Connect::is_pending(),
+						Portal_Google_Connect::has_test_write()
+					)
+				) :
+					?>
+				<section class="mb-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+					<?php echo Portal_Google_Connect::checklist_markup(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in checklist_markup. ?>
+				</section>
+				<?php endif; ?>
 				<!-- Header: brand + title -->
 				<section class="dgp-about-hero relative isolate mb-6 rounded-2xl border border-slate-200 p-6 shadow-sm">
 					<div class="flex items-center gap-4">
@@ -337,7 +351,7 @@ if ( ! class_exists( 'Portal_About' ) ) {
 						<h3 class="mb-4 text-lg font-semibold text-slate-900">How it Works</h3>
 						<ol class="grid list-decimal gap-2 pl-5 text-sm text-slate-700">
 							<li>Create a portal in <em>Portals → Add New</em>.</li>
-							<li>Connect Google Sheets/Drive in the portal settings.</li>
+							<li>Connect Google on Default Settings and run the test write.</li>
 							<li>Publish the portal and share the front-end link.</li>
 							<li>Applicants submit files and forms on the public portal.</li>
 							<li>Data syncs to Sheets; files are backed up to Drive.</li>

@@ -922,6 +922,11 @@ if (! class_exists('Portal_Settings')) {
         {
             ?>
 			<div class="wrap">
+				<?php
+				if ( class_exists( 'Portal_Google_Connect' ) ) {
+					Portal_Google_Connect::render_checklist_if_needed( Portal_Google_Connect::SCREEN_SETTINGS );
+				}
+				?>
 				<h1><?php _e('Default Settings', 'portal-builder'); ?></h1>
 				<form method="post" action="options.php">
 					<?php
