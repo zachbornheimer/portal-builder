@@ -3,6 +3,9 @@
  */
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import {
 	FIELD_TYPE_CATALOG,
 	callForScoresTemplate,
@@ -15,6 +18,33 @@ import {
 	isBranchOptionOpen,
 	optionContainsFocus,
 } from '../../src/wizard/definitionModel.js';
+
+const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '../..');
+const START_STEP_PATH = path.join(ROOT, 'src/wizard/steps/StartStep.svelte');
+const HOST_NOUNS = /ISJAC|Herbolzheimer|Awards/i;
+const TEXT_FIELD_TYPES = new Set(['short_text', 'long_text']);
+const FILE_FIELD_TYPES = new Set(['file', 'score_file', 'recording_file', 'bio_file']);
+
+/**
+ * @param {string} markup
+ */
+function featuredStartCard(markup) {
+	const match = markup.match(
+		/<article class="dg-template-card dg-template-card--featured">[\s\S]*?<\/article>/,
+	);
+	assert.ok(match, 'Start step ships a featured template card');
+	return match[0];
+}
+
+/**
+ * @param {string} markup
+ */
+function startLead(markup) {
+	const match = markup.match(/<p class="dg-wizard-lead">[\s\S]*?<\/p>/);
+	assert.ok(match, 'Start step ships lead copy');
+	return match[0];
+}
+
 
 test('FIELD_TYPE_CATALOG includes branch and note', () => {
 	assert.ok(FIELD_TYPE_CATALOG.some((t) => t.type === 'branch' && t.label === 'Branch'));
@@ -333,4 +363,50 @@ test('insertField at root does not dump into first group', () => {
 	assert.equal(next.length, 2);
 	assert.equal(next[1].id, leaf.id);
 	assert.equal(next[0].children.length, 0);
+});
+
+test('Start lead does not claim templates come only from ISJAC', () => {
+	const markup = fs.readFileSync(START_STEP_PATH, 'utf8');
+	const lead = startLead(markup);
+	assert.doesNotMatch(lead, /ISJAC['’]s own past portals/);
+	assert.doesNotMatch(lead, /Templates come from ISJAC/i);
+	assert.doesNotMatch(lead, /not generic samples/i);
+	assert.doesNotMatch(markup, /ISJAC['’]s own past portals/);
+});
+
+test('featured Start card is the generic starter, not a host prize', () => {
+	const markup = fs.readFileSync(START_STEP_PATH, 'utf8');
+	const featured = featuredStartCard(markup);
+	assert.match(featured, /Recommended/);
+	assert.doesNotMatch(featured, HOST_NOUNS);
+	assert.doesNotMatch(featured, /Composer Prize/);
+	assert.doesNotMatch(featured, /Call for Scores/);
+	assert.match(featured, /onclick=\{useStarter\}/);
+	assert.match(markup, /applyAndContinue\(genericStarterTemplate\(/);
+});
+
+test('Call for Scores stays a labeled optional template', () => {
+	const markup = fs.readFileSync(START_STEP_PATH, 'utf8');
+	const featured = featuredStartCard(markup);
+	assert.doesNotMatch(featured, /Call for Scores/);
+	assert.doesNotMatch(featured, /callForScoresTemplate|useCallForScores/);
+	assert.match(markup, /<h3 class="dg-template-card-title">Call for Scores<\/h3>/);
+	assert.match(markup, /onclick=\{useCallForScores\}/);
+	assert.match(markup, /applyAndContinue\(callForScoresTemplate\(/);
+});
+
+test('genericStarterTemplate is applicant pack + one text + one file', async () => {
+	const model = await import('../../src/wizard/definitionModel.js');
+	assert.equal(typeof model.genericStarterTemplate, 'function');
+	const def = model.genericStarterTemplate();
+	assert.ok(Array.isArray(def.fields));
+	const flat = flattenMappableFields(def.fields);
+	const packs = flat.filter((f) => f.type === 'applicant_pack');
+	const texts = flat.filter((f) => TEXT_FIELD_TYPES.has(f.type));
+	const files = flat.filter((f) => FILE_FIELD_TYPES.has(f.type));
+	assert.equal(packs.length, 1);
+	assert.equal(texts.length, 1);
+	assert.equal(files.length, 1);
+	assert.equal(flat.length, 3);
+	assert.doesNotMatch(JSON.stringify(def.fields), HOST_NOUNS);
 });

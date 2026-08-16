@@ -4,6 +4,7 @@
 		callForScoresTemplate,
 		cloneDefinition,
 		composerPrizeTemplate,
+		genericStarterTemplate,
 	} from '../definitionModel.js';
 	import { getDefinition, listPortalTemplates } from '../definitionApi.js';
 
@@ -48,6 +49,13 @@
 	function applyAndContinue(next) {
 		onApply(next);
 		onContinue();
+	}
+
+	function useStarter() {
+		busyId = 'starter';
+		const title = definition?.title || 'New portal';
+		applyAndContinue(genericStarterTemplate(title));
+		busyId = null;
 	}
 
 	function useComposer() {
@@ -102,8 +110,7 @@
 <p class="dg-wizard-eyebrow">New portal</p>
 <h2 id="dg-wizard-step-title" class="dg-wizard-title">How do you want to start?</h2>
 <p class="dg-wizard-lead">
-	Templates come from ISJAC’s own past portals — not generic samples. Pick one, then adjust
-	deadline and fee.
+	Start from a simple application or a named example. Then adjust deadline and fee.
 </p>
 
 {#if loadError}
@@ -113,22 +120,22 @@
 <div class="dg-template-grid" data-dg-start-templates>
 	<article class="dg-template-card dg-template-card--featured">
 		<span class="dg-field-type-pill">Recommended</span>
-		<h3 class="dg-template-card-title">Composer Prize</h3>
+		<h3 class="dg-template-card-title">Basic application</h3>
 		<p class="dg-template-card-help">
-			Title, score (PDF), recording (MP3), applicant pack — Herbolzheimer-class.
+			Applicant information, a title, and one file. Add more fields in Build.
 		</p>
 		<button
 			type="button"
 			class="dg-btn dg-btn-primary dg-btn-block"
 			disabled={busyId !== null}
-			onclick={useComposer}
+			onclick={useStarter}
 		>
-			{busyId === 'composer' ? 'Applying…' : 'Use this template'}
+			{busyId === 'starter' ? 'Applying…' : 'Use this template'}
 		</button>
 	</article>
 
 	<article class="dg-template-card">
-		<span class="dg-field-type-pill">Template</span>
+		<span class="dg-field-type-pill">Example</span>
 		<h3 class="dg-template-card-title">Call for Scores</h3>
 		<p class="dg-template-card-help">
 			2027 Call for Scores: poster, papers, or scores — nested masterclass / First Takes / student paths.
@@ -140,6 +147,22 @@
 			onclick={useCallForScores}
 		>
 			{busyId === 'cfs' ? 'Applying…' : 'Use this template'}
+		</button>
+	</article>
+
+	<article class="dg-template-card">
+		<span class="dg-field-type-pill">Example</span>
+		<h3 class="dg-template-card-title">Composer Prize</h3>
+		<p class="dg-template-card-help">
+			Title, score (PDF), recording (MP3), and applicant pack.
+		</p>
+		<button
+			type="button"
+			class="dg-btn dg-btn-ghost dg-btn-block"
+			disabled={busyId !== null}
+			onclick={useComposer}
+		>
+			{busyId === 'composer' ? 'Applying…' : 'Use this template'}
 		</button>
 	</article>
 

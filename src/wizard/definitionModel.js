@@ -250,6 +250,37 @@ function normalizeAccessOp(op) {
 }
 
 /**
+ * Generic starter: applicant pack, one title field, one file.
+ * @param {string} [title]
+ */
+export function genericStarterTemplate(title = 'New portal') {
+	const def = blankDefinition(title);
+	def.fields = [
+		{
+			id: 'applicant',
+			type: 'applicant_pack',
+			label: 'Your Information',
+			required: true,
+		},
+		{
+			id: 'title',
+			type: 'short_text',
+			label: 'Title',
+			required: true,
+		},
+		{
+			id: 'file',
+			type: 'score_file',
+			label: 'File',
+			required: true,
+			help: 'PDF',
+			fileSuffix: '_FILE',
+		},
+	];
+	return def;
+}
+
+/**
  * Composer Prize template (Herbolzheimer-class).
  * @param {string} [title]
  */
