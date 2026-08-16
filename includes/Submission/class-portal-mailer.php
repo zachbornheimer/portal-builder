@@ -12,16 +12,22 @@ if ( ! class_exists( 'Portal_Mailer' ) ) {
 	 */
 	class Portal_Mailer {
 
-		const ARTIFACT_DIR_NAME       = 'mail';
-		const EXTENSION               = '.json';
-		const UNKNOWN_RECIPIENT       = 'unknown';
-		const DEFAULT_RECEIPT_SUBJECT = 'Application receipt';
-		const DEFAULT_RECEIPT_BODY    = 'We received your application for {{portal_title}}. {{$receiptLink}}';
-		const OPTION_FROM_EMAIL       = 'pb_receipt_from_email';
-		const OPTION_FROM_NAME        = 'pb_receipt_from_name';
-		const OPTION_SUBJECT          = 'pb_receipt_subject';
-		const OPTION_BODY             = 'pb_receipt_body';
-		const HTML_CONTENT_TYPE       = 'Content-Type: text/html; charset=UTF-8';
+		const ARTIFACT_DIR_NAME        = 'mail';
+		const EXTENSION                = '.json';
+		const UNKNOWN_RECIPIENT        = 'unknown';
+		const KIND_OPERATOR            = 'operator';
+		const DEFAULT_RECEIPT_SUBJECT  = 'Application receipt';
+		const DEFAULT_RECEIPT_BODY     = 'We received your application for {{portal_title}}. {{$receiptLink}}';
+		const DEFAULT_OPERATOR_SUBJECT = 'New application: {{portal_title}}';
+		const DEFAULT_OPERATOR_BODY    = "Portal: {{portal_title}}\nApplication: {{application_id}}\nApplicant: {{applicant_email}}\nReceipt: {{receipt_url}}";
+		const OPTION_FROM_EMAIL        = 'pb_receipt_from_email';
+		const OPTION_FROM_NAME         = 'pb_receipt_from_name';
+		const OPTION_SUBJECT           = 'pb_receipt_subject';
+		const OPTION_BODY              = 'pb_receipt_body';
+		const OPTION_OPERATOR_EMAIL    = 'pb_operator_notify_email';
+		// CLI / test-mode fallback when WordPress options are absent.
+		const TEST_OPERATOR_EMAIL      = 'operator@example.com';
+		const HTML_CONTENT_TYPE        = 'Content-Type: text/html; charset=UTF-8';
 
 		/** @var Portal_Files */
 		private $files;
@@ -116,6 +122,46 @@ if ( ! class_exists( 'Portal_Mailer' ) ) {
 				$message['error'] = $e->getMessage();
 				return $this->capture( $message );
 			}
+		}
+
+		/**
+		 * Operator notify: pb_operator_notify_email, else WP admin_email,
+		 * else TEST_OPERATOR_EMAIL when WordPress options are absent (CLI/test).
+		 *
+		 * @return string
+		 */
+		public static function operator_recipient() {
+			if ( function_exists( 'get_option' ) ) {
+				$configured = get_option( self::OPTION_OPERATOR_EMAIL, '' );
+				if ( is_string( $configured ) && '' !== trim( $configured ) ) {
+					return trim( $configured );
+				}
+				$admin = get_option( 'admin_email', '' );
+				if ( is_string( $admin ) && '' !== trim( $admin ) ) {
+					return trim( $admin );
+				}
+			}
+			return self::TEST_OPERATOR_EMAIL;
+		}
+
+		/**
+		 * One operator notify. Fail-open is owned by send().
+		 *
+		 * @param array<string,mixed> $message Keys: to?, tokens, portalId, subject?, body?.
+		 * @return string Capture path.
+		 */
+		public function send_operator_notify( array $message ) {
+			$message['kind'] = self::KIND_OPERATOR;
+			if ( empty( $message['to'] ) || ! is_string( $message['to'] ) ) {
+				$message['to'] = self::operator_recipient();
+			}
+			if ( empty( $message['subject'] ) || ! is_string( $message['subject'] ) ) {
+				$message['subject'] = self::DEFAULT_OPERATOR_SUBJECT;
+			}
+			if ( empty( $message['body'] ) || ! is_string( $message['body'] ) ) {
+				$message['body'] = self::DEFAULT_OPERATOR_BODY;
+			}
+			return $this->send( $message );
 		}
 
 		/**
@@ -244,6 +290,7 @@ if ( ! class_exists( 'Portal_Mailer' ) ) {
 				'receipt_url'                    => $receipt,
 				'application_id'                 => self::token_string( $tokens, array( 'application_id' ) ),
 				'applicant_name'                 => self::token_string( $tokens, array( 'applicant_name' ) ),
+				'applicant_email'                => self::token_string( $tokens, array( 'applicant_email', 'email' ) ),
 				'portal_title'                   => $title,
 				'portalName'                     => $title,
 				'portal_name'                    => $title,

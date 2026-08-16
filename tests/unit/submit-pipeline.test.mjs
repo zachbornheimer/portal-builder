@@ -25,6 +25,77 @@ const expectedRow = JSON.parse(
 );
 const artifactDir = path.join(root, 'tests/.artifacts');
 const portalId = 'herbolzheimer';
+const APPLICANT_EMAIL = 'applicant@example.com';
+const PORTAL_TITLE = 'E2E Herbolzheimer Prize';
+
+/**
+ * @param {string} dir
+ * @param {string} id
+ * @returns {Array<Record<string, unknown> & { filePath: string }>}
+ */
+function loadMailCaptures(dir, id) {
+  const mailDir = path.join(dir, 'mail');
+  if (!fs.existsSync(mailDir)) {
+    return [];
+  }
+  return fs
+    .readdirSync(mailDir)
+    .filter((name) => name.endsWith('.json'))
+    .map((name) => {
+      const filePath = path.join(mailDir, name);
+      const payload = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+      return { filePath, ...payload };
+    })
+    .filter((mail) => mail.portalId === id);
+}
+
+/**
+ * @param {Array<Record<string, unknown>>} mails
+ */
+function findApplicantMail(mails) {
+  return mails.find(
+    (mail) => mail.to === APPLICANT_EMAIL && mail.kind !== 'operator',
+  );
+}
+
+/**
+ * @param {Array<Record<string, unknown>>} mails
+ */
+function findOperatorMail(mails) {
+  return mails.find(
+    (mail) => mail.kind === 'operator' || (mail.to && mail.to !== APPLICANT_EMAIL),
+  );
+}
+
+/**
+ * @param {string} value
+ */
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * Operator capture must carry title, application id, applicant email, receipt URL.
+ *
+ * @param {Record<string, unknown>} operatorMail
+ * @param {Record<string, unknown>} data
+ */
+function assertOperatorNotify(operatorMail, data) {
+  const row = data.row && typeof data.row === 'object' ? data.row : {};
+  const appId = String(row.applicationId || row.application_id || '');
+  const receiptUrl = String(data.receipt_url || row.receiptUrl || '');
+  assert.ok(appId, 'application id');
+  assert.ok(receiptUrl, 'receipt url');
+  const haystack = [
+    operatorMail.subject,
+    operatorMail.body,
+    JSON.stringify(operatorMail.tokens || {}),
+  ].join('\n');
+  assert.match(haystack, new RegExp(escapeRegExp(PORTAL_TITLE)));
+  assert.match(haystack, new RegExp(escapeRegExp(appId)));
+  assert.match(haystack, new RegExp(escapeRegExp(APPLICANT_EMAIL)));
+  assert.match(haystack, new RegExp(escapeRegExp(receiptUrl)));
+}
 
 /**
  * @param {string[]} extraArgs
@@ -74,13 +145,88 @@ test('herbolzheimer submission writes sheet, drive, and mail artifacts', () => {
   assert.match(data.drivePaths.score, /score-sample-score\.pdf$/);
   assert.match(data.drivePaths.recording, /recording-sample-recording\.mp3$/);
 
-  // Mail capture
+  // Mail captures: applicant receipt + operator notify
   assert.ok(data.mailPath, 'mail path');
   assert.ok(fs.existsSync(data.mailPath));
-  const mail = JSON.parse(fs.readFileSync(data.mailPath, 'utf8'));
-  assert.equal(mail.to, 'applicant@example.com');
-  assert.match(mail.subject, /Application receipt/i);
-  assert.equal(mail.portalId, portalId);
+  const mails = loadMailCaptures(artifactDir, portalId);
+  assert.equal(mails.length, 2, `expected applicant + operator captures, got ${mails.length}`);
+  const applicantMail = findApplicantMail(mails);
+  const operatorMail = findOperatorMail(mails);
+  assert.ok(applicantMail, 'applicant mail capture');
+  assert.equal(applicantMail.to, 'applicant@example.com');
+  assert.match(String(applicantMail.subject || ''), /Application receipt/i);
+  assert.equal(applicantMail.portalId, portalId);
+  assert.ok(operatorMail, 'operator mail capture');
+  assert.notEqual(operatorMail.to, applicantMail.to);
+  // CLI / test-mode fallback when WP options are absent.
+  assert.equal(operatorMail.to, 'operator@example.com');
+  assert.equal(operatorMail.kind, 'operator');
+  assertOperatorNotify(operatorMail, data);
+});
+
+test('operator notify uses admin_email when notify setting is empty', () => {
+  const portal = 'herbolzheimer-admin-email';
+  const r = spawnSync(
+    'php',
+    [
+      harness,
+      definition,
+      submission,
+      artifactDir,
+      portal,
+      '--admin-email=host@isjac.org',
+    ],
+    { encoding: 'utf8', env: { ...process.env, DG_TEST_MODE: '1' } },
+  );
+  assert.equal(r.status, 0, (r.stdout || '') + (r.stderr || ''));
+  const data = JSON.parse((r.stdout || '').trim());
+  assert.equal(data.ok, true);
+  const operatorMail = findOperatorMail(loadMailCaptures(artifactDir, portal));
+  assert.ok(operatorMail, 'operator mail capture');
+  assert.equal(operatorMail.to, 'host@isjac.org');
+  assertOperatorNotify(operatorMail, data);
+});
+
+test('mailer send throw still writes dests and returns ok', () => {
+  const portal = 'herbolzheimer-mail-throw';
+  const r = spawnSync(
+    'php',
+    [
+      harness,
+      definition,
+      submission,
+      artifactDir,
+      portal,
+      '--mail-fail=throw',
+    ],
+    { encoding: 'utf8', env: { ...process.env, DG_TEST_MODE: '1' } },
+  );
+  assert.equal(r.status, 0, (r.stdout || '') + (r.stderr || ''));
+  const data = JSON.parse((r.stdout || '').trim());
+  assert.equal(data.ok, true);
+  assert.ok(data.sheetPath && fs.existsSync(data.sheetPath), 'sheet written');
+  assert.ok(data.drivePaths?.score && fs.existsSync(data.drivePaths.score), 'drive written');
+});
+
+test('mailer send false still writes dests and returns ok', () => {
+  const portal = 'herbolzheimer-mail-false';
+  const r = spawnSync(
+    'php',
+    [
+      harness,
+      definition,
+      submission,
+      artifactDir,
+      portal,
+      '--mail-fail=false',
+    ],
+    { encoding: 'utf8', env: { ...process.env, DG_TEST_MODE: '1' } },
+  );
+  assert.equal(r.status, 0, (r.stdout || '') + (r.stderr || ''));
+  const data = JSON.parse((r.stdout || '').trim());
+  assert.equal(data.ok, true);
+  assert.ok(data.sheetPath && fs.existsSync(data.sheetPath), 'sheet written');
+  assert.ok(data.drivePaths?.score && fs.existsSync(data.drivePaths.score), 'drive written');
 });
 
 test('missing required field fails validation without artifacts overwrite of good data', () => {
