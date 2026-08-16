@@ -332,6 +332,10 @@
 				setPublish('applicationFee', v === '' ? null : v);
 			}}
 		/>
+		<p class="dg-field-help">
+			Shown as a label on the public form. Not charged in this form. Hosts may
+			collect this outside DragonGate.
+		</p>
 		<label class="dg-check-row">
 			<input
 				type="checkbox"

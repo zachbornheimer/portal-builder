@@ -47,11 +47,6 @@ if ( ! class_exists( 'Portal_Submission' ) ) {
 				// Validate nonce
 				$this->validate_nonce();
 
-				// Example: Collect payment if required
-				if ( $this->should_collect_payment( $data ) ) {
-					$this->collect_payment( $data );
-				}
-
 				// Example: Generate PDF
 				if ( $this->should_generate_pdf( $data ) ) {
 					$this->generate_pdf( $data );
@@ -85,17 +80,6 @@ if ( ! class_exists( 'Portal_Submission' ) ) {
 				return false;
 			}
 			return true;
-		}
-
-		// Example method to determine if payment should be collected
-		private function should_collect_payment( $data ) {
-			return isset( $data['requires_payment'] ) && $data['requires_payment'] === 'yes';
-		}
-
-		// Example payment processing method
-		private function collect_payment( $data ) {
-			// Integrate with Stripe or another payment processor
-			// Example code here
 		}
 
 		// Example method to determine if a PDF should be generated

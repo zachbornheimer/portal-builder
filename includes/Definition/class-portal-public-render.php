@@ -497,8 +497,8 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 			$fee   = array_key_exists( 'applicationFee', $publish ) ? $publish['applicationFee'] : null;
 			if ( null !== $fee && '' !== $fee ) {
 				$lines[] = sprintf(
-					/* translators: %s: fee amount */
-					esc_html__( 'Application fee $%s', 'dragongate-portals' ),
+					/* translators: %s: fee amount shown as a label, not collected here */
+					esc_html__( 'Application fee $%s. Not charged in this form', 'dragongate-portals' ),
 					$fee
 				);
 			}
