@@ -356,30 +356,24 @@ function handle_submissions() {
 			// Definition-aware path (test mode → mock Sheet/Drive/Mail artifacts).
 			$definition_submit = pb_try_definition_submission( $_POST, $stored_file_paths );
 			if ( is_array( $definition_submit ) && ! empty( $definition_submit['ok'] ) ) {
-				if ( ! empty( $definition_submit['mailPath'] ) ) {
-					define( 'PB_RECEIPT_LINK', $definition_submit['mailPath'] );
-				} else {
-					define( 'PB_RECEIPT_LINK', '' );
-				}
 				$raw_notification_date = get_post_meta( $_POST['post_id'], '_portal_applicant_notification_date', true );
 				$application_notification_date = $raw_notification_date
 					? date( 'l, F j, Y', strtotime( $raw_notification_date ) )
 					: '';
-				define( 'PB_APPLICATION_NOTIFICATION_DATE', $application_notification_date );
-				add_filter( 'the_content', 'pb_post_submitted_content_filter', 10, 1 );
+				$receipt = ! empty( $definition_submit['mailPath'] ) ? $definition_submit['mailPath'] : '';
+				Portal_Submission_Pipeline::finish_public_submit( true, $receipt, $application_notification_date );
 			} else {
 				$submission = new Portal_Submission( 'ready_to_submit_nonce', $file_handler );
-
-				$submission->process_submission( $_POST );
-
-				define( 'PB_RECEIPT_LINK', $submission->get_receipt_link() );
-
+				if ( ! $submission->process_submission( $_POST ) ) {
+					return;
+				}
 				$raw_notification_date = get_post_meta( $_POST['post_id'], '_portal_applicant_notification_date', true );
-				// turn the raw date into a human readable date like Monday, June 15, 2021
 				$application_notification_date = date( 'l, F j, Y', strtotime( $raw_notification_date ) );
-				define( 'PB_APPLICATION_NOTIFICATION_DATE', $application_notification_date );
-
-				add_filter( 'the_content', 'pb_post_submitted_content_filter', 10, 1 );
+				Portal_Submission_Pipeline::finish_public_submit(
+					true,
+					$submission->get_receipt_link(),
+					$application_notification_date
+				);
 			}
 		}
 	} catch ( Exception $e ) {

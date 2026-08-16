@@ -95,6 +95,35 @@ test('ZYS-614: public submit catch does not wp_die a raw exception', () => {
   assert.match(log, /invalid_grant/);
 });
 
+test('ZYS-614: ready_to_submit Exception does not attach the success filter', () => {
+  const { code, out, data } = runScenario({
+    entry: 'legacy_submit_failure',
+    secret: SECRET,
+  });
+  assert.equal(code, 0, out);
+  assert.ok(data, out);
+  assert.equal(data.ok, true, out);
+  assert.equal(
+    data.unconditionalLegacySuccess,
+    false,
+    'handle_submissions still defines PB_RECEIPT_LINK after process_submission without checking the result',
+  );
+  assert.equal(data.hasFinishPublicSubmit, true, 'finish_public_submit is missing');
+  assert.equal(data.completed, false, `process_submission completed=${data.completed}`);
+  assert.equal(data.outcome, 'error', `outcome=${data.outcome}`);
+  assert.equal(data.died, false, `wp_die: ${data.dieMessage || out}`);
+  assert.equal(data.successFilterAttached, false, 'pb_post_submitted_content_filter was attached');
+  assert.equal(data.receiptDefined, false, 'PB_RECEIPT_LINK was defined on failure');
+  assert.equal(data.definedErrors, true, 'DG_DEFINITION_SUBMIT_ERRORS was not defined');
+  const human = String(data.humanMessage || '');
+  assert.match(human, /try again/i);
+  assert.doesNotMatch(human, /secret\.json/);
+  const rendered = String(data.rendered || '');
+  assert.match(rendered, /dg-submit-errors/);
+  assert.doesNotMatch(rendered, /submitted successfully/i);
+  assert.doesNotMatch(rendered, /secret\.json/);
+});
+
 test('ZYS-618: cleanup hook deletes only staged/tmp files older than 24h', () => {
   const now = 1_800_000_000;
   const { code, out, data } = runScenario({
