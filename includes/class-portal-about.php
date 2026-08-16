@@ -339,7 +339,7 @@ if ( ! class_exists( 'Portal_About' ) ) {
 							<li>Create a portal in <em>Portals → Add New</em>.</li>
 							<li>Connect Google Sheets/Drive in the portal settings.</li>
 							<li>Publish the portal and share the front-end link.</li>
-							<li>Applicants submit files/forms; admins review in WP.</li>
+							<li>Applicants submit files and forms on the public portal.</li>
 							<li>Data syncs to Sheets; files are backed up to Drive.</li>
 						</ol>
 					</div>
@@ -348,12 +348,12 @@ if ( ! class_exists( 'Portal_About' ) ) {
 					<div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
 						<h3 class="mb-2 text-lg font-semibold text-slate-900">Privacy &amp; Security</h3>
 						<p class="mb-3 text-sm text-slate-700">
-							DragonGate Portals minimizes stored personal data and uses explicit Google OAuth scopes for Drive/Sheets access.
+							DragonGate Portals uses explicit Google OAuth scopes for Drive and Sheets. Application packets stay on the host's Google.
 						</p>
 						<ul class="list-disc pl-5 text-sm text-slate-700">
-							<li>Clear data retention and export paths.</li>
+							<li>Packets go to the host's Google Drive and Sheets — not a DragonGate copy.</li>
 							<li>Scoped permissions; no broad account access.</li>
-							<li>WP roles/capabilities gate reviewer access.</li>
+							<li>WP roles and capabilities gate who can edit portals.</li>
 						</ul>
 					</div>
 
