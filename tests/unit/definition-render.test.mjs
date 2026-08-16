@@ -89,11 +89,16 @@ test('definition-form.js stages via XHR and writes the staged token', () => {
 	assert.match(js, /upload\.addEventListener\(\s*['"]load['"]/);
 	assert.match(js, /enterWorking/);
 	assert.match(js, /requireStage|missingToken|staged\.value/);
-	assert.match(js, /openInNewTab/);
 	assert.match(js, /forceNewTabLinks/);
 	assert.match(js, /markOpened/);
 	assert.match(js, /data-label-opened/);
 	assert.match(js, /Remove the upload/);
+	assert.match(js, /role=["']dialog["']|dg-file-preview/);
+	assert.match(js, /Submitting/);
+	assert.match(js, /dg-submit-spinner/);
+	assert.doesNotMatch(js, /Working…/);
+	assert.doesNotMatch(js, /openInNewTab\s*\([^)]*\)\s*;\s*markOpened\s*\(/);
+	assert.doesNotMatch(js, /window\.open\s*\([^)]*\)\s*;\s*markOpened\s*\(/);
 	assert.doesNotMatch(js, /data-dg-file-confirm[^-]/);
 	assert.doesNotMatch(js, /location\.assign/);
 	assert.doesNotMatch(js, /window\.open\([^)]*noopener/);
@@ -243,6 +248,19 @@ test('force-closed public HTML does not claim the deadline passed', () => {
 	assert.equal(data.notes, '', 'upload-notes leftover must stay silent');
 	assert.equal(data.formstart, '', 'form chrome stays hidden when force-closed');
 	assert.equal(data.formend, '', 'form chrome stays hidden when force-closed');
+});
+
+test('restricted login HTML is a same-tab dg-access packet', () => {
+	const { code, out } = runClosed('restricted');
+	assert.equal(code, 0, out);
+	const data = JSON.parse(out.trim());
+	assert.match(data.html, /class="[^"]*dg-access/);
+	assert.match(data.html, /data-dg-portal-state="restricted"/);
+	assert.match(data.html, /data-dg-closed-reason="login"/);
+	assert.match(data.html, /Sign in to apply\./);
+	assert.match(data.html, />Sign in</);
+	assert.doesNotMatch(data.html, /dg-access[\s\S]*target="_blank"/);
+	assert.doesNotMatch(data.html, /class="dg-portal-closed"[^>]*data-dg-portal-state="restricted"/);
 });
 
 test('editor preview of a closed portal still shows the form', () => {

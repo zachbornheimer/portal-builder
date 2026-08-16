@@ -44,23 +44,27 @@ function runScenario(scenario) {
 }
 
 const retainedCases = [
-  { name: 'suffix before extension', original: 'blank.pdf', suffix: '_BIO', want: 'blank_BIO.pdf' },
-  { name: 'already suffixed', original: 'blank_BIO.pdf', suffix: '_BIO', want: 'blank_BIO.pdf' },
-  { name: 'score suffix', original: 'sample-score.pdf', suffix: '_SCORE', want: 'sample-score_SCORE.pdf' },
+  { name: 'bio role discards pick name', original: 'blank.pdf', suffix: '_BIO', want: 'Bio.pdf' },
+  { name: 'already suffixed pick still Bio.pdf', original: 'blank_BIO.pdf', suffix: '_BIO', want: 'Bio.pdf' },
+  { name: 'score role is Score.pdf', original: 'sample-score.pdf', suffix: '_SCORE', want: 'Score.pdf' },
   {
-    name: 'sanitize unsafe chars',
+    name: 'unsafe pick chars do not leak into dest',
     original: 'my score (final).pdf',
     suffix: '_SCORE',
-    // Unsafe runs collapse to a single _ (Drive sanitize class).
-    want: 'my_score_final__SCORE.pdf',
+    want: 'Score.pdf',
   },
-  { name: 'empty suffix keeps sanitized base', original: 'blank.pdf', suffix: '', want: 'blank.pdf' },
+  { name: 'empty suffix is File.ext', original: 'blank.pdf', suffix: '', want: 'File.pdf' },
   {
-    name: 'no double when stem ends with suffix',
+    name: 'stem already ending in suffix is still Score.pdf',
     original: 'piece_SCORE.pdf',
     suffix: '_SCORE',
-    want: 'piece_SCORE.pdf',
+    want: 'Score.pdf',
   },
+  { name: 'recording keeps audio extension', original: 'take.mp3', suffix: '_REC', want: 'Recording.mp3' },
+  { name: 'abstract role', original: 'paper.pdf', suffix: '_ABSTRACT', want: 'Abstract.pdf' },
+  { name: 'poster desc role', original: 'brief.pdf', suffix: '_POSTER_DESC', want: 'Description.pdf' },
+  { name: 'generic file suffix', original: 'notes.pdf', suffix: '_FILE', want: 'File.pdf' },
+  { name: 'compound score suffix uses SCORE tail', original: 'arr.pdf', suffix: '_NMMA_SCORE', want: 'Score.pdf' },
 ];
 
 /** Completed create envelope + raw PDF download (matches Portal_Anonymizer_Reply). */
@@ -111,7 +115,7 @@ test('stage without anonymize: storedName uses suffix, bytes unchanged', () => {
   assert.equal(code, 0, out);
   assert.ok(data, out);
   assert.equal(data.ok, true, out);
-  assert.equal(data.storedName, 'blank_SCORE.pdf');
+  assert.equal(data.storedName, 'Score.pdf');
   assert.equal(data.originalName, 'blank.pdf');
   assert.equal(data.anonymized, false);
   assert.equal(data.storedEqualsOrig, true);
@@ -140,7 +144,7 @@ test('stage with anonymize + fake transport: different bytes, anonymized true', 
   assert.equal(code, 0, out);
   assert.ok(data, out);
   assert.equal(data.ok, true, out);
-  assert.equal(data.storedName, 'blank_BIO.pdf');
+  assert.equal(data.storedName, 'Bio.pdf');
   assert.equal(data.anonymized, true);
   assert.equal(data.storedEqualsOrig, false);
   assert.ok(data.storedBytesLen > 0);
@@ -210,7 +214,7 @@ test('pipeline uses staged token; drive has staged bytes; no second anonymize', 
   assert.ok(data, out);
   assert.equal(data.ok, true, out);
   assert.equal(data.submitOk, true);
-  assert.equal(data.storedName, 'blank_SCORE.pdf');
+  assert.equal(data.storedName, 'Score.pdf');
   assert.equal(data.anonymized, true);
   assert.equal(data.driveEqualsStaged, true, out);
   assert.equal(data.driveEqualsOrig, false);
@@ -233,7 +237,7 @@ test('pipeline without anonymize stages suffix and writes original bytes', () =>
   assert.equal(code, 0, out);
   assert.ok(data, out);
   assert.equal(data.ok, true, out);
-  assert.equal(data.storedName, 'blank_SCORE.pdf');
+  assert.equal(data.storedName, 'Score.pdf');
   assert.equal(data.anonymized, false);
   assert.equal(data.driveEqualsStaged, true);
   assert.equal(data.extraAnonCalls, 0);
@@ -273,5 +277,49 @@ test('GET staged file serves raw bytes (not JSON) via rest_pre_serve_request', (
   assert.equal(data.bodyIsJsonString, false, 'body must not be JSON-encoded');
   assert.equal(data.bodyStartsPdf, true);
   assert.equal(data.contentType, 'application/pdf');
-  assert.equal(data.storedName, 'blank_SCORE.pdf');
+  assert.equal(data.storedName, 'Score.pdf');
+});
+
+test('two SCORE fields in walk order become Score1.pdf and Score2.pdf', () => {
+  const definition = {
+    version: 1,
+    fields: [
+      {
+        id: 'score_a',
+        type: 'score_file',
+        label: 'Score A',
+        required: true,
+        fileSuffix: '_SCORE',
+      },
+      {
+        id: 'score_b',
+        type: 'score_file',
+        label: 'Score B',
+        required: true,
+        fileSuffix: '_NMMA_SCORE',
+      },
+    ],
+    options: { anonymize: false },
+  };
+  const original = '%PDF-1.4\n%two-score\n';
+  const first = runScenario({
+    entry: 'stage',
+    portalId: 'stage-two-score',
+    fieldId: 'score_a',
+    originalName: 'first.pdf',
+    buffer: original,
+    definition,
+  });
+  const second = runScenario({
+    entry: 'stage',
+    portalId: 'stage-two-score',
+    fieldId: 'score_b',
+    originalName: 'second.pdf',
+    buffer: original,
+    definition,
+  });
+  assert.equal(first.code, 0, first.out);
+  assert.equal(second.code, 0, second.out);
+  assert.equal(first.data.storedName, 'Score1.pdf');
+  assert.equal(second.data.storedName, 'Score2.pdf');
 });

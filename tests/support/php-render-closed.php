@@ -39,6 +39,16 @@ function esc_html__( $s, $domain = '' ) {
 function esc_url( $s ) {
 	return htmlspecialchars( (string) $s, ENT_QUOTES, 'UTF-8' );
 }
+function get_permalink( $post_id = 0 ) {
+	return 'https://example.test/portal/' . (int) $post_id . '/';
+}
+function wp_login_url( $redirect = '' ) {
+	$base = 'https://example.test/wp-login.php';
+	if ( '' === (string) $redirect ) {
+		return $base;
+	}
+	return $base . '?redirect_to=' . rawurlencode( (string) $redirect );
+}
 function wp_kses_post( $s ) {
 	return strip_tags( (string) $s, '<p><br><em><strong><a><span><ul><ol><li>' );
 }
@@ -113,6 +123,7 @@ function get_post_meta( $post_id, $key, $single = false ) {
 }
 
 $repo_root = dirname( __DIR__, 2 );
+require_once $repo_root . '/includes/Definition/class-portal-access.php';
 require_once $repo_root . '/includes/Definition/class-portal-definition.php';
 require_once $repo_root . '/includes/Definition/class-portal-open-state.php';
 require_once $repo_root . '/includes/Definition/class-portal-site-defaults.php';
@@ -137,6 +148,50 @@ if ( ! is_array( $payload ) || empty( $payload['mode'] ) ) {
 $mode    = (string) $payload['mode'];
 $post_id = 42;
 $preview = ( 'preview' === $mode );
+
+if ( 0 === strpos( $mode, 'restricted' ) ) {
+	$reason = isset( $payload['reason'] ) ? (string) $payload['reason'] : 'login';
+	if ( false !== strpos( $mode, 'membership' ) ) {
+		$reason = 'membership';
+	}
+	$definition = array(
+		'version' => 1,
+		'title'   => 'Call for Scores 2027',
+		'fields'  => array(
+			array(
+				'id'       => 'piece',
+				'type'     => 'short_text',
+				'label'    => 'Piece Name',
+				'required' => true,
+			),
+		),
+		'access'  => isset( $payload['access'] ) && is_array( $payload['access'] )
+			? $payload['access']
+			: array( 'audience' => 'logged_in' ),
+		'options' => isset( $payload['options'] ) && is_array( $payload['options'] )
+			? $payload['options']
+			: array(),
+	);
+	$html = Portal_Public_Render::render_restricted_message(
+		$post_id,
+		$definition,
+		array(
+			'allowed' => false,
+			'reason'  => $reason,
+		)
+	);
+	echo json_encode(
+		array(
+			'ok'        => true,
+			'mode'      => $mode,
+			'reason'    => $reason,
+			'html'      => $html,
+			'hasAccess' => false !== strpos( $html, 'dg-access' ),
+		),
+		JSON_UNESCAPED_SLASHES
+	) . "\n";
+	exit( 0 );
+}
 
 $publish = array(
 	'deadline'    => null,

@@ -200,6 +200,28 @@ test('ZYS-631: ready_to_submit POST without a definition never enters Portal_Sub
   assert.match(rendered, /this portal is not configured/i);
 });
 
+test('success packet uses submission id and packet copy, not submitted successfully', () => {
+  const { code, out, data } = runScenario({
+    entry: 'render_success',
+    result: {
+      portalId: '42',
+      receipt_url: 'https://example.test/receipt/app-99',
+      row: { applicationId: 'app-99' },
+    },
+  });
+  assert.equal(code, 0, out);
+  assert.ok(data, out);
+  const html = String(data.html || '');
+  assert.match(html, /data-dg-submit-status="success"/);
+  assert.match(html, /Your packet is in\./);
+  assert.match(html, /data-dg-app-id="app-99"/);
+  assert.match(html, />app-99</);
+  assert.match(html, /data-dg-receipt-link/);
+  assert.match(html, /View your receipt/);
+  assert.doesNotMatch(html, /submitted successfully/i);
+  assert.doesNotMatch(html, /data-dg-app-id="42"/);
+});
+
 test('ZYS-619: tmp and permanent uploads resolve under uploads, not ABSPATH web root', () => {
   const { code, out, data } = runScenario({ entry: 'upload_roots' });
   assert.equal(code, 0, out);
