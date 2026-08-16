@@ -25,11 +25,15 @@ Every control named below is a label that exists in this plugin.
    - Paste the **access token** for the Google identity that completed OAuth consent into **Google Access Key**. FileStore refreshes this token.
    - Share the destination Drive folder and Sheet with that same Google identity (the person who completed consent), not a service-account email.
 
+   Click **Test write** with a scratch Sheet ID and Drive folder. A `DRAGONGATE_TEST` row means credentials work. Delete that row. After a successful test write, the connect-Google checklist dismisses.
+
+   After save, Settings shows **Key set** plus the last four characters of each Google secret. Leave the box blank to keep the saved value. Paste a new value to rotate.
+
    The full steps live on **Portals → Google API Setup** (**Google API Setup Instructions**).
 
 5. **Add a portal.** Open **Portals → Add New Portal**. The definition wizard opens.
 
-6. **Start.** On **Start**, pick a template (**Composer Prize**, **Call for Scores**, or **Start from scratch**).
+6. **Start.** On **Start**, pick the recommended **Basic application** template (applicant pack + one text field + one file). Festival examples such as **Call for Scores** stay available as named templates.
 
 7. **Build form.** On **Build form**, add or edit the fields applicants will fill.
 
@@ -37,7 +41,13 @@ Every control named below is a label that exists in this plugin.
 
 9. **Publish.** On **Publish**, set a deadline if you need one, turn on **Accepting submissions**, then click **Save Portal**. The **Public form** URL appears on this step — use **Copy link** or **View public form**.
 
-10. **Send a test submit** through the public form. The row and files appear in the mapped Google Sheet and Google Drive folder. There is no WordPress applications inbox to check.
+10. **Send a test submit** through the public form. The row and files appear in the mapped Google Sheet and Google Drive folder.
+
+11. **Staff console.** Open the portal in the wizard. Below the wizard, **Recent submissions** and **Submission packets** list dest outcomes and application ids. An administrator (or a user with the `dg_edit_submissions` capability) can replace a file; that write goes through the Drive dest adapter. Sheet and Drive remain the packet of record — this is an operator console, not a second store.
+
+12. **Applicant packets.** A signed-in applicant sees **Your submissions for this portal** on the public form and can **Recall** a current packet so staff no longer treat it as current.
+
+Anyone-audience portals can require Cloudflare Turnstile (set the site key and secret under Default Settings). Logged-in and members portals skip the widget.
 
 ## Upgrade by ZIP
 
