@@ -2,8 +2,8 @@
  * Public definition form — file enclosure + open-to-confirm + branch paths.
  *
  * After a file is chosen: stage bytes (XHR progress → anonymize spinner →
- * retained server name). Confirm loads the file in a page dialog; opened
- * means the media load callback fired.
+ * retained server name). Confirm proves the file bytes are readable, then
+ * paints the file in a page dialog. Opened means proveReadable succeeded.
  *
  * Branch radios show only the selected path’s `.dg-branch-children` and disable
  * hidden controls so HTML5 `required` cannot block submit.
@@ -205,33 +205,7 @@
     return dialog
   }
 
-  function bindPreviewLoad(el, onLoad, onError) {
-    var settled = false
-    function succeed() {
-      if (settled) {
-        return
-      }
-      var src = el.getAttribute('src') || el.src || ''
-      if (!src || src === 'about:blank') {
-        return
-      }
-      settled = true
-      onLoad()
-    }
-    function fail() {
-      if (settled) {
-        return
-      }
-      settled = true
-      onError()
-    }
-    el.addEventListener('load', succeed)
-    el.addEventListener('canplaythrough', succeed)
-    el.addEventListener('loadeddata', succeed)
-    el.addEventListener('error', fail)
-  }
-
-  function openPreviewDialog(card, url, onLoad, onError) {
+  function paintPreview(card, url) {
     var dialog = ensurePreviewDialog()
     var body = dialog.querySelector('[data-dg-preview-body]')
     body.textContent = ''
@@ -248,7 +222,6 @@
       media.title = PREVIEW_TITLE
     }
     media.className = 'dg-file-preview-media'
-    bindPreviewLoad(media, onLoad, onError)
     media.src = url
     body.appendChild(media)
     dialog.hidden = false
@@ -257,6 +230,23 @@
     if (closeBtn) {
       closeBtn.focus()
     }
+  }
+
+  function openConfirmedPreview(card, url, onReady, onError) {
+    var preview = globalThis.FilePreview
+    if (!preview || typeof preview.proveReadable !== 'function') {
+      onError()
+      return
+    }
+    preview
+      .proveReadable({
+        url: url,
+        kind: previewKind(card, url),
+      })
+      .then(function () {
+        paintPreview(card, url)
+        onReady()
+      }, onError)
   }
 
   function bindFileCard(card) {
@@ -588,7 +578,7 @@
           return
         }
         previewReturnFocus = openBtn
-        openPreviewDialog(
+        openConfirmedPreview(
           card,
           url,
           function () {
