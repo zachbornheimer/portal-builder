@@ -162,7 +162,8 @@ body.single-portal form.dg-portal-submit-form fieldset {
 	text-decoration: underline;
 }
 
-.dg-preview-banner {
+.dg-preview-banner,
+.dg-test-banner {
 	display: flex;
 	align-items: flex-start;
 	gap: var(--s-3);
@@ -176,7 +177,8 @@ body.single-portal form.dg-portal-submit-form fieldset {
 	line-height: var(--lh-snug);
 }
 
-.dg-preview-banner strong {
+.dg-preview-banner strong,
+.dg-test-banner strong {
 	display: block;
 	font-size: var(--t-body);
 }

@@ -23,6 +23,58 @@ if ( ! class_exists( 'Portal_Submission_Destinations' ) ) {
 
 		const EXTRA_KEYS = array( 'selection_path', 'portalId', 'createdAt', 'status', 'files', 'applicationId', 'receiptUrl', 'email', 'dateReceived' );
 
+		const SCRATCH_SPREADSHEET_ID = 'dg_test_scratch_sheet';
+		const SCRATCH_FOLDER_ID      = 'dg_test_scratch_folder';
+
+		/**
+		 * Mapping dest IDs the write ports may use. testMode replaces production IDs.
+		 *
+		 * @param array $definition Validated definition.
+		 * @return array
+		 */
+		public static function route_for_submit( array $definition ) {
+			if ( ! class_exists( 'Portal_Definition' ) || ! Portal_Definition::test_mode_on( $definition ) ) {
+				return $definition;
+			}
+			if ( ! isset( $definition['mapping'] ) || ! is_array( $definition['mapping'] ) ) {
+				return $definition;
+			}
+			$definition['mapping'] = self::scratch_mapping( $definition['mapping'] );
+			return $definition;
+		}
+
+		/**
+		 * Keep dest cards; swap non-empty production IDs for scratch IDs.
+		 *
+		 * @param array $mapping Definition mapping block.
+		 * @return array
+		 */
+		private static function scratch_mapping( array $mapping ) {
+			if ( isset( $mapping['sheets'] ) && is_array( $mapping['sheets'] ) ) {
+				foreach ( $mapping['sheets'] as $i => $sheet ) {
+					if ( ! is_array( $sheet ) ) {
+						continue;
+					}
+					$sid = isset( $sheet['spreadsheetId'] ) ? (string) $sheet['spreadsheetId'] : '';
+					if ( '' !== $sid ) {
+						$mapping['sheets'][ $i ]['spreadsheetId'] = self::SCRATCH_SPREADSHEET_ID;
+					}
+				}
+			}
+			if ( isset( $mapping['drive'] ) && is_array( $mapping['drive'] ) ) {
+				foreach ( $mapping['drive'] as $i => $folder ) {
+					if ( ! is_array( $folder ) ) {
+						continue;
+					}
+					$fid = isset( $folder['folderId'] ) ? (string) $folder['folderId'] : '';
+					if ( '' !== $fid ) {
+						$mapping['drive'][ $i ]['folderId'] = self::SCRATCH_FOLDER_ID;
+					}
+				}
+			}
+			return $mapping;
+		}
+
 		/**
 		 * @param string $dest Pipe-joined dest string.
 		 * @return array{sheets:array<int,array{name:string,column:string}>,drive:string[]}

@@ -89,14 +89,15 @@ if ( ! class_exists( 'Portal_Submit_Log' ) ) {
 		/**
 		 * Append one dest-result row. Never stores file bytes or raw email.
 		 *
-		 * @param string|int          $portal_id Portal id.
-		 * @param string              $app_id    Application id.
-		 * @param array<string,string> $dests    Dest => ok|fail|skip|warning.
-		 * @param string              $code      Error code (`ok` on happy path).
-		 * @param string              $email     Optional applicant email (hashed only).
+		 * @param string|int           $portal_id Portal id.
+		 * @param string               $app_id    Application id.
+		 * @param array<string,string> $dests     Dest => ok|fail|skip|warning.
+		 * @param string               $code      Error code (`ok` on happy path).
+		 * @param string               $email     Optional applicant email (hashed only).
+		 * @param bool                 $test      Per-portal testMode submit.
 		 * @return array<string,mixed> Written row.
 		 */
-		public function record( $portal_id, $app_id, array $dests, $code, $email = '' ) {
+		public function record( $portal_id, $app_id, array $dests, $code, $email = '', $test = false ) {
 			$row = array(
 				'applicationId' => (string) $app_id,
 				'time'          => $this->timestamp(),
@@ -106,6 +107,9 @@ if ( ! class_exists( 'Portal_Submit_Log' ) ) {
 			$hash = self::hash_email( $email );
 			if ( '' !== $hash ) {
 				$row['emailHash'] = $hash;
+			}
+			if ( $test ) {
+				$row['test'] = true;
 			}
 			$this->append( $portal_id, $row );
 			return $row;

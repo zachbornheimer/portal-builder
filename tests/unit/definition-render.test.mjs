@@ -53,6 +53,20 @@ test('herbolzheimer definition renders public form markers', () => {
 	assert.doesNotMatch(data.html, /dg-file-confirm-input/);
 });
 
+test('testMode public form includes the test banner', () => {
+  const file = path.join(root, 'tests/.artifacts/test-mode-banner.definition.json');
+  const raw = JSON.parse(fs.readFileSync(fixture, 'utf8'));
+  raw.publish = { ...(raw.publish || {}), enabled: true, testMode: true };
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, JSON.stringify(raw));
+  const { code, out } = runPhp(file);
+  assert.equal(code, 0, out);
+  const data = JSON.parse(out.trim());
+  assert.equal(data.ok, true);
+  assert.match(data.html, /Test — not a real application\./);
+  assert.match(data.html, /data-dg-test-mode="true"/);
+});
+
 test('definition-form.css paints error background on .dg-file.is-invalid', () => {
 	const css = fs.readFileSync(path.join(root, 'assets/definition-form.css'), 'utf8');
 	assert.match(css, /\.dg-file\.is-invalid\s*\{[^}]*background\s*:\s*var\(--error-100\)/s);

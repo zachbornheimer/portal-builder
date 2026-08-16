@@ -286,6 +286,9 @@ if ( $via_for_post ) {
 	if ( null !== $open_state ) {
 		$opts['open_state'] = $open_state;
 	}
+	if ( class_exists( 'Portal_Submit_Log' ) ) {
+		$opts['log'] = new Portal_Submit_Log( $log_dir, $files_facade );
+	}
 	$for_post = new ReflectionMethod( 'Portal_Submission_Pipeline', 'process_for_post' );
 	if ( $for_post->getNumberOfParameters() >= 4 ) {
 		$result = harness_run_process(

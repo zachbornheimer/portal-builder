@@ -16,6 +16,7 @@ test('blank definition dual-writes enabled true and forceClosed false', () => {
 	assert.equal(def.publish.enabled, true);
 	assert.equal(def.publish.forceClosed, false);
 	assert.equal(def.publish.launchAt, null);
+	assert.equal(def.publish.testMode, false);
 	assert.equal(def.options.anonymizeApiKey, null);
 });
 
@@ -28,6 +29,7 @@ test('normalizeLoaded dual-writes enabled from legacy forceClosed', () => {
 	assert.equal(def.publish.enabled, false);
 	assert.equal(def.publish.forceClosed, true);
 	assert.equal(def.publish.launchAt, null);
+	assert.equal(def.publish.testMode, false);
 	assert.equal(def.options.anonymizeApiKey, null);
 });
 
@@ -35,6 +37,13 @@ test('dualWritePublish lets enabled win over a stale forceClosed', () => {
 	const next = dualWritePublish({ enabled: true, forceClosed: true });
 	assert.equal(next.enabled, true);
 	assert.equal(next.forceClosed, false);
+});
+
+test('dualWritePublish keeps testMode without touching dest ids', () => {
+	const next = dualWritePublish({ enabled: true, testMode: true });
+	assert.equal(next.testMode, true);
+	assert.equal(next.enabled, true);
+	assert.equal(Object.hasOwn(next, 'spreadsheetId'), false);
 });
 
 test('applyLaunchDefault writes today 00:00 in the portal timezone when blank', () => {
