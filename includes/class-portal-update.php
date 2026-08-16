@@ -226,29 +226,117 @@ if ( ! class_exists( 'Portal_Update' ) ) {
 		 * @return array<string,mixed>
 		 */
 		public static function fetch_latest() {
-			$url = 'https://api.github.com/repos/' . self::REPO . '/releases/latest';
+			$from_api = self::fetch_api();
+			if ( $from_api ) {
+				return $from_api;
+			}
+			return self::fetch_latest_redirect();
+		}
+
+		/**
+		 * Build a release payload from a GitHub /releases/latest Location header.
+		 *
+		 * @param string $location Redirect URL.
+		 * @return array<string,mixed>
+		 */
+		public static function release_from_location( $location ) {
+			if ( ! preg_match( '#/releases/tag/(v?\d+\.\d+\.\d+)#', (string) $location, $match ) ) {
+				return array();
+			}
+			$tag     = $match[1];
+			$version = self::semver( $tag );
+			if ( '' === $version ) {
+				return array();
+			}
+			$prefixed = 'v' . $version;
+			return array(
+				'tag_name'   => $prefixed,
+				'prerelease' => false,
+				'draft'      => false,
+				'html_url'   => 'https://github.com/' . self::REPO . '/releases/tag/' . $prefixed,
+				'assets'     => array(
+					array(
+						'name'                 => self::ZIP_PREFIX . $version . '.zip',
+						'browser_download_url' => 'https://github.com/' . self::REPO . '/releases/download/' . $prefixed . '/' . self::ZIP_PREFIX . $version . '.zip',
+					),
+				),
+			);
+		}
+
+		/**
+		 * @return array<string,mixed>
+		 */
+		private static function fetch_api() {
 			if ( ! function_exists( 'wp_remote_get' ) ) {
 				return array();
 			}
+			$headers = array(
+				'Accept'     => 'application/vnd.github+json',
+				'User-Agent' => 'DragonGate-Portals',
+			);
+			$token   = self::github_token();
+			if ( '' !== $token ) {
+				$headers['Authorization'] = 'Bearer ' . $token;
+			}
 			$response = wp_remote_get(
-				$url,
+				'https://api.github.com/repos/' . self::REPO . '/releases/latest',
 				array(
 					'timeout' => 12,
-					'headers' => array(
-						'Accept'     => 'application/vnd.github+json',
-						'User-Agent' => 'DragonGate-Portals',
-					),
+					'headers' => $headers,
 				)
 			);
 			if ( is_wp_error( $response ) ) {
 				return array();
 			}
-			$code = (int) wp_remote_retrieve_response_code( $response );
-			if ( 200 !== $code ) {
+			if ( 200 !== (int) wp_remote_retrieve_response_code( $response ) ) {
 				return array();
 			}
 			$body = json_decode( (string) wp_remote_retrieve_body( $response ), true );
 			return is_array( $body ) ? $body : array();
+		}
+
+		/**
+		 * Shared-IP hosts (WP Engine) often 403 the unauthenticated API.
+		 *
+		 * @return array<string,mixed>
+		 */
+		private static function fetch_latest_redirect() {
+			if ( ! function_exists( 'wp_remote_get' ) ) {
+				return array();
+			}
+			$response = wp_remote_get(
+				'https://github.com/' . self::REPO . '/releases/latest',
+				array(
+					'timeout'     => 12,
+					'redirection' => 0,
+					'headers'     => array( 'User-Agent' => 'DragonGate-Portals' ),
+				)
+			);
+			if ( is_wp_error( $response ) ) {
+				return array();
+			}
+			$headers = wp_remote_retrieve_headers( $response );
+			$loc     = '';
+			if ( is_object( $headers ) && isset( $headers['location'] ) ) {
+				$loc = (string) $headers['location'];
+			} elseif ( is_array( $headers ) && isset( $headers['location'] ) ) {
+				$loc = (string) $headers['location'];
+			}
+			return self::release_from_location( $loc );
+		}
+
+		/**
+		 * @return string
+		 */
+		private static function github_token() {
+			if ( defined( 'PB_GITHUB_TOKEN' ) && is_string( PB_GITHUB_TOKEN ) ) {
+				return PB_GITHUB_TOKEN;
+			}
+			if ( function_exists( 'get_option' ) ) {
+				$stored = get_option( 'pb_github_token', '' );
+				return is_string( $stored ) ? $stored : '';
+			}
+			return '';
 		}
 	}
 

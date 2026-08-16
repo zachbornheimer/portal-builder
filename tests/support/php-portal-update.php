@@ -72,5 +72,8 @@ echo json_encode(
 		'renamedPath'  => basename( rtrim( (string) $renamed, '/\\' ) ),
 		'semverV'      => Portal_Update::semver( 'v0.1.0' ),
 		'notNewer'     => ! Portal_Update::is_newer( '0.1.0', '0.1.0' ),
+		'fromLocation' => Portal_Update::release_from_location(
+			'https://github.com/zachbornheimer/portal-builder/releases/tag/v0.2.0'
+		),
 	)
 ) . "\n";

@@ -24,6 +24,8 @@ test('stable newer GitHub ZIP becomes an update; prerelease and same version do 
 	assert.equal(data.sameIgnored, true);
 	assert.equal(data.preIgnored, true);
 	assert.equal(data.rollIgnored, true);
+	assert.equal(data.fromLocation.tag_name, 'v0.2.0');
+	assert.match(data.fromLocation.assets[0].browser_download_url, /portal-builder-0\.2\.0\.zip$/);
 });
 
 test('update injects the live plugin basename and keeps portal-builder-0.0.4a', () => {
