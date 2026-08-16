@@ -4,8 +4,8 @@ function pb_application_agreements_shortcode() {
 	if ( defined( 'PB_APPLICATION_SUBMITTED' ) && PB_APPLICATION_SUBMITTED ) {
 		return '';
 	}
-	if ( defined( 'PB_APPLICATION_DEADLINE_PASSED' ) && PB_APPLICATION_DEADLINE_PASSED ) {
-		return '<p>The application deadline has passed.</p>';
+	if ( class_exists( 'Portal_Public_Render' ) && Portal_Public_Render::leftover_shortcode_is_silent() ) {
+		return '';
 	}
 
 	$post_id           = (int) get_the_ID();

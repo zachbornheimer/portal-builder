@@ -37,7 +37,7 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 		}
 
 		/**
-		 * Set PB_APPLICATION_DEADLINE_PASSED early when the form must not render.
+		 * Prime closed/deadline flags early so leftover chrome stays hidden.
 		 */
 		public static function prime_request_flags() {
 			if ( ! is_singular( 'portal' ) ) {
@@ -48,11 +48,52 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 				return;
 			}
 			if ( ! Portal_Open_State::should_show_form( $post_id ) ) {
-				if ( ! defined( 'PB_APPLICATION_DEADLINE_PASSED' ) ) {
-					// Reused by formstart/formend shortcodes to hide form chrome.
-					define( 'PB_APPLICATION_DEADLINE_PASSED', true );
-				}
+				self::define_closed_request_flags( $post_id );
 			}
+		}
+
+		/**
+		 * Hide form chrome for any closed reason; mark deadline only when that is why.
+		 *
+		 * @param int $post_id Portal post ID.
+		 */
+		private static function define_closed_request_flags( $post_id ) {
+			if ( ! defined( 'PB_APPLICATION_CLOSED' ) ) {
+				define( 'PB_APPLICATION_CLOSED', true );
+			}
+			$reason = class_exists( 'Portal_Open_State' )
+				? Portal_Open_State::closed_reason( (int) $post_id )
+				: null;
+			if ( 'deadline' === $reason && ! defined( 'PB_APPLICATION_DEADLINE_PASSED' ) ) {
+				define( 'PB_APPLICATION_DEADLINE_PASSED', true );
+			}
+		}
+
+		/**
+		 * Whether leftover formstart/formend chrome must stay off.
+		 *
+		 * @return bool
+		 */
+		public static function form_chrome_hidden() {
+			if ( defined( 'PB_APPLICATION_CLOSED' ) && PB_APPLICATION_CLOSED ) {
+				return true;
+			}
+			return defined( 'PB_APPLICATION_DEADLINE_PASSED' ) && PB_APPLICATION_DEADLINE_PASSED;
+		}
+
+		/**
+		 * Leftover post-content shortcodes stay silent when closed/definition owns the page.
+		 *
+		 * @return bool
+		 */
+		public static function leftover_shortcode_is_silent() {
+			if ( self::form_chrome_hidden() ) {
+				return true;
+			}
+			$post_id = (int) get_the_ID();
+			return $post_id > 0
+				&& class_exists( 'Portal_Definition' )
+				&& is_array( Portal_Definition::load_for_post( $post_id ) );
 		}
 
 		/**
@@ -102,10 +143,7 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 			$show_form  = Portal_Open_State::should_show_form( $post_id );
 
 			if ( ! $show_form ) {
-				if ( ! defined( 'PB_APPLICATION_DEADLINE_PASSED' ) ) {
-					// Reused by formstart/formend shortcodes to hide form chrome.
-					define( 'PB_APPLICATION_DEADLINE_PASSED', true );
-				}
+				self::define_closed_request_flags( $post_id );
 				return self::render_closed_message( $post_id );
 			}
 
@@ -283,7 +321,7 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 		 * @return bool
 		 */
 		public static function should_show_form_actions( $post_id ) {
-			if ( defined( 'PB_APPLICATION_DEADLINE_PASSED' ) && PB_APPLICATION_DEADLINE_PASSED ) {
+			if ( self::form_chrome_hidden() ) {
 				return false;
 			}
 			if ( defined( 'DG_DEFINITION_SUBMIT_OK' ) && DG_DEFINITION_SUBMIT_OK ) {
