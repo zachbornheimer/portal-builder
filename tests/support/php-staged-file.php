@@ -91,6 +91,7 @@ require_once $repo_root . '/includes/Submission/class-portal-file-signature.php'
 require_once $repo_root . '/includes/Submission/class-portal-anonymizer-transport.php';
 require_once $repo_root . '/includes/Submission/class-portal-anonymizer-reply.php';
 require_once $repo_root . '/includes/Submission/class-portal-anonymizer-api.php';
+require_once $repo_root . '/includes/Submission/class-portal-anonymize-decision.php';
 require_once $repo_root . '/includes/Submission/class-portal-anonymizer.php';
 require_once $repo_root . '/includes/Submission/class-portal-submission-pipeline.php';
 

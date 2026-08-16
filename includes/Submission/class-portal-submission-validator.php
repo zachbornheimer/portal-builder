@@ -42,6 +42,7 @@ if ( ! class_exists( 'Portal_Submission_Validator' ) ) {
 
 			self::walk_fields( $definition['fields'], $values, $files, $collected, $errors, true );
 			self::require_anonymize_ack( $definition, $values, $collected, $errors, $site );
+			self::require_anonymize_config( $definition, $errors, $site );
 
 			if ( ! empty( $errors ) ) {
 				return new WP_Error(
@@ -83,6 +84,26 @@ if ( ! class_exists( 'Portal_Submission_Validator' ) ) {
 				return;
 			}
 			$collected['values']['anonymize_ack'] = true;
+		}
+
+		/**
+		 * When resolved anonymize is on, the key (and a usable host) must be present.
+		 *
+		 * @param array $definition Definition.
+		 * @param array $errors     Field errors.
+		 * @param array $site       Site bag.
+		 * @return void
+		 */
+		private static function require_anonymize_config( array $definition, array &$errors, array $site ) {
+			if ( ! class_exists( 'Portal_Site_Defaults' ) || ! class_exists( 'Portal_Anonymizer' ) ) {
+				return;
+			}
+			$resolved = Portal_Site_Defaults::resolve( $definition, $site );
+			$missing  = Portal_Anonymizer::missing_config( $resolved );
+			if ( null === $missing ) {
+				return;
+			}
+			$errors['anonymize'] = $missing;
 		}
 
 		/**

@@ -60,6 +60,7 @@ require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-fil
 require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-anonymizer-api.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-anonymizer-reply.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-anonymizer-transport.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-anonymize-decision.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-anonymizer.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-staged-file.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-upload-store.php';

@@ -43,7 +43,9 @@ Immediate `POST /v1/anonymizations/{id}/content`
 
 ## Operator rules
 
-- **Fail-open:** any error, timeout, or invalid magic (`%PDF`, MP3, JPEG, PNG) keeps the original file.
+- **Fail-open (default):** any error, timeout, or invalid magic (`%PDF`, MP3, JPEG, PNG) keeps the original file. The operator log dest is `fail`, not success.
+- **Fail-closed:** when `anonymizeFailClosed` is on, the same errors refuse the original. Submit and stage do not store identifying bytes.
+- **Missing key:** when anonymize is on and the resolved API key (or a usable host) is empty, submit and stage fail with a validation error. This is never a silent skip.
 - Timeout is at least **120 seconds**.
 - Max upload is **50 MiB**. Larger files skip the API.
 - Retry 5xx with the **same** idempotency key.

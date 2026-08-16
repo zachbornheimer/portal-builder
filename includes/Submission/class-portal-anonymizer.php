@@ -5,10 +5,14 @@
  * @package DragonGate
  */
 
+if ( ! class_exists( 'Portal_Anonymize_Decision' ) ) {
+	require_once __DIR__ . '/class-portal-anonymize-decision.php';
+}
+
 if ( ! class_exists( 'Portal_Anonymizer' ) ) {
 
 	/**
-	 * Replaces an upload with anonymized bytes, or keeps the original (fail-open).
+	 * Replaces an upload with anonymized bytes, or keeps / refuses the original.
 	 */
 	class Portal_Anonymizer {
 
@@ -23,6 +27,9 @@ if ( ! class_exists( 'Portal_Anonymizer' ) ) {
 
 		/** @var bool */
 		private $enabled;
+
+		/** @var bool */
+		private $fail_closed;
 
 		/** @var string */
 		private $base_url;
@@ -45,6 +52,7 @@ if ( ! class_exists( 'Portal_Anonymizer' ) ) {
 			$endpoint           = isset( $options['anonymizeEndpoint'] ) ? $options['anonymizeEndpoint'] : null;
 			$key                = isset( $options['anonymizeApiKey'] ) ? $options['anonymizeApiKey'] : null;
 			$this->enabled      = ! empty( $options['anonymize'] );
+			$this->fail_closed  = ! empty( $options['anonymizeFailClosed'] );
 			$this->base_url     = Portal_Anonymizer_Api::normalize_base( $endpoint );
 			$this->api_key      = is_string( $key ) ? trim( $key ) : '';
 			$this->transport    = $transport;
@@ -52,7 +60,66 @@ if ( ! class_exists( 'Portal_Anonymizer' ) ) {
 		}
 
 		/**
-		 * Return judge-facing bytes. Never throws; API failure keeps $buffer.
+		 * Missing required config when anonymize is on, or null when ready.
+		 *
+		 * @param array $options Resolved options.
+		 * @return string|null
+		 */
+		public static function missing_config( array $options ) {
+			if ( empty( $options['anonymize'] ) ) {
+				return null;
+			}
+			$key = isset( $options['anonymizeApiKey'] ) && is_string( $options['anonymizeApiKey'] )
+				? trim( $options['anonymizeApiKey'] )
+				: '';
+			if ( '' === $key ) {
+				return Portal_Anonymize_Decision::MSG_MISSING_KEY;
+			}
+			$base = Portal_Anonymizer_Api::normalize_base(
+				isset( $options['anonymizeEndpoint'] ) ? $options['anonymizeEndpoint'] : null
+			);
+			if ( '' === $base ) {
+				return Portal_Anonymize_Decision::MSG_MISSING_ENDPOINT;
+			}
+			return null;
+		}
+
+		/**
+		 * Decide replace / keep / refuse / skip / block. Does not write storage.
+		 *
+		 * @param string      $buffer        Original file bytes.
+		 * @param string      $filename      Original filename.
+		 * @param string|null $declared_type Optional declared MIME.
+		 * @return Portal_Anonymize_Decision
+		 */
+		public function decide( $buffer, $filename, $declared_type = null ) {
+			$buffer  = (string) $buffer;
+			$missing = self::missing_config(
+				array(
+					'anonymize'         => $this->enabled,
+					'anonymizeApiKey'   => $this->api_key,
+					'anonymizeEndpoint' => $this->base_url,
+				)
+			);
+			if ( null !== $missing ) {
+				return Portal_Anonymize_Decision::block( $missing );
+			}
+			if ( ! $this->should_anonymize( $buffer ) ) {
+				return Portal_Anonymize_Decision::skip( $buffer );
+			}
+			try {
+				$replaced = $this->replace_bytes( $buffer, (string) $filename, $declared_type );
+			} catch ( Throwable $t ) {
+				return $this->after_api_failure( $buffer, $t->getMessage() );
+			}
+			if ( ! is_string( $replaced ) || '' === $replaced ) {
+				return $this->after_api_failure( $buffer, Portal_Anonymize_Decision::MSG_UNUSABLE );
+			}
+			return Portal_Anonymize_Decision::replace( $replaced );
+		}
+
+		/**
+		 * Return judge-facing bytes. Fail-open wrapper for leftover callers.
 		 *
 		 * @param string      $buffer        Original file bytes.
 		 * @param string      $filename      Original filename.
@@ -60,16 +127,12 @@ if ( ! class_exists( 'Portal_Anonymizer' ) ) {
 		 * @return string
 		 */
 		public function maybe_anonymize( $buffer, $filename, $declared_type = null ) {
-			$buffer = (string) $buffer;
-			if ( ! $this->should_anonymize( $buffer ) ) {
-				return $buffer;
+			$buffer   = (string) $buffer;
+			$decision = $this->decide( $buffer, $filename, $declared_type );
+			if ( Portal_Anonymize_Decision::ACTION_REPLACE === $decision->action ) {
+				return $decision->bytes;
 			}
-			try {
-				$replaced = $this->replace_bytes( $buffer, (string) $filename, $declared_type );
-			} catch ( Throwable $t ) {
-				return $buffer;
-			}
-			return is_string( $replaced ) && '' !== $replaced ? $replaced : $buffer;
+			return $buffer;
 		}
 
 		/**
@@ -81,6 +144,18 @@ if ( ! class_exists( 'Portal_Anonymizer' ) ) {
 				return false;
 			}
 			return strlen( $buffer ) <= ( self::MAX_UPLOAD_MIB * self::MIB );
+		}
+
+		/**
+		 * @param string $buffer Original bytes.
+		 * @param string $reason Failure reason.
+		 * @return Portal_Anonymize_Decision
+		 */
+		private function after_api_failure( $buffer, $reason ) {
+			if ( $this->fail_closed ) {
+				return Portal_Anonymize_Decision::refuse( $reason );
+			}
+			return Portal_Anonymize_Decision::keep( $buffer );
 		}
 
 		/**

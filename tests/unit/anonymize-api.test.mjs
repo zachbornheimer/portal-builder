@@ -202,6 +202,117 @@ test('anonymize false makes zero transport calls', () => {
 	assert.equal(data.stored_equals_original, true);
 });
 
+test('anonymize on + empty key blocks submit and does not store original', () => {
+	const { code, out, data } = runScenario({
+		entry: 'pipeline',
+		portalId: 'anon-empty-key',
+		artifactDir,
+		filename: 'score.pdf',
+		original: ORIGINAL_PDF,
+		download: DOWNLOAD_PDF,
+		options: {
+			anonymize: true,
+			anonymizeEndpoint: null,
+			anonymizeApiKey: '',
+		},
+		script: [completedCreate(), rawReply(DOWNLOAD_PDF)],
+	});
+	assert.equal(code, 0, out);
+	assert.ok(data, out);
+	assert.equal(data.submit_ok, false, 'empty key must not succeed');
+	assert.match(String(data.code || ''), /invalid|anonymize|config/i);
+	assert.notEqual(data.stored_equals_original, true);
+	assert.equal(data.drive_has_file, false, 'identifying original must not be stored');
+	assert.equal(data.call_count || 0, 0);
+});
+
+test('anonymizeFailClosed on + transport error does not store original', () => {
+	const { code, out, data } = runScenario({
+		entry: 'pipeline',
+		portalId: 'anon-fail-closed-timeout',
+		artifactDir,
+		filename: 'score.pdf',
+		original: ORIGINAL_PDF,
+		download: DOWNLOAD_PDF,
+		options: {
+			...enabledOptions(),
+			anonymizeFailClosed: true,
+		},
+		script: [{ throw: 'timed out after 120s' }],
+	});
+	assert.equal(code, 0, out);
+	assert.ok(data, out);
+	assert.equal(data.submit_ok, false);
+	assert.notEqual(data.stored_equals_original, true);
+	assert.equal(data.drive_has_file, false);
+	assert.equal(data.dests && data.dests.anonymize, 'fail');
+});
+
+test('anonymizeFailClosed on + invalid download does not store original', () => {
+	const { code, out, data } = runScenario({
+		entry: 'pipeline',
+		portalId: 'anon-fail-closed-bad-bytes',
+		artifactDir,
+		filename: 'score.pdf',
+		original: ORIGINAL_PDF,
+		download: DOWNLOAD_PDF,
+		options: {
+			...enabledOptions(),
+			anonymizeFailClosed: true,
+		},
+		script: [completedCreate(), rawReply('this is not a pdf')],
+	});
+	assert.equal(code, 0, out);
+	assert.ok(data, out);
+	assert.equal(data.submit_ok, false);
+	assert.notEqual(data.stored_equals_original, true);
+	assert.equal(data.drive_has_file, false);
+	assert.equal(data.dests && data.dests.anonymize, 'fail');
+});
+
+test('operator log dest is fail when anonymize API errors (fail-open still stores)', () => {
+	const { code, out, data } = runScenario({
+		entry: 'pipeline',
+		portalId: 'anon-log-fail-open',
+		artifactDir,
+		filename: 'score.pdf',
+		original: ORIGINAL_PDF,
+		download: DOWNLOAD_PDF,
+		options: {
+			...enabledOptions(),
+			anonymizeFailClosed: false,
+		},
+		script: [{ throw: 'timed out after 120s' }],
+	});
+	assert.equal(code, 0, out);
+	assert.ok(data, out);
+	assert.equal(data.submit_ok, true);
+	assert.equal(data.stored_equals_original, true);
+	assert.equal(data.dests && data.dests.anonymize, 'fail');
+	assert.notEqual(data.dests && data.dests.anonymize, 'ok');
+});
+
+test('operator log dest is skip when anonymize is off', () => {
+	const { code, out, data } = runScenario({
+		entry: 'pipeline',
+		portalId: 'anon-log-skip',
+		artifactDir,
+		filename: 'score.pdf',
+		original: ORIGINAL_PDF,
+		download: DOWNLOAD_PDF,
+		options: {
+			anonymize: false,
+			anonymizeEndpoint: null,
+			anonymizeApiKey: TEST_KEY,
+		},
+		script: [completedCreate(), rawReply(DOWNLOAD_PDF)],
+	});
+	assert.equal(code, 0, out);
+	assert.ok(data, out);
+	assert.equal(data.submit_ok, true);
+	assert.equal(data.dests && data.dests.anonymize, 'skip');
+});
+
 test('file larger than 50 MiB makes zero transport calls and keeps original', () => {
 	const oversized = `%PDF-1.3\n${'A'.repeat(50 * 1024 * 1024 + 1)}`;
 	const { code, out, data } = runScenario({
