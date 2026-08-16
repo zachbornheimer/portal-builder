@@ -28,8 +28,10 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 		const NONCE_ACTION = 'dg_definition_submit';
 		const NONCE_FIELD  = 'dg_definition_submit';
 
-		const SUCCESS_COPY      = 'Your application has been submitted successfully!';
-		const RECEIPT_LINK_TEXT = 'Click here to view the details of your application. Please print / save this for your records.';
+		const SUCCESS_COPY        = 'Your application has been submitted successfully!';
+		const RECEIPT_LINK_TEXT   = 'Click here to view the details of your application. Please print / save this for your records.';
+		const PUBLIC_FAILURE_COPY = 'Something went wrong while submitting your application. Please try again. If the problem continues, contact the host.';
+		const PUBLIC_FAILURE_CODE = 'submit';
 
 		/** @var array|null Last validation/pipeline errors for re-render. */
 		private static $last_errors = null;
@@ -42,6 +44,35 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 		 */
 		public static function last_errors() {
 			return self::$last_errors;
+		}
+
+		/**
+		 * Record a human public-form error; log the technical exception.
+		 *
+		 * @param Exception|string $exception Caught failure.
+		 * @return void
+		 */
+		public static function record_public_failure( $exception ) {
+			$detail = $exception instanceof Exception ? $exception->getMessage() : (string) $exception;
+			error_log( 'Portal Submission Error: ' . $detail );
+			self::$last_errors = array(
+				array(
+					'code'     => self::PUBLIC_FAILURE_CODE,
+					'field_id' => '',
+					'message'  => self::PUBLIC_FAILURE_COPY,
+				),
+			);
+		}
+
+		/**
+		 * Flip the public form onto the existing tokenized error surface.
+		 *
+		 * @return void
+		 */
+		public static function mark_public_errors() {
+			if ( ! defined( 'DG_DEFINITION_SUBMIT_ERRORS' ) ) {
+				define( 'DG_DEFINITION_SUBMIT_ERRORS', true );
+			}
 		}
 
 		/**
