@@ -716,6 +716,7 @@ if ( ! class_exists( 'Portal_Setup_Screen' ) ) {
 			$catalog = class_exists( 'Portal_Access' ) ? Portal_Access::catalog() : array(
 				'membershipPlans' => array(),
 				'profileFields'   => array(),
+				'roles'           => array(),
 			);
 			echo '<script type="application/json" data-dg-access-catalog>';
 			echo wp_json_encode( $catalog, JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE );
