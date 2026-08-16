@@ -4,6 +4,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
+import fs from 'node:fs';
 import path from 'node:path';
 
 const root = process.cwd();
@@ -26,14 +27,26 @@ test('anyone-audience submit without a valid captcha token is rejected', () => {
 	assert.equal(bad.code, 'dg_submission_captcha');
 });
 
-test('logged-in and members audiences skip the captcha', () => {
+test('members and logged-in submits still need Turnstile when keys are set', () => {
 	const logged = run({ audience: 'logged_in', token: '', accept: false });
-	assert.equal(logged.required, false);
-	assert.equal(logged.ok, true);
+	assert.equal(logged.required, true);
+	assert.equal(logged.ok, false);
+	assert.equal(logged.code, 'dg_submission_captcha');
 
 	const members = run({ audience: 'members', token: '', accept: false });
-	assert.equal(members.required, false);
-	assert.equal(members.ok, true);
+	assert.equal(members.required, true);
+	assert.equal(members.ok, false);
+	assert.equal(members.code, 'dg_submission_captcha');
+});
+
+test('Turnstile options are dg_turnstile_site_key and dg_turnstile_secret', () => {
+	const src = fs.readFileSync(
+		path.join(root, 'includes/Submission/class-portal-spam-gate.php'),
+		'utf8',
+	);
+	assert.match(src, /dg_turnstile_site_key/);
+	assert.match(src, /dg_turnstile_secret/);
+	assert.doesNotMatch(src, /pb_turnstile/);
 });
 
 test('anyone-audience with an accepted token is allowed', () => {

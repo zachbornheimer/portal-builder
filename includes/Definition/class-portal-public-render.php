@@ -645,7 +645,7 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 		}
 
 		/**
-		 * Turnstile widget for anyone-audience portals when a site key is set.
+		 * Turnstile widget when a site key is set.
 		 *
 		 * @param array $definition Definition.
 		 * @return string

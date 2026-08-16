@@ -193,14 +193,14 @@ if (! class_exists('Portal_Settings')) {
 
             add_settings_field(
                 Portal_Spam_Gate::OPTION_SITE,
-                __( 'Turnstile site key', 'portal-builder' ),
+                __( 'Turnstile site key', 'dragongate-portals' ),
                 array( $this, 'render_turnstile_site_field' ),
                 'portal-default-settings',
                 'pb_general_settings_section'
             );
             add_settings_field(
                 Portal_Spam_Gate::OPTION_SECRET,
-                __( 'Turnstile secret', 'portal-builder' ),
+                __( 'Turnstile secret', 'dragongate-portals' ),
                 array( $this, 'render_turnstile_secret_field' ),
                 'portal-default-settings',
                 'pb_general_settings_section'
@@ -918,14 +918,14 @@ if (! class_exists('Portal_Settings')) {
         public function render_turnstile_site_field() {
             $value = get_option( Portal_Spam_Gate::OPTION_SITE, '' );
             echo '<input type="text" name="' . esc_attr( Portal_Spam_Gate::OPTION_SITE ) . '" class="regular-text" value="' . esc_attr( (string) $value ) . '" autocomplete="off" />';
-            echo '<p class="description">' . esc_html__( 'Cloudflare Turnstile site key. Required on anyone-audience public forms. Logged-in and members portals skip the widget.', 'portal-builder' ) . '</p>';
+            echo '<p class="description">' . esc_html__( 'Cloudflare Turnstile site key. Public submits need a valid token when this is set.', 'dragongate-portals' ) . '</p>';
         }
 
         public function render_turnstile_secret_field() {
             echo Portal_Secret_Field::render_textarea(
                 Portal_Spam_Gate::OPTION_SECRET,
                 get_option( Portal_Spam_Gate::OPTION_SECRET, '' ),
-                __( 'Cloudflare Turnstile secret. Anyone-audience submits are rejected without a valid token.', 'portal-builder' )
+                __( 'Cloudflare Turnstile secret. Public submits are rejected without a valid token.', 'dragongate-portals' )
             );
         }
 

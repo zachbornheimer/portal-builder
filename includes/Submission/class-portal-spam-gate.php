@@ -1,6 +1,6 @@
 <?php
 /**
- * Public-anyone spam gate (Cloudflare Turnstile).
+ * Public spam gate (Cloudflare Turnstile).
  *
  * @package DragonGate
  */
@@ -8,24 +8,25 @@
 if ( ! class_exists( 'Portal_Spam_Gate' ) ) {
 
 	/**
-	 * Anyone-audience submits need a valid token. Logged-in / members skip.
+	 * When keys are set, every public submit needs a valid token.
 	 */
 	class Portal_Spam_Gate {
 
 		const CODE          = 'dg_submission_captcha';
 		const TOKEN_FIELD   = 'cf-turnstile-response';
-		const OPTION_SITE   = 'pb_turnstile_site_key';
-		const OPTION_SECRET = 'pb_turnstile_secret';
+		const OPTION_SITE   = 'dg_turnstile_site_key';
+		const OPTION_SECRET = 'dg_turnstile_secret';
 		const VERIFY_URL    = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
 		const MSG_MISSING   = 'Please complete the spam check and try again.';
 		const MSG_INVALID   = 'The spam check failed. Refresh the page and try again.';
 
 		/**
-		 * @param string $audience Access audience.
+		 * @param string $audience Access audience (unused when keys are set).
 		 * @return bool
 		 */
 		public static function required_for_audience( $audience ) {
-			return (string) $audience === 'anyone' || '' === (string) $audience;
+			unset( $audience );
+			return '' !== self::site_key() || '' !== self::secret();
 		}
 
 		/**
