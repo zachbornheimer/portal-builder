@@ -26,19 +26,6 @@ setup:
 	mkdir -p $(BUILD_DIR) $(DIST_DIR)
 	mkdir -p assets/dist
 
-# Ensure git-archive-all is installed
-install-git-archive-all:
-	@if ! command -v git-archive-all &> /dev/null; then \
-		if [ "$(MAKECMDGOALS)" = "install-git-archive-all" ]; then \
-			echo "Installing git-archive-all..."; \
-		fi; \
-		pip install git-archive-all; \
-	else \
-		if [ "$(MAKECMDGOALS)" = "install-git-archive-all" ]; then \
-			echo "git-archive-all is already installed."; \
-		fi; \
-	fi
-
 # Update submodules to ensure they are on the latest commit
 update-submodules:
 	git submodule update --init --recursive
@@ -59,9 +46,9 @@ install-node:
 build-svelte:
 	npm run build
 
-# Build the plugin including submodules using git-archive-all
-build: clean setup install-prod install-node build-svelte install-git-archive-all update-submodules
-	git-archive-all -9 $(shell find vendor -type f | sed 's/^/--include="/;s/$$/"/') $(shell find assets/dist -type f | sed 's/^/--include="/;s/$$/"/') $(OUTPUT_FILE)
+# Build the plugin ZIP (HEAD + submodules + vendor + assets/dist)
+build: clean setup install-prod install-node build-svelte update-submodules
+	bash scripts/make-release-zip.sh
 
 # Install composer dependencies (for dev)
 install-dev:
@@ -84,4 +71,4 @@ dev: clean setup install-dev install-node build-svelte
 svelte: install-node build-svelte
 	@echo "Svelte components built successfully."
 
-.PHONY: all clean setup build install-git-archive-all update-submodules install-dev install-prod release dev install-node build-svelte svelte
+.PHONY: all clean setup build update-submodules install-dev install-prod release dev install-node build-svelte svelte
