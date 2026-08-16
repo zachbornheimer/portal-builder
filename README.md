@@ -39,6 +39,18 @@ Every control named below is a label that exists in this plugin.
 
 10. **Send a test submit** through the public form. The row and files appear in the mapped Google Sheet and Google Drive folder. There is no WordPress applications inbox to check.
 
+## Upgrade by ZIP
+
+GitHub Releases (including prereleases) are the update channel. This plugin is not on WordPress.org.
+
+1. **Download the new ZIP** from the [Releases](https://github.com/zachbornheimer/portal-builder/releases) page.
+
+2. **Replace the plugin ZIP.** In WordPress admin, go to **Plugins → Add New → Upload Plugin**. Choose the new ZIP. When WordPress offers to replace the current plugin, accept that. Do not delete the plugin folder or portal posts first.
+
+3. **Activate** if WordPress deactivated the plugin during the replace.
+
+Portal posts and their `_portal_definition` post meta stay in the database. Replacing the plugin files does not delete posts.
+
 ## Features
 
 - Definition wizard: **Start** → **Build form** → **Map data** → **Publish**
