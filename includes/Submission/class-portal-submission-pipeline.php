@@ -12,6 +12,13 @@ if ( ! class_exists( 'Portal_Anonymize_Decision' ) ) {
 	}
 }
 
+if ( ! class_exists( 'Portal_Notification_When' ) ) {
+	$when = __DIR__ . '/class-portal-notification-when.php';
+	if ( is_readable( $when ) ) {
+		require_once $when;
+	}
+}
+
 if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 
 	/**
@@ -26,10 +33,8 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 		const STATUS_SYNCED   = 'synced';
 		const STATUS_FAILED   = 'failed';
 
-		const RECEIPT_SUBJECT_PREFIX   = 'Application receipt';
-		const DATE_RECEIVED_FORMAT     = 'M d, Y';
-		const META_NOTIFICATION_DATE   = '_portal_applicant_notification_date';
-		const NOTIFICATION_DATE_FORMAT = 'l, F j, Y';
+		const RECEIPT_SUBJECT_PREFIX = 'Application receipt';
+		const DATE_RECEIVED_FORMAT   = 'M d, Y';
 
 		/** Single-step definition form nonce (Phase 3). */
 		const NONCE_ACTION = 'dg_definition_submit';
@@ -964,24 +969,16 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 		}
 
 		/**
-		 * Human notification date from portal meta.
+		 * Human notification clause from portal meta.
 		 *
 		 * @param string|int $portal_id Portal id.
 		 * @return string
 		 */
 		private static function notification_date( $portal_id ) {
-			if ( ! function_exists( 'get_post_meta' ) ) {
+			if ( ! class_exists( 'Portal_Notification_When' ) ) {
 				return '';
 			}
-			$raw = get_post_meta( (int) $portal_id, self::META_NOTIFICATION_DATE, true );
-			if ( ! is_string( $raw ) || '' === $raw ) {
-				return '';
-			}
-			$ts = strtotime( $raw );
-			if ( false === $ts ) {
-				return $raw;
-			}
-			return gmdate( self::NOTIFICATION_DATE_FORMAT, $ts );
+			return Portal_Notification_When::phrase( $portal_id );
 		}
 
 		/**

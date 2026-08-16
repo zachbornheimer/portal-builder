@@ -2,6 +2,13 @@
 
 require_once plugin_dir_path( __FILE__ ) . '../vendor/autoload.php';
 
+if ( ! class_exists( 'Portal_Notification_When' ) ) {
+	$when = __DIR__ . '/Submission/class-portal-notification-when.php';
+	if ( is_readable( $when ) ) {
+		require_once $when;
+	}
+}
+
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
@@ -118,9 +125,9 @@ if ( ! class_exists( 'Portal_Submission' ) ) {
 			// get the post title from the id
 			$portal_name = get_the_title( $data['post_id'] );
 
-			$raw_notification_date = get_post_meta( $data['post_id'], '_portal_applicant_notification_date', true );
-			// turn the raw date into a human readable date like Monday, June 15, 2021
-			$application_notification_date = date( 'l, F j, Y', strtotime( $raw_notification_date ) );
+			$application_notification_date = class_exists( 'Portal_Notification_When' )
+				? Portal_Notification_When::phrase( $data['post_id'] )
+				: '';
 
 			$link = $this->generate_receipt_link();
 
