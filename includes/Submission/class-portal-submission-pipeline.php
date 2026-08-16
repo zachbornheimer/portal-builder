@@ -347,6 +347,9 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 		/** @var object|null Transport with send(array $request). */
 		private $transport;
 
+		/** @var Portal_Submit_Log|null Operator dest log. */
+		private $log;
+
 		/**
 		 * @param object            $sheets     Sheet port (append_row).
 		 * @param object            $drive      Drive port (store_file).
@@ -383,6 +386,15 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 		}
 
 		/**
+		 * @param Portal_Submit_Log|null $log Operator dest log.
+		 * @return self
+		 */
+		public function with_log( $log ) {
+			$this->log = $log instanceof Portal_Submit_Log ? $log : null;
+			return $this;
+		}
+
+		/**
 		 * Build a pipeline wired to the given artifact directory (test mode).
 		 *
 		 * @param string            $artifact_dir Absolute artifact root.
@@ -395,7 +407,8 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 			$sheets = new Portal_Sheet_Store( $artifact_dir, $files );
 			$drive  = new Portal_Drive_Store( $artifact_dir, $files );
 			$mailer = new Portal_Mailer( $artifact_dir, $files, $now_ms );
-			return new self( $sheets, $drive, $mailer, $files );
+			$pipeline = new self( $sheets, $drive, $mailer, $files );
+			return self::attach_default_log( $pipeline, $files, $artifact_dir );
 		}
 
 		/**
@@ -436,7 +449,8 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 			}
 			$google = new Portal_Google_Store( $file_store, $definition, $files );
 			$mailer = new Portal_Mailer( Portal_Test_Mode::artifact_dir(), $files, $now_ms );
-			return new self( $google, $google, $mailer, $files, $open_state );
+			$pipeline = new self( $google, $google, $mailer, $files, $open_state );
+			return self::attach_default_log( $pipeline, $files, null );
 		}
 
 		/**
@@ -516,91 +530,120 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 				$this->sheets->set_submission_id( $submission_id );
 			}
 
+			$dests       = class_exists( 'Portal_Submit_Log' )
+				? Portal_Submit_Log::empty_dests()
+				: array(
+					'sheet'     => 'skip',
+					'drive'     => 'skip',
+					'anonymize' => 'skip',
+					'mail'      => 'skip',
+				);
+			$to          = self::applicant_email( $validated );
 			$drive_paths = array();
 			$file_meta   = array();
+			$phase       = 'drive';
 
-			foreach ( $validated['files'] as $field_id => $meta ) {
-				$buffer   = $this->read_file_buffer( $meta );
-				$filename = isset( $meta['name'] ) ? (string) $meta['name'] : ( $field_id . '.bin' );
-				if ( null === $buffer ) {
-					return new WP_Error(
-						'dg_submission_file_read',
-						sprintf( 'Could not read upload for field "%s".', $field_id )
+			try {
+				foreach ( $validated['files'] as $field_id => $meta ) {
+					$buffer   = $this->read_file_buffer( $meta );
+					$filename = isset( $meta['name'] ) ? (string) $meta['name'] : ( $field_id . '.bin' );
+					if ( null === $buffer ) {
+						return new WP_Error(
+							'dg_submission_file_read',
+							sprintf( 'Could not read upload for field "%s".', $field_id )
+						);
+					}
+					$anon_status              = 'skip';
+					$buffer                   = $this->anonymize_judge_bytes( $definition, $buffer, $filename, $meta, $anon_status );
+					$dests['anonymize']       = $anon_status;
+					$path                     = $this->drive->store_file( $portal_id, $field_id, $buffer, $filename );
+					$drive_paths[ $field_id ] = $path;
+					$file_meta[ $field_id ]   = array(
+						'fieldId'  => $field_id,
+						'filename' => $filename,
+						'path'     => $path,
+						'bytes'    => strlen( $buffer ),
 					);
 				}
-				$buffer                   = $this->anonymize_judge_bytes( $definition, $buffer, $filename, $meta );
-				$path                     = $this->drive->store_file( $portal_id, $field_id, $buffer, $filename );
-				$drive_paths[ $field_id ] = $path;
-				$file_meta[ $field_id ]   = array(
-					'fieldId'  => $field_id,
-					'filename' => $filename,
-					'path'     => $path,
-					'bytes'    => strlen( $buffer ),
-				);
-			}
-
-			$row                  = $this->build_sheet_row( $portal_id, $definition, $validated, $drive_paths );
-			$row['applicationId'] = $submission_id;
-			if ( is_object( $this->drive ) && method_exists( $this->drive, 'ensure_application_folder' ) ) {
-				$this->drive->ensure_application_folder( $portal_id );
-			}
-			if ( is_object( $this->drive ) && method_exists( $this->drive, 'folder_url' ) ) {
-				$folder_url = (string) $this->drive->folder_url();
-				if ( '' !== $folder_url ) {
-					$row['files'] = $folder_url;
+				if ( ! empty( $validated['files'] ) ) {
+					$dests['drive'] = 'ok';
+					if ( 'skip' === $dests['anonymize'] ) {
+						$dests['anonymize'] = 'warning';
+					}
 				}
-			}
 
-			$to            = self::applicant_email( $validated );
-			$title         = isset( $definition['title'] ) ? (string) $definition['title'] : 'Portal';
-			$applicant     = isset( $validated['applicant']['sub_name'] ) ? (string) $validated['applicant']['sub_name'] : '';
-			$date_received = gmdate( self::DATE_RECEIVED_FORMAT );
-			$receipt_url   = class_exists( 'Portal_Receipt' )
-				? Portal_Receipt::url( $portal_id, $submission_id )
-				: '';
-			$selection     = isset( $row['selection_path'] ) ? (string) $row['selection_path'] : '';
+				$row                  = $this->build_sheet_row( $portal_id, $definition, $validated, $drive_paths );
+				$row['applicationId'] = $submission_id;
+				if ( is_object( $this->drive ) && method_exists( $this->drive, 'ensure_application_folder' ) ) {
+					$this->drive->ensure_application_folder( $portal_id );
+				}
+				if ( is_object( $this->drive ) && method_exists( $this->drive, 'folder_url' ) ) {
+					$folder_url = (string) $this->drive->folder_url();
+					if ( '' !== $folder_url ) {
+						$row['files'] = $folder_url;
+					}
+				}
 
-			$row['receiptUrl']   = $receipt_url;
-			$row['email']        = $to ? $to : '';
-			$row['dateReceived'] = $date_received;
+				$title         = isset( $definition['title'] ) ? (string) $definition['title'] : 'Portal';
+				$applicant     = isset( $validated['applicant']['sub_name'] ) ? (string) $validated['applicant']['sub_name'] : '';
+				$date_received = gmdate( self::DATE_RECEIVED_FORMAT );
+				$receipt_url   = class_exists( 'Portal_Receipt' )
+					? Portal_Receipt::url( $portal_id, $submission_id )
+					: '';
+				$selection     = isset( $row['selection_path'] ) ? (string) $row['selection_path'] : '';
 
-			if ( class_exists( 'Portal_Receipt' ) ) {
-				Portal_Receipt::store(
-					$submission_id,
-					array(
-						'applicationId' => $submission_id,
-						'portalId'      => $portal_id,
-						'portalTitle'   => $title,
-						'applicantName' => $applicant,
-						'email'         => $row['email'],
-						'receiptUrl'    => $receipt_url,
-						'selection'     => $selection,
-						'submittedAt'   => $date_received,
-						'dateReceived'  => $date_received,
-					)
+				$row['receiptUrl']   = $receipt_url;
+				$row['email']        = $to ? $to : '';
+				$row['dateReceived'] = $date_received;
+
+				if ( class_exists( 'Portal_Receipt' ) ) {
+					Portal_Receipt::store(
+						$submission_id,
+						array(
+							'applicationId' => $submission_id,
+							'portalId'      => $portal_id,
+							'portalTitle'   => $title,
+							'applicantName' => $applicant,
+							'email'         => $row['email'],
+							'receiptUrl'    => $receipt_url,
+							'selection'     => $selection,
+							'submittedAt'   => $date_received,
+							'dateReceived'  => $date_received,
+						)
+					);
+				}
+
+				$phase          = 'sheet';
+				$sheet_path     = $this->sheets->append_row( $portal_id, $row );
+				$dests['sheet'] = 'ok';
+				$tokens         = array(
+					'application_id'    => $submission_id,
+					'applicant_name'    => $applicant,
+					'applicant_email'   => $to ? $to : '',
+					'portal_title'      => $title,
+					'receipt_url'       => $receipt_url,
+					'selection'         => $selection,
+					'submitted_at'      => $date_received,
+					'notification_date' => self::notification_date( $portal_id ),
 				);
+				$phase              = 'mail';
+				$mail_path          = $this->send_receipt_mail(
+					$to,
+					$portal_id,
+					$title,
+					$tokens,
+					$validated['values'],
+					$file_meta
+				);
+				$operator_mail_path = $this->send_operator_mail( $portal_id, $title, $tokens );
+				$dests['mail']      = ( '' !== $mail_path || '' !== $operator_mail_path ) ? 'ok' : 'fail';
+			} catch ( Exception $e ) {
+				$dests[ $phase ] = 'fail';
+				$code            = $phase . '_fail';
+				return $this->fail_after_dests( $portal_id, $submission_id, $dests, $code, $e, $to ? $to : '' );
 			}
 
-			$sheet_path = $this->sheets->append_row( $portal_id, $row );
-			$tokens     = array(
-				'application_id'    => $submission_id,
-				'applicant_name'    => $applicant,
-				'applicant_email'   => $to ? $to : '',
-				'portal_title'      => $title,
-				'receipt_url'       => $receipt_url,
-				'selection'         => $selection,
-				'submitted_at'      => $date_received,
-				'notification_date' => self::notification_date( $portal_id ),
-			);
-			$mail_path          = $this->send_receipt_mail(
-				$to,
-				$portal_id,
-				$title,
-				$tokens,
-				$validated['values'],
-				$file_meta
-			);
-			$operator_mail_path = $this->send_operator_mail( $portal_id, $title, $tokens );
+			$this->write_operator_log( $portal_id, $submission_id, $dests, 'ok', $to ? $to : '' );
 
 			return array(
 				'ok'               => true,
@@ -718,18 +761,26 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 		/**
 		 * Strip identity from judge-facing bytes. Fail-open to $buffer.
 		 *
-		 * @param array  $definition Definition document.
-		 * @param string $buffer     Original upload bytes.
-		 * @param string $filename   Original filename.
-		 * @param array  $meta       File meta.
+		 * @param array       $definition Definition document.
+		 * @param string      $buffer     Original upload bytes.
+		 * @param string      $filename   Original filename.
+		 * @param array       $meta       File meta.
+		 * @param string|null $dest       Set to ok|skip|warning.
 		 * @return string
 		 */
-		private function anonymize_judge_bytes( array $definition, $buffer, $filename, array $meta ) {
+		private function anonymize_judge_bytes( array $definition, $buffer, $filename, array $meta, &$dest = null ) {
+			$dest = 'skip';
 			// Staged uploads already ran anonymize (or deliberately skipped it).
-			if ( ! empty( $meta['already_anonymized'] ) || ! empty( $meta['staged'] ) ) {
+			if ( ! empty( $meta['already_anonymized'] ) ) {
+				$dest = 'ok';
+				return $buffer;
+			}
+			if ( ! empty( $meta['staged'] ) ) {
+				$dest = 'skip';
 				return $buffer;
 			}
 			if ( ! class_exists( 'Portal_Anonymizer' ) ) {
+				$dest = 'warning';
 				return $buffer;
 			}
 			$options = class_exists( 'Portal_Site_Defaults' )
@@ -737,9 +788,15 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 				: ( isset( $definition['options'] ) && is_array( $definition['options'] )
 					? $definition['options']
 					: array() );
+			if ( empty( $options['anonymize'] ) ) {
+				$dest = 'warning';
+				return $buffer;
+			}
 			$type    = isset( $meta['type'] ) ? (string) $meta['type'] : null;
 			$owner   = new Portal_Anonymizer( $options, $this->transport );
-			return $owner->maybe_anonymize( $buffer, $filename, $type );
+			$replaced = $owner->maybe_anonymize( $buffer, $filename, $type );
+			$dest     = ( $replaced !== $buffer ) ? 'ok' : 'warning';
+			return $replaced;
 		}
 
 		/**
@@ -849,6 +906,76 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 				return $raw;
 			}
 			return gmdate( self::NOTIFICATION_DATE_FORMAT, $ts );
+		}
+
+		/**
+		 * Attach the default JSONL log (artifact dg-logs or uploads/dg-logs).
+		 *
+		 * @param self              $pipeline     Pipeline.
+		 * @param Portal_Files      $files        FS facade.
+		 * @param string|null       $artifact_dir Artifact root in test mode.
+		 * @return self
+		 */
+		private static function attach_default_log( $pipeline, $files, $artifact_dir ) {
+			if ( ! class_exists( 'Portal_Submit_Log' ) ) {
+				return $pipeline;
+			}
+			if ( is_string( $artifact_dir ) && '' !== $artifact_dir ) {
+				$log = new Portal_Submit_Log(
+					$files->join( $artifact_dir, Portal_Submit_Log::DIR_NAME ),
+					$files
+				);
+			} else {
+				$log = Portal_Submit_Log::for_uploads( $files );
+			}
+			return $pipeline->with_log( $log );
+		}
+
+		/**
+		 * @return Portal_Submit_Log|null
+		 */
+		private function submit_log() {
+			if ( $this->log instanceof Portal_Submit_Log ) {
+				return $this->log;
+			}
+			if ( ! class_exists( 'Portal_Submit_Log' ) ) {
+				return null;
+			}
+			$this->log = Portal_Submit_Log::for_uploads( $this->files );
+			return $this->log;
+		}
+
+		/**
+		 * @param string               $portal_id Portal id.
+		 * @param string               $app_id    Application id.
+		 * @param array<string,string> $dests     Dest results.
+		 * @param string               $code      Error code.
+		 * @param string               $email     Applicant email (hashed only).
+		 * @return void
+		 */
+		private function write_operator_log( $portal_id, $app_id, array $dests, $code, $email ) {
+			$log = $this->submit_log();
+			if ( null === $log ) {
+				return;
+			}
+			$log->record( $portal_id, $app_id, $dests, $code, $email );
+		}
+
+		/**
+		 * Record dest outcomes, keep one human sentence on the public form.
+		 *
+		 * @param string               $portal_id  Portal id.
+		 * @param string               $app_id     Application id.
+		 * @param array<string,string> $dests      Dest results.
+		 * @param string               $code       Error code.
+		 * @param Exception            $exception  Dest failure.
+		 * @param string               $email      Applicant email.
+		 * @return WP_Error
+		 */
+		private function fail_after_dests( $portal_id, $app_id, array $dests, $code, $exception, $email ) {
+			$this->write_operator_log( $portal_id, $app_id, $dests, $code, $email );
+			self::record_public_failure( $exception );
+			return new WP_Error( 'dg_submission_dest', self::PUBLIC_FAILURE_COPY );
 		}
 
 		/**

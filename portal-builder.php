@@ -61,6 +61,7 @@ require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-ano
 require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-anonymizer.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-staged-file.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-upload-store.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-submit-log.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-submission-pipeline.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/adapters/class-portal-google-store.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-portal-definition-rest.php';

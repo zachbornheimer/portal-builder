@@ -63,6 +63,38 @@ require_once $repo_root . '/includes/Submission/class-portal-submission-destinat
 require_once $repo_root . '/includes/Submission/class-portal-staged-file.php';
 require_once $repo_root . '/includes/Submission/class-portal-submission-pipeline.php';
 require_once $repo_root . '/includes/adapters/class-portal-google-store.php';
+$submit_log_file = $repo_root . '/includes/Submission/class-portal-submit-log.php';
+if ( is_readable( $submit_log_file ) ) {
+	require_once $submit_log_file;
+}
+
+if ( ! function_exists( 'esc_html' ) ) {
+	/**
+	 * @param string $text Text.
+	 * @return string
+	 */
+	function esc_html( $text ) {
+		return htmlspecialchars( (string) $text, ENT_QUOTES, 'UTF-8' );
+	}
+}
+if ( ! function_exists( 'esc_attr' ) ) {
+	/**
+	 * @param string $text Text.
+	 * @return string
+	 */
+	function esc_attr( $text ) {
+		return htmlspecialchars( (string) $text, ENT_QUOTES, 'UTF-8' );
+	}
+}
+if ( ! function_exists( 'esc_url' ) ) {
+	/**
+	 * @param string $url URL.
+	 * @return string
+	 */
+	function esc_url( $url ) {
+		return (string) $url;
+	}
+}
 
 /**
  * Mailer that throws or returns false so fail-open can be proven.
@@ -166,12 +198,19 @@ if ( null === $portal_id || '' === $portal_id ) {
 $append_only     = in_array( '--append', $argv, true );
 $via_for_post    = in_array( '--via-for-post', $argv, true );
 $live_google     = in_array( '--live-google', $argv, true );
+$drive_fail      = in_array( '--drive-fail', $argv, true );
 $open_state_flag = harness_flag_value( $argv, '--open-state' );
 $mapping_path    = harness_flag_value( $argv, '--mapping' );
 $seed_headers    = harness_decode_headers( harness_flag_value( $argv, '--seed-headers' ) );
 $mail_fail       = harness_flag_value( $argv, '--mail-fail' );
 $operator_email  = harness_flag_value( $argv, '--operator-email' );
 $admin_email     = harness_flag_value( $argv, '--admin-email' );
+$log_dir         = harness_flag_value( $argv, '--log-dir' );
+if ( ! is_string( $log_dir ) || '' === $log_dir ) {
+	$log_dir = $artifact . DIRECTORY_SEPARATOR . 'dg-logs';
+} elseif ( ! is_absolute_path( $log_dir ) ) {
+	$log_dir = $repo_root . DIRECTORY_SEPARATOR . ltrim( $log_dir, '/\\' );
+}
 
 harness_stub_mail_options( $operator_email, $admin_email );
 
@@ -208,6 +247,10 @@ $drive        = new Portal_Drive_Store( $artifact, $files_facade );
 if ( ! $append_only ) {
 	$sheets->clear_portal( $portal_id );
 	$drive->clear_portal( $portal_id );
+	harness_clear_submit_log( $log_dir, $portal_id, $files_facade );
+}
+if ( $drive_fail ) {
+	$drive = new Portal_Harness_Drive();
 }
 
 // Deterministic mail filename for assertions.
@@ -245,9 +288,17 @@ if ( $via_for_post ) {
 	}
 	$for_post = new ReflectionMethod( 'Portal_Submission_Pipeline', 'process_for_post' );
 	if ( $for_post->getNumberOfParameters() >= 4 ) {
-		$result = Portal_Submission_Pipeline::process_for_post( $post_id, $values, $files, $opts );
+		$result = harness_run_process(
+			static function () use ( $post_id, $values, $files, $opts ) {
+				return Portal_Submission_Pipeline::process_for_post( $post_id, $values, $files, $opts );
+			}
+		);
 	} else {
-		$result = Portal_Submission_Pipeline::process_for_post( $post_id, $values, $files );
+		$result = harness_run_process(
+			static function () use ( $post_id, $values, $files ) {
+				return Portal_Submission_Pipeline::process_for_post( $post_id, $values, $files );
+			}
+		);
 	}
 } elseif ( $live_google && method_exists( 'Portal_Submission_Pipeline', 'for_live' ) ) {
 	$fake_store = new Portal_Fake_File_Store( $seed_headers );
@@ -258,13 +309,23 @@ if ( $via_for_post ) {
 		$fake_store,
 		$open_state
 	);
-	$result     = $pipeline->process( $portal_id, $definition, $values, $files );
+	$pipeline = harness_attach_log( $pipeline, $log_dir, $files_facade );
+	$result   = harness_run_process(
+		static function () use ( $pipeline, $portal_id, $definition, $values, $files ) {
+			return $pipeline->process( $portal_id, $definition, $values, $files );
+		}
+	);
 } else {
-	$pipeline = harness_artifact_pipeline( $artifact, $files_facade, $fixed_ms, $sheets, $drive, $mail_fail );
+	$pipeline = harness_artifact_pipeline( $artifact, $files_facade, $fixed_ms, $sheets, $drive, $mail_fail, $drive_fail );
+	$pipeline = harness_attach_log( $pipeline, $log_dir, $files_facade );
 	if ( null !== $open_state && method_exists( $pipeline, 'with_open_state' ) ) {
 		$pipeline->with_open_state( $open_state );
 	}
-	$result = $pipeline->process( $portal_id, $definition, $values, $files );
+	$result = harness_run_process(
+		static function () use ( $pipeline, $portal_id, $definition, $values, $files ) {
+			return $pipeline->process( $portal_id, $definition, $values, $files );
+		}
+	);
 }
 
 if ( is_wp_error( $result ) ) {
@@ -277,6 +338,7 @@ if ( is_wp_error( $result ) ) {
 	if ( $fake_store instanceof Portal_Fake_File_Store ) {
 		$payload['googleStore'] = $fake_store->record();
 	}
+	harness_attach_log_view( $payload, $portal_id, $log_dir, $files_facade );
 	fwrite( STDERR, json_encode( $payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES ) . "\n" );
 	exit( 1 );
 }
@@ -285,6 +347,7 @@ $result['artifactDir'] = $artifact;
 if ( $fake_store instanceof Portal_Fake_File_Store ) {
 	$result['googleStore'] = $fake_store->record();
 }
+harness_attach_log_view( $result, $portal_id, $log_dir, $files_facade );
 echo json_encode( $result, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES ) . "\n";
 exit( 0 );
 
@@ -326,16 +389,152 @@ function harness_stub_mail_options( $operator_email, $admin_email ) {
  * @param Portal_Files      $files        Files facade.
  * @param callable          $now_ms       Clock.
  * @param Portal_Sheet_Store $sheets      Sheet store.
- * @param Portal_Drive_Store $drive       Drive store.
+ * @param object            $drive        Drive port.
  * @param string|null       $mail_fail    throw|false|null.
+ * @param bool              $drive_fail   Use the injected failing Drive port.
  * @return Portal_Submission_Pipeline
  */
-function harness_artifact_pipeline( $artifact, $files, $now_ms, $sheets, $drive, $mail_fail ) {
-	if ( ! is_string( $mail_fail ) || '' === $mail_fail ) {
-		return Portal_Submission_Pipeline::for_artifacts( $artifact, $files, $now_ms );
+function harness_artifact_pipeline( $artifact, $files, $now_ms, $sheets, $drive, $mail_fail, $drive_fail = false ) {
+	if ( $drive_fail || ( is_string( $mail_fail ) && '' !== $mail_fail ) ) {
+		$mailer = ( is_string( $mail_fail ) && '' !== $mail_fail )
+			? new Portal_Harness_Mailer( $artifact, $files, $now_ms, $mail_fail )
+			: new Portal_Mailer( $artifact, $files, $now_ms );
+		return new Portal_Submission_Pipeline( $sheets, $drive, $mailer, $files );
 	}
-	$mailer = new Portal_Harness_Mailer( $artifact, $files, $now_ms, $mail_fail );
-	return new Portal_Submission_Pipeline( $sheets, $drive, $mailer, $files );
+	return Portal_Submission_Pipeline::for_artifacts( $artifact, $files, $now_ms );
+}
+
+/**
+ * Run process(); dest throws become WP_Error after public-failure record.
+ *
+ * @param callable $runner Pipeline call.
+ * @return mixed
+ */
+function harness_run_process( $runner ) {
+	try {
+		return $runner();
+	} catch ( Exception $e ) {
+		if ( class_exists( 'Portal_Submission_Pipeline' ) && method_exists( 'Portal_Submission_Pipeline', 'record_public_failure' ) ) {
+			Portal_Submission_Pipeline::record_public_failure( $e );
+		}
+		return new WP_Error( 'dg_submission_uncaught', $e->getMessage() );
+	}
+}
+
+/**
+ * @param object      $pipeline Pipeline.
+ * @param string      $log_dir  Log directory.
+ * @param Portal_Files $files   Files facade.
+ * @return object
+ */
+function harness_attach_log( $pipeline, $log_dir, $files ) {
+	if ( ! is_object( $pipeline ) || ! method_exists( $pipeline, 'with_log' ) ) {
+		return $pipeline;
+	}
+	if ( ! class_exists( 'Portal_Submit_Log' ) ) {
+		return $pipeline;
+	}
+	return $pipeline->with_log( new Portal_Submit_Log( $log_dir, $files ) );
+}
+
+/**
+ * @param string       $log_dir   Log directory.
+ * @param string       $portal_id Portal id.
+ * @param Portal_Files $files     Files facade.
+ * @return void
+ */
+function harness_clear_submit_log( $log_dir, $portal_id, $files ) {
+	if ( class_exists( 'Portal_Submit_Log' ) ) {
+		$log = new Portal_Submit_Log( $log_dir, $files );
+		if ( method_exists( $log, 'clear_portal' ) ) {
+			$log->clear_portal( $portal_id );
+			return;
+		}
+	}
+	$path = rtrim( (string) $log_dir, '/\\' ) . DIRECTORY_SEPARATOR . $portal_id . '.jsonl';
+	if ( $files->exists( $path ) ) {
+		$files->remove( $path );
+	}
+}
+
+/**
+ * Surface last-N log rows and public error HTML on the harness payload.
+ *
+ * @param array        $payload   Payload.
+ * @param string       $portal_id Portal id.
+ * @param string       $log_dir   Log directory.
+ * @param Portal_Files $files     Files facade.
+ * @return void
+ */
+function harness_attach_log_view( array &$payload, $portal_id, $log_dir, $files ) {
+	$payload['logRows']    = array();
+	$payload['adminRows']  = array();
+	$payload['adminHtml']  = '';
+	$payload['publicHtml'] = '';
+	$payload['lastErrors'] = null;
+	$payload['logPath']    = rtrim( (string) $log_dir, '/\\' ) . DIRECTORY_SEPARATOR . $portal_id . '.jsonl';
+	if ( class_exists( 'Portal_Submit_Log' ) ) {
+		$log                   = new Portal_Submit_Log( $log_dir, $files );
+		$payload['logPath']    = $log->path_for( $portal_id );
+		$payload['logRows']    = $log->last( $portal_id, 20 );
+		$payload['adminRows']  = $payload['logRows'];
+		$payload['adminHtml']  = $log->render_admin( $portal_id );
+	} elseif ( $files->exists( $payload['logPath'] ) ) {
+		$text = trim( $files->read_text( $payload['logPath'] ) );
+		if ( '' !== $text ) {
+			foreach ( explode( "\n", $text ) as $line ) {
+				$decoded = json_decode( trim( $line ), true );
+				if ( is_array( $decoded ) ) {
+					$payload['logRows'][] = $decoded;
+				}
+			}
+			$payload['adminRows'] = $payload['logRows'];
+		}
+	}
+	if ( class_exists( 'Portal_Submission_Pipeline' ) && method_exists( 'Portal_Submission_Pipeline', 'last_errors' ) ) {
+		$errors = Portal_Submission_Pipeline::last_errors();
+		if ( is_array( $errors ) ) {
+			$payload['lastErrors'] = $errors;
+			$payload['publicHtml'] = Portal_Submission_Pipeline::render_errors( $errors );
+		}
+	}
+}
+
+/**
+ * Drive port that throws a Google-shaped error (no retry).
+ */
+class Portal_Harness_Drive {
+	/**
+	 * @param string $id Submission id.
+	 * @return void
+	 */
+	public function set_submission_id( $id ) {
+	}
+
+	/**
+	 * @param string|int $portal_id Portal id.
+	 * @return void
+	 */
+	public function ensure_application_folder( $portal_id ) {
+	}
+
+	/**
+	 * @return string
+	 */
+	public function folder_url() {
+		return '';
+	}
+
+	/**
+	 * @param string|int $portal_id Portal id.
+	 * @param string     $field_id  Field id.
+	 * @param string     $buffer    Bytes.
+	 * @param string     $filename  Filename.
+	 * @return string
+	 */
+	public function store_file( $portal_id, $field_id, $buffer, $filename ) {
+		throw new Exception( 'Google Drive write failed: {"error":"invalid_grant","error_description":"Token has been expired or revoked."}' );
+	}
 }
 
 /**
