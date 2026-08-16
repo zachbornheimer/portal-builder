@@ -76,6 +76,22 @@ test('definition-form.css paints error background on .dg-file.is-invalid', () =>
 	assert.doesNotMatch(css, /dg-file-confirm-input/);
 });
 
+test('a file card before the next section heading gets a section break', () => {
+	const css = fs.readFileSync(path.join(root, 'assets/definition-form.css'), 'utf8');
+	assert.match(
+		css,
+		/\.dg-form\.portal-definition-form\s*>\s*\.dg-file\s*\+\s*\.dg-field--branch/,
+	);
+	assert.match(
+		css,
+		/\.dg-form\.portal-definition-form\s*>\s*\.dg-file\s*\+\s*\.dg-field--branch[\s\S]{0,240}margin-block-start:\s*var\(--s-3\)/,
+	);
+	assert.match(
+		css,
+		/\.dg-form\.portal-definition-form\s*\{[^}]*flex-direction:\s*column/s,
+	);
+});
+
 test('gated packet and public main stay capped at --measure', () => {
 	const css = fs.readFileSync(path.join(root, 'assets/definition-form.css'), 'utf8');
 	assert.match(

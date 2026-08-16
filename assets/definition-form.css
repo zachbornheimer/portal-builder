@@ -198,12 +198,30 @@ body.single-portal form.dg-portal-submit-form fieldset {
 }
 
 .dg-form.portal-definition-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
   margin-block: var(--s-5) 0;
   padding: 0;
   border: 0;
   border-radius: 0;
   box-shadow: none;
   background: transparent;
+}
+
+.dg-form.portal-definition-form .dg-field--static_html > :first-child {
+  margin-block-start: 0;
+}
+
+.dg-form.portal-definition-form .dg-field--static_html > :last-child {
+  margin-block-end: 0;
+}
+
+/* File cards are heavier than a text field; the next heading needs a section break. */
+.dg-form.portal-definition-form > .dg-file + .dg-field--branch,
+.dg-form.portal-definition-form > .dg-file + .dg-field--group,
+.dg-form.portal-definition-form > .dg-file + .dg-section {
+  margin-block-start: var(--s-3);
 }
 
 .dg-stack {
@@ -240,6 +258,10 @@ body.single-portal form.dg-portal-submit-form fieldset {
   padding: 0;
   margin: 0 0 var(--s-6);
   background: transparent;
+}
+
+.dg-form.portal-definition-form fieldset {
+  margin-block-end: 0;
 }
 
 .dg-packet legend,
