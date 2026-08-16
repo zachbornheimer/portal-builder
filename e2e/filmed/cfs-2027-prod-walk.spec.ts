@@ -178,7 +178,7 @@ async function openPublicForm(page: import('@playwright/test').Page) {
   })
   expect(res === null || (res !== null && res.status() >= 200 && res.status() < 400)).toBeTruthy()
   const html = await page.content()
-  expect(html, 'live plugin must be 0.1.0').toContain('ver=0.1.0')
+  expect(html, 'live plugin must be 0.1.2').toContain('ver=0.1.2')
   const closed = page.locator('[data-dg-portal-state="closed"]')
   if (await closed.count()) {
     throw new Error(`portal is closed: ${await closed.innerText()}`)
@@ -228,7 +228,7 @@ async function confirmFileCard(
   await card.getByRole('button', { name: /Open to confirm/i }).click()
   // Confirm is in-page; a tab cannot callback.
   const dialog = page.getByRole('dialog', { name: /Confirm this file/i })
-  await expect(dialog.or(card)).toBeVisible()
+  await expect(dialog).toBeVisible()
   await expect(card).toHaveClass(/is-opened/, { timeout: 15_000 })
   await expect(card.getByText(/This file opened and is readable/i)).toBeVisible()
   await expect(card.getByRole('button', { name: /^Open$/ })).toBeVisible()

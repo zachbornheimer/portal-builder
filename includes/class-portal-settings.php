@@ -355,6 +355,24 @@ if (! class_exists('Portal_Settings')) {
             );
             register_setting(
                 'pb_settings_group',
+                'pb_login_url',
+                array(
+                    'type'              => 'string',
+                    'sanitize_callback' => array( $this, 'sanitize_path_or_url' ),
+                    'default'           => '',
+                )
+            );
+            register_setting(
+                'pb_settings_group',
+                'pb_join_url',
+                array(
+                    'type'              => 'string',
+                    'sanitize_callback' => array( $this, 'sanitize_path_or_url' ),
+                    'default'           => '',
+                )
+            );
+            register_setting(
+                'pb_settings_group',
                 'pb_default_timezone',
                 array(
                     'type'              => 'string',
@@ -433,6 +451,20 @@ if (! class_exists('Portal_Settings')) {
                 'pb_anonymizer_defaults_section'
             );
             add_settings_field(
+                'pb_login_url',
+                __( 'Sign-in URL', 'portal-builder' ),
+                array( $this, 'render_login_url_field' ),
+                'portal-default-settings',
+                'pb_anonymizer_defaults_section'
+            );
+            add_settings_field(
+                'pb_join_url',
+                __( 'Membership URL', 'portal-builder' ),
+                array( $this, 'render_join_url_field' ),
+                'portal-default-settings',
+                'pb_anonymizer_defaults_section'
+            );
+            add_settings_field(
                 'pb_default_free_for_members',
                 __( 'Free for members', 'portal-builder' ),
                 array( $this, 'render_default_free_for_members_field' ),
@@ -507,6 +539,31 @@ if (! class_exists('Portal_Settings')) {
                 return '';
             }
             return esc_url_raw( $trimmed );
+        }
+
+        /**
+         * Site-relative path (/login) or absolute http(s) URL.
+         * esc_url_raw drops a bare path, so paths stay as paths.
+         *
+         * @param mixed $value Raw.
+         * @return string
+         */
+        public function sanitize_path_or_url( $value ) {
+            if ( ! is_string( $value ) ) {
+                return '';
+            }
+            $trimmed = trim( $value );
+            if ( '' === $trimmed ) {
+                return '';
+            }
+            if ( 0 === strpos( $trimmed, 'https://' ) || 0 === strpos( $trimmed, 'http://' ) ) {
+                return esc_url_raw( $trimmed );
+            }
+            if ( '/' !== $trimmed[0] ) {
+                $trimmed = '/' . $trimmed;
+            }
+            $path = preg_replace( '#[^a-zA-Z0-9/_.\-~%]#', '', $trimmed );
+            return is_string( $path ) ? $path : '';
         }
 
         /**
@@ -608,6 +665,30 @@ if (! class_exists('Portal_Settings')) {
                 : 'Link to Guidelines';
             echo '<input type="text" name="pb_default_guidelines_link_label" class="regular-text" value="' . esc_attr( $value ) . '" placeholder="' . esc_attr( $builtin ) . '" />';
             echo '<p class="description">' . esc_html__( 'Text of the public guidelines link. Leave blank to use the built-in label. Portals may override.', 'portal-builder' ) . '</p>';
+        }
+
+        /**
+         * @return void
+         */
+        public function render_login_url_field() {
+            $value       = (string) get_option( 'pb_login_url', '' );
+            $placeholder = class_exists( 'Portal_Site_Defaults' )
+                ? Portal_Site_Defaults::BUILTIN_LOGIN_PATH
+                : '/login';
+            echo '<input type="text" name="pb_login_url" class="regular-text" value="' . esc_attr( $value ) . '" placeholder="' . esc_attr( $placeholder ) . '" />';
+            echo '<p class="description">' . esc_html__( 'Applicant Sign in. Never wp-login.php. Path or https:// URL.', 'portal-builder' ) . '</p>';
+        }
+
+        /**
+         * @return void
+         */
+        public function render_join_url_field() {
+            $value       = (string) get_option( 'pb_join_url', '' );
+            $placeholder = class_exists( 'Portal_Site_Defaults' )
+                ? Portal_Site_Defaults::BUILTIN_JOIN_PATH
+                : '/membership';
+            echo '<input type="text" name="pb_join_url" class="regular-text" value="' . esc_attr( $value ) . '" placeholder="' . esc_attr( $placeholder ) . '" />';
+            echo '<p class="description">' . esc_html__( 'Membership join or renew page. Path or https:// URL.', 'portal-builder' ) . '</p>';
         }
 
         /**

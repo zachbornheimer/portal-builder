@@ -22,11 +22,15 @@ if ( ! class_exists( 'Portal_Site_Defaults' ) ) {
 		const OPTION_FREE_FOR_MEMBERS      = 'pb_default_free_for_members';
 		const OPTION_TIMEZONE              = 'pb_default_timezone';
 		const OPTION_BRAND                 = 'pb_default_brand';
+		const OPTION_LOGIN_URL             = 'pb_login_url';
+		const OPTION_JOIN_URL              = 'pb_join_url';
 
 		const BUILTIN_ANONYMIZE_ENDPOINT    = 'https://api.allintersections.com';
 		const BUILTIN_ANONYMIZE_ACK         = 'I certify that my scores and recordings exclude any information that might identify the composer but do include title of work, instrumentation, and duration.';
 		const BUILTIN_TIMEZONE              = 'America/New_York';
 		const BUILTIN_GUIDELINES_LINK_LABEL = 'Link to Guidelines';
+		const BUILTIN_LOGIN_PATH            = '/login';
+		const BUILTIN_JOIN_PATH             = '/membership';
 
 		/**
 		 * Effective options: portal if set, else site, else built-in.
@@ -106,6 +110,67 @@ if ( ! class_exists( 'Portal_Site_Defaults' ) ) {
 		 */
 		public static function resolve_for_site( array $definition ) {
 			return self::resolve( $definition, self::read_site() );
+		}
+
+		/**
+		 * Public sign-in URL. Never wp-login.php. Optional redirect_to.
+		 *
+		 * @param string $redirect Absolute or site-relative return URL.
+		 * @return string
+		 */
+		public static function login_url( $redirect = '' ) {
+			$url = self::absolute_site_url( self::stored_or_builtin( self::OPTION_LOGIN_URL, self::BUILTIN_LOGIN_PATH ) );
+			$redirect = trim( (string) $redirect );
+			if ( '' === $redirect || '' === $url ) {
+				return $url;
+			}
+			$sep = false === strpos( $url, '?' ) ? '?' : '&';
+			return $url . $sep . 'redirect_to=' . rawurlencode( $redirect );
+		}
+
+		/**
+		 * Public join / upgrade URL.
+		 *
+		 * @return string
+		 */
+		public static function join_url() {
+			return self::absolute_site_url( self::stored_or_builtin( self::OPTION_JOIN_URL, self::BUILTIN_JOIN_PATH ) );
+		}
+
+		/**
+		 * @param string $option   Option name.
+		 * @param string $fallback Built-in path.
+		 * @return string
+		 */
+		private static function stored_or_builtin( $option, $fallback ) {
+			if ( function_exists( 'get_option' ) ) {
+				$stored = self::trim_or_null( get_option( $option, '' ) );
+				if ( null !== $stored ) {
+					return $stored;
+				}
+			}
+			return $fallback;
+		}
+
+		/**
+		 * @param string $path_or_url Path (/login) or absolute URL.
+		 * @return string
+		 */
+		private static function absolute_site_url( $path_or_url ) {
+			$path_or_url = trim( (string) $path_or_url );
+			if ( '' === $path_or_url ) {
+				return '';
+			}
+			if ( 0 === strpos( $path_or_url, 'http://' ) || 0 === strpos( $path_or_url, 'https://' ) ) {
+				return $path_or_url;
+			}
+			if ( '/' !== $path_or_url[0] ) {
+				$path_or_url = '/' . $path_or_url;
+			}
+			if ( function_exists( 'home_url' ) ) {
+				return home_url( $path_or_url );
+			}
+			return $path_or_url;
 		}
 
 		/**

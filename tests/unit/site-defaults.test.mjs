@@ -15,10 +15,14 @@ import {
 
 const root = process.cwd();
 const harness = path.join(root, 'tests/support/php-site-defaults.php');
+const packetMetaHarness = path.join(root, 'tests/support/php-packet-meta.php');
+const validateHarness = path.join(root, 'tests/support/php-validate-definition.php');
 const artifactDir = path.join(root, 'tests/.artifacts/site-defaults');
 const BUILTIN_ENDPOINT = 'https://api.allintersections.com';
 const BUILTIN_ANONYMIZE_ACK =
 	'I certify that my scores and recordings exclude any information that might identify the composer but do include title of work, instrumentation, and duration.';
+const BUILTIN_GUIDELINES_LINK_LABEL = 'Link to Guidelines';
+const GUIDELINES_URL = 'https://example.org/call';
 
 /**
  * @param {object} payload
@@ -36,6 +40,17 @@ function resolve(payload) {
 		data = null;
 	}
 	return { code: r.status, out, data };
+}
+
+/**
+ * @param {object} payload
+ */
+function renderPacketMeta(payload) {
+	fs.mkdirSync(artifactDir, { recursive: true });
+	const file = path.join(artifactDir, `${payload.name || 'packet-meta'}.json`);
+	fs.writeFileSync(file, JSON.stringify(payload));
+	const r = spawnSync('php', [packetMetaHarness, file], { encoding: 'utf8' });
+	return { code: r.status, html: r.stdout || '', err: r.stderr || '' };
 }
 
 test('portal endpoint null + site endpoint set → resolved endpoint is the site URL', () => {
@@ -143,6 +158,7 @@ test('blank definition and normalizeLoaded keep inherit (null) for bools and URL
 	assert.equal(blank.options.freeForMembers, null);
 	assert.equal(blank.options.anonymizeEndpoint, null);
 	assert.equal(blank.options.guidelinesUrl, null);
+	assert.equal(blank.options.guidelinesLinkLabel, null);
 	assert.equal(blank.publish.timezone, null);
 
 	const loaded = normalizeLoaded({
@@ -159,12 +175,18 @@ test('blank definition and normalizeLoaded keep inherit (null) for bools and URL
 	const cleared = normalizeLoaded({
 		title: 'Cleared',
 		fields: [],
-		options: { anonymizeEndpoint: '', anonymizeApiKey: '', guidelinesUrl: '' },
+		options: {
+			anonymizeEndpoint: '',
+			anonymizeApiKey: '',
+			guidelinesUrl: '',
+			guidelinesLinkLabel: '',
+		},
 		publish: { timezone: '' },
 	});
 	assert.equal(cleared.options.anonymizeEndpoint, null);
 	assert.equal(cleared.options.anonymizeApiKey, null);
 	assert.equal(cleared.options.guidelinesUrl, null);
+	assert.equal(cleared.options.guidelinesLinkLabel, null);
 	assert.equal(cleared.publish.timezone, null);
 	assert.equal(dualWritePublish({ timezone: '' }).timezone, null);
 	assert.equal(defaultOptions().anonymize, null);
@@ -191,11 +213,77 @@ test('setup screen and wizard mount site defaults on the same channel as accessC
 	assert.match(settings, /pb_default_anonymize_ack/);
 	assert.match(settings, /pb_default_anonymize_fail_closed/);
 	assert.match(settings, /pb_default_guidelines_url/);
+	assert.match(settings, /pb_default_guidelines_link_label/);
 	assert.match(settings, /pb_default_free_for_members/);
+	const publishStep = fs.readFileSync(
+		path.join(root, 'src/wizard/steps/PublishStep.svelte'),
+		'utf8',
+	);
+	assert.match(publishStep, /guidelinesLinkLabel/);
+	assert.match(publishStep, /Using site default/);
+	assert.match(publishStep, /BUILTIN_GUIDELINES_LINK_LABEL|Link to Guidelines/);
 	assert.match(settings, /pb_default_timezone/);
 	assert.match(settings, /pb_default_brand/);
 	assert.match(settings, /White label/);
 	assert.match(settings, /docs\/design\/ANONYMIZER\.md/);
+	assert.match(settings, /pb_login_url/);
+	assert.match(settings, /pb_join_url/);
+	assert.match(settings, /Sign-in URL/);
+	assert.match(settings, /Membership URL/);
+	assert.match(settings, /sanitize_path_or_url/);
+});
+
+test('builtin login path is /login and login_url appends redirect_to', () => {
+	const bare = resolve({ name: 'login-builtin', action: 'login_url' });
+	assert.equal(bare.code, 0, bare.out);
+	assert.equal(bare.data.builtin_login, '/login');
+	assert.match(bare.data.login_url, /https:\/\/example\.test\/login$/);
+	assert.doesNotMatch(bare.data.login_url, /wp-login\.php/);
+
+	const withRedirect = resolve({
+		name: 'login-redirect',
+		action: 'login_url',
+		redirect: 'https://example.test/portal/42/',
+	});
+	assert.equal(withRedirect.code, 0, withRedirect.out);
+	assert.match(withRedirect.data.login_url, /https:\/\/example\.test\/login\?redirect_to=/);
+	assert.match(
+		decodeURIComponent(withRedirect.data.login_url),
+		/https:\/\/example\.test\/portal\/42\//,
+	);
+	assert.doesNotMatch(withRedirect.data.login_url, /wp-login\.php/);
+});
+
+test('stored login and join options override builtins; join builtin is /membership', () => {
+	const login = resolve({
+		name: 'login-override',
+		action: 'login_url',
+		options: { pb_login_url: '/signin' },
+		redirect: 'https://example.test/here',
+	});
+	assert.equal(login.code, 0, login.out);
+	assert.match(login.data.login_url, /https:\/\/example\.test\/signin\?redirect_to=/);
+
+	const abs = resolve({
+		name: 'login-abs',
+		action: 'login_url',
+		options: { pb_login_url: 'https://auth.example.test/in' },
+	});
+	assert.equal(abs.code, 0, abs.out);
+	assert.equal(abs.data.login_url, 'https://auth.example.test/in');
+
+	const join = resolve({ name: 'join-builtin', action: 'join_url' });
+	assert.equal(join.code, 0, join.out);
+	assert.equal(join.data.builtin_join, '/membership');
+	assert.equal(join.data.join_url, 'https://example.test/membership');
+
+	const joinOver = resolve({
+		name: 'join-override',
+		action: 'join_url',
+		options: { pb_join_url: 'https://example.test/join-now' },
+	});
+	assert.equal(joinOver.code, 0, joinOver.out);
+	assert.equal(joinOver.data.join_url, 'https://example.test/join-now');
 });
 
 test('portal brand empty + empty site → brand is null', () => {
@@ -293,4 +381,135 @@ test('blank definition and normalizeLoaded keep anonymizeAck as inherit-null', (
 		publish: {},
 	});
 	assert.equal(cleared.options.anonymizeAck, null);
+});
+
+test('portal guidelinesLinkLabel set → portal wins', () => {
+	const { code, out, data } = resolve({
+		name: 'portal-guidelines-label',
+		definition: { options: { guidelinesLinkLabel: 'Read our call' } },
+		site: { guidelinesLinkLabel: 'Site Guidelines' },
+	});
+	assert.equal(code, 0, out);
+	assert.equal(data.guidelinesLinkLabel, 'Read our call');
+});
+
+test('empty portal guidelinesLinkLabel inherits site', () => {
+	const { code, out, data } = resolve({
+		name: 'site-guidelines-label',
+		definition: { options: { guidelinesLinkLabel: null } },
+		site: { guidelinesLinkLabel: 'Site Guidelines' },
+	});
+	assert.equal(code, 0, out);
+	assert.equal(data.guidelinesLinkLabel, 'Site Guidelines');
+});
+
+test('empty portal and site guidelinesLinkLabel uses built-in, not Read the call', () => {
+	const { code, out, data } = resolve({
+		name: 'builtin-guidelines-label',
+		definition: { options: { guidelinesLinkLabel: '' } },
+		site: { guidelinesLinkLabel: '' },
+	});
+	assert.equal(code, 0, out);
+	assert.equal(data.guidelinesLinkLabel, BUILTIN_GUIDELINES_LINK_LABEL);
+	assert.notEqual(data.guidelinesLinkLabel, 'Read the call →');
+});
+
+test('blank definition and normalizeLoaded keep guidelinesLinkLabel as inherit-null', () => {
+	assert.equal(defaultOptions().guidelinesLinkLabel, null);
+	const blank = blankDefinition('Portal');
+	assert.equal(blank.options.guidelinesLinkLabel, null);
+	const loaded = normalizeLoaded({
+		title: 'Legacy',
+		fields: [],
+		options: {},
+		publish: {},
+	});
+	assert.equal(loaded.options.guidelinesLinkLabel, null);
+	const cleared = normalizeLoaded({
+		title: 'Cleared',
+		fields: [],
+		options: { guidelinesLinkLabel: '' },
+		publish: {},
+	});
+	assert.equal(cleared.options.guidelinesLinkLabel, null);
+});
+
+test('PHP definition normalize persists guidelinesLinkLabel and empties to inherit-null', () => {
+	fs.mkdirSync(artifactDir, { recursive: true });
+	const withText = path.join(artifactDir, 'php-guidelines-label.json');
+	fs.writeFileSync(
+		withText,
+		JSON.stringify({
+			version: 1,
+			fields: [{ id: 'work_title', type: 'short_text', label: 'Title' }],
+			options: { guidelinesLinkLabel: 'Portal call link' },
+		}),
+	);
+	const on = spawnSync('php', [validateHarness, withText], { encoding: 'utf8' });
+	assert.equal(on.status, 0, `${on.stdout || ''}${on.stderr || ''}`);
+	const onData = JSON.parse((on.stdout || '').trim());
+	assert.equal(onData.definition.options.guidelinesLinkLabel, 'Portal call link');
+
+	const empty = path.join(artifactDir, 'php-guidelines-label-empty.json');
+	fs.writeFileSync(
+		empty,
+		JSON.stringify({
+			version: 1,
+			fields: [{ id: 'work_title', type: 'short_text', label: 'Title' }],
+			options: { guidelinesLinkLabel: '' },
+		}),
+	);
+	const off = spawnSync('php', [validateHarness, empty], { encoding: 'utf8' });
+	assert.equal(off.status, 0, `${off.stdout || ''}${off.stderr || ''}`);
+	const offData = JSON.parse((off.stdout || '').trim());
+	assert.equal(offData.definition.options.guidelinesLinkLabel, null);
+});
+
+test('packet-meta default label is Link to Guidelines, not Read the call, and opens in a new tab', () => {
+	const { code, html, err } = renderPacketMeta({
+		name: 'packet-meta-default',
+		definition: { options: { guidelinesUrl: GUIDELINES_URL } },
+		site: {},
+	});
+	assert.equal(code, 0, err || html);
+	assert.match(html, /class="dg-meta-link"/);
+	assert.match(html, /Link to Guidelines/);
+	assert.doesNotMatch(html, /Read the call/);
+	assert.match(html, /target="_blank"/);
+	assert.match(html, /rel="noopener noreferrer"/);
+});
+
+test('packet-meta uses portal label over site, else site, else built-in', () => {
+	const portal = renderPacketMeta({
+		name: 'packet-meta-portal',
+		definition: {
+			options: {
+				guidelinesUrl: GUIDELINES_URL,
+				guidelinesLinkLabel: 'Portal call link',
+			},
+		},
+		site: { guidelinesLinkLabel: 'Site Guidelines' },
+	});
+	assert.equal(portal.code, 0, portal.err || portal.html);
+	assert.match(portal.html, /Portal call link/);
+	assert.doesNotMatch(portal.html, /Site Guidelines/);
+	assert.doesNotMatch(portal.html, /Read the call/);
+
+	const site = renderPacketMeta({
+		name: 'packet-meta-site',
+		definition: { options: { guidelinesUrl: GUIDELINES_URL, guidelinesLinkLabel: '' } },
+		site: { guidelinesLinkLabel: 'Site Guidelines' },
+	});
+	assert.equal(site.code, 0, site.err || site.html);
+	assert.match(site.html, /Site Guidelines/);
+	assert.doesNotMatch(site.html, /Link to Guidelines/);
+
+	const builtin = renderPacketMeta({
+		name: 'packet-meta-builtin',
+		definition: { options: { guidelinesUrl: GUIDELINES_URL, guidelinesLinkLabel: null } },
+		site: { guidelinesLinkLabel: '' },
+	});
+	assert.equal(builtin.code, 0, builtin.err || builtin.html);
+	assert.match(builtin.html, /Link to Guidelines/);
+	assert.doesNotMatch(builtin.html, /Read the call/);
 });

@@ -76,6 +76,31 @@ test('definition-form.css paints error background on .dg-file.is-invalid', () =>
 	assert.doesNotMatch(css, /dg-file-confirm-input/);
 });
 
+test('gated packet and public main stay capped at --measure', () => {
+	const css = fs.readFileSync(path.join(root, 'assets/definition-form.css'), 'utf8');
+	assert.match(
+		css,
+		/body\.single-portal\s+\.dg-public-main[\s\S]{0,280}max-width\s*:\s*var\(--measure\)/s,
+	);
+	assert.match(
+		css,
+		/article\.dg-packet[\s\S]{0,200}max-width\s*:\s*var\(--measure\)/s,
+	);
+	assert.match(css, /body\.single-portal\s+\.dg-public-main\.alignfull/);
+	assert.match(css, /--measure/);
+});
+
+test('ember button shadow remaps with --ember, not a hardcoded orange', () => {
+	const tokens = fs.readFileSync(path.join(root, 'assets/tokens.css'), 'utf8');
+	const src = fs.readFileSync(path.join(root, 'src/tokens.css'), 'utf8');
+	const shadow = /--shadow-ember:\s*0 1px 1px color-mix\(in srgb, var\(--ember\) 25%, transparent\),\s*0 6px 16px -6px color-mix\(in srgb, var\(--ember\) 55%, transparent\);/;
+	assert.match(tokens, shadow);
+	assert.match(src, shadow);
+	const emberShadow = tokens.match(/--shadow-ember:[^;]+/);
+	assert.ok(emberShadow, 'assets --shadow-ember missing');
+	assert.doesNotMatch(emberShadow[0], /184,\s*80,\s*31|#b8501f/);
+});
+
 test('definition-form.js stages via XHR and writes the staged token', () => {
 	const js = fs.readFileSync(path.join(root, 'assets/definition-form.js'), 'utf8');
 	assert.match(js, /XMLHttpRequest/);
@@ -259,8 +284,21 @@ test('restricted login HTML is a same-tab dg-access packet', () => {
 	assert.match(data.html, /data-dg-closed-reason="login"/);
 	assert.match(data.html, /Sign in to apply\./);
 	assert.match(data.html, />Sign in</);
+	assert.match(data.html, /\/login/);
+	assert.match(data.html, /redirect_to/);
+	assert.doesNotMatch(data.html, /wp-login\.php/);
 	assert.doesNotMatch(data.html, /dg-access[\s\S]*target="_blank"/);
 	assert.doesNotMatch(data.html, /class="dg-portal-closed"[^>]*data-dg-portal-state="restricted"/);
+});
+
+test('restricted membership HTML uses the application heading, not call', () => {
+	const { code, out } = runClosed('restricted-membership');
+	assert.equal(code, 0, out);
+	const data = JSON.parse(out.trim());
+	assert.match(data.html, /This application is for paid members\./);
+	assert.doesNotMatch(data.html, /This call is/);
+	assert.match(data.html, /data-dg-closed-reason="membership"/);
+	assert.match(data.html, /class="[^"]*dg-access/);
 });
 
 test('editor preview of a closed portal still shows the form', () => {

@@ -23,7 +23,7 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 
 		const ACCESS_EYEBROW            = 'Members only';
 		const ACCESS_HEADING_LOGIN      = 'Sign in to apply.';
-		const ACCESS_HEADING_MEMBERSHIP = 'This call is for paid members.';
+		const ACCESS_HEADING_MEMBERSHIP = 'This application is for paid members.';
 		const ACCESS_SIGN_IN            = 'Sign in';
 		const ACCESS_JOIN               = 'Join or renew';
 
@@ -330,11 +330,17 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 		 * @return string
 		 */
 		private static function restricted_action( $post_id, array $definition, $reason ) {
-			if ( 'login' === $reason && function_exists( 'wp_login_url' ) ) {
+			if ( 'login' === $reason ) {
 				$target = function_exists( 'get_permalink' ) ? get_permalink( $post_id ) : '';
+				$login  = class_exists( 'Portal_Site_Defaults' )
+					? Portal_Site_Defaults::login_url( is_string( $target ) ? $target : '' )
+					: '';
+				if ( '' === $login ) {
+					return '';
+				}
 				return sprintf(
 					'<p><a class="dg-public-submit" href="%s">%s</a></p>',
-					esc_url( wp_login_url( $target ? $target : '' ) ),
+					esc_url( $login ),
 					esc_html( self::ACCESS_SIGN_IN )
 				);
 			}
@@ -368,9 +374,8 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 			if ( ! empty( $options['joinUrl'] ) ) {
 				return (string) $options['joinUrl'];
 			}
-			if ( function_exists( 'wc_get_page_permalink' ) ) {
-				$shop = wc_get_page_permalink( 'shop' );
-				return is_string( $shop ) ? $shop : '';
+			if ( class_exists( 'Portal_Site_Defaults' ) ) {
+				return Portal_Site_Defaults::join_url();
 			}
 			return '';
 		}

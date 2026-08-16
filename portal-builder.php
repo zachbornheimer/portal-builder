@@ -4,7 +4,7 @@
  * Plugin Name: DragonGate Portals
  * Plugin URI:  https://dragongateportals.com
  * Description: A plugin to build portals for accepting applications and managing submissions with Google Sheets and Google Drive integration.
- * Version:     0.1.1
+ * Version:     0.1.2
  * Requires at least: 6.4
  * Requires PHP: 8.0
  * Update URI:  https://github.com/zachbornheimer/portal-builder
@@ -27,7 +27,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 // Define plugin version constant
 if ( ! defined( 'PB_VERSION' ) ) {
-	define( 'PB_VERSION', '0.1.1' );
+	define( 'PB_VERSION', '0.1.2' );
 }
 
 // Include the necessary files
