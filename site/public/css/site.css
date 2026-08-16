@@ -292,7 +292,9 @@ a:hover {
 	align-items: center;
 	justify-content: center;
 	gap: var(--s-2);
-	transition: all var(--dur-fast) var(--ease);
+	transition:
+		color var(--dur-fast) var(--ease),
+		box-shadow var(--dur-fast) var(--ease);
 	text-decoration: none;
 }
 
@@ -302,8 +304,9 @@ a:hover {
 	box-shadow: var(--shadow-ember);
 }
 
+a.btn-primary:hover,
 .btn-primary:hover {
-	transform: translateY(-1px);
+	background: var(--ember-flow-hover);
 	color: var(--paper-50);
 	box-shadow: 0 1px 1px rgba(184, 80, 31, 0.3), 0 8px 20px -6px rgba(184, 80, 31, 0.6);
 }

@@ -20,6 +20,7 @@
 	--ember: #b8501f;
 	--ember-600: #963f16;
 	--ember-flow: linear-gradient(115deg, #c96a2e 0%, #b8501f 45%, #8b3a1a 100%);
+	--ember-flow-hover: linear-gradient(115deg, #b85a24 0%, #a9481b 45%, #7a3216 100%);
 
 	/* Color — secondary metal */
 	--brass: #9c7a3c;

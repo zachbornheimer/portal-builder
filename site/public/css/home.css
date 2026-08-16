@@ -89,14 +89,9 @@ a:hover {
 	cursor: pointer;
 	white-space: nowrap;
 	transition:
-		background var(--dur-fast) var(--ease-standard),
+		color var(--dur-fast) var(--ease-standard),
 		border-color var(--dur-fast),
-		transform var(--dur-fast),
 		box-shadow var(--dur-fast);
-}
-
-.btn:hover {
-	color: inherit;
 }
 
 .btn-lg {
@@ -117,8 +112,9 @@ a:hover {
 	box-shadow: var(--shadow-raised);
 }
 
+a.btn-primary:hover,
 .btn-primary:hover {
-	background: var(--accent-hover);
+	background: var(--ember-flow-hover);
 	color: var(--text-on-ember);
 }
 
@@ -128,6 +124,7 @@ a:hover {
 	box-shadow: var(--shadow-hair);
 }
 
+a.btn-secondary:hover,
 .btn-secondary:hover {
 	background: var(--ink-800);
 	color: var(--text-on-ink);
@@ -139,6 +136,7 @@ a:hover {
 	border-color: var(--border-strong);
 }
 
+a.btn-outline:hover,
 .btn-outline:hover {
 	background: var(--surface-sunken);
 	color: var(--text-strong);

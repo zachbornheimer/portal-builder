@@ -13,6 +13,7 @@
 	--ember-500: #b8501f;
 	--ember-100: #f4e2d4;
 	--ember-flow: linear-gradient(115deg, #c96a2e 0%, #b8501f 45%, #8b3a1a 100%);
+	--ember-flow-hover: linear-gradient(115deg, #b85a24 0%, #a9481b 45%, #7a3216 100%);
 
 	--brass-500: #9c7a3c;
 	--brass-100: #e4d9be;
