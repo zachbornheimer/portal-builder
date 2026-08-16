@@ -119,3 +119,100 @@ test('Publish step fee copy is label-only and does not imply checkout', () => {
 	assert.match(bundle, INFORMATIONAL_FEE_COPY);
 	assert.doesNotMatch(bundle, CHECKOUT_IMPLY);
 });
+
+/**
+ * Sibling list after the compiled `#dg-fee` input, through the members checkbox label.
+ *
+ * @param {string} afterFeeTag
+ * @returns {Array<{ kind: string, inner?: string }>}
+ */
+function siblingsAfterFeeInput(afterFeeTag) {
+	const nodes = [];
+	let i = 0;
+	const src = afterFeeTag;
+	while (i < src.length) {
+		if (src[i] !== '<') {
+			const next = src.indexOf('<', i);
+			const text = src.slice(i, next < 0 ? src.length : next);
+			if (text.length > 0) {
+				nodes.push({ kind: 'text', inner: text });
+			}
+			i = next < 0 ? src.length : next;
+			continue;
+		}
+		if (src.startsWith('<!>', i)) {
+			nodes.push({ kind: 'comment' });
+			i += 3;
+			continue;
+		}
+		const tag = src.slice(i).match(/^<([a-zA-Z0-9-]+)([^>]*)>/);
+		if (!tag) {
+			break;
+		}
+		const name = tag[1];
+		const open = tag[0];
+		if (open.endsWith('/>')) {
+			nodes.push({ kind: name });
+			i += open.length;
+			continue;
+		}
+		const close = `</${name}>`;
+		const end = src.indexOf(close, i + open.length);
+		const inner = end < 0 ? '' : src.slice(i + open.length, end);
+		nodes.push({ kind: name, inner });
+		if (name === 'label' && /dg-check-row/.test(open)) {
+			break;
+		}
+		i = end < 0 ? src.length : end + close.length;
+	}
+	return nodes;
+}
+
+/**
+ * @param {string} bundle
+ */
+function feeInputWalkerChain(bundle) {
+	const handler = bundle.match(/(\w+)=\([^)]*\)=>\{[^}]*applicationFee[^}]*\}/);
+	assert.ok(handler, 'compiled bundle is missing the applicationFee input handler');
+	const bind = bundle.match(new RegExp(`__input=\\[${handler[1]}[^\\]]*\\];([^;]+)`));
+	assert.ok(bind, 'compiled bundle does not bind applicationFee on the fee input');
+	return bind[1];
+}
+
+test('Publish bundle walkers bind Free-for-members on the checkbox, not the fee help', () => {
+	const bundle = fs.readFileSync(PUBLISH_BUNDLE, 'utf8');
+	const feeAt = bundle.indexOf('id="dg-fee"');
+	assert.ok(feeAt >= 0, 'compiled Publish template is missing #dg-fee');
+	const tagEnd = bundle.indexOf('>', feeAt);
+	const siblings = siblingsAfterFeeInput(bundle.slice(tagEnd + 1));
+	assert.ok(
+		siblings.some((n) => n.kind === 'label' && /Free for members/.test(n.inner || '')),
+		`members checkbox label missing after #dg-fee: ${JSON.stringify(siblings)}`,
+	);
+
+	const chain = feeInputWalkerChain(bundle);
+	let index = -1;
+	const siblingStep = /c\(\w+,(\d+)\)/g;
+	let step = siblingStep.exec(chain);
+	while (step) {
+		index += Number(step[1]);
+		step = siblingStep.exec(chain);
+	}
+	assert.ok(index >= 0, `no sibling walker after fee input bind: ${chain}`);
+	const landed = siblings[index];
+	assert.ok(landed, `walker ${chain} stepped off the fee block onto ${index}`);
+
+	const firstChild = /\bf\(\w+\)/.test(chain);
+	const landedKind = firstChild
+		? landed.kind === 'label'
+			? 'input'
+			: landed.kind === 'p'
+				? 'text'
+				: landed.kind
+		: landed.kind;
+	assert.equal(
+		landedKind,
+		'input',
+		`Free-for-members __change lands on ${landedKind} via ${chain} (siblings=${JSON.stringify(siblings)})`,
+	);
+});
