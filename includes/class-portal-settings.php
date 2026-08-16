@@ -38,21 +38,17 @@ if (! class_exists('Portal_Settings')) {
         {
             ?>
 			<div class="wrap">
-				<h1><?php _e('Google API Setup Instructions', 'portal-builder'); ?></h1>
-				<p>Follow these steps to set up Google Drive and Google Sheets integration:</p>
+				<h1><?php esc_html_e( 'Google API Setup Instructions', 'portal-builder' ); ?></h1>
+				<p><?php esc_html_e( 'The plugin uses an OAuth client JSON plus an access token. FileStore refreshes the token. These steps produce a working Drive and Sheets connection.', 'portal-builder' ); ?></p>
 				<ol>
-					<li><?php _e('Go to the Google Cloud Console at <a href="https://console.cloud.google.com/" target="_blank">https://console.cloud.google.com/</a>.', 'portal-builder'); ?></li>
-					<li><?php _e('Create a new project or select an existing one.', 'portal-builder'); ?></li>
-					<li><?php _e('Enable the Google Drive and Google Sheets APIs.', 'portal-builder'); ?></li>
-					<li><?php _e('Navigate to "IAM & Admin" > "Service Accounts".', 'portal-builder'); ?></li>
-					<li><?php _e('Click "Create Service Account" and provide a name and description.', 'portal-builder'); ?></li>
-					<li><?php _e('Assign the "Storage Admin" role to the service account.', 'portal-builder'); ?></li>
-					<li><?php _e('Under "Keys", click "Add Key" > "Create New Key" and select "JSON".', 'portal-builder'); ?></li>
-					<li><?php _e('Download the JSON file containing your service account credentials.', 'portal-builder'); ?></li>
-					<li><?php _e('Share your Google Drive folders and Google Sheets with the service account email found in the JSON file.', 'portal-builder'); ?></li>
-					<li><?php _e('In the WordPress admin dashboard, go to the plugin settings and paste the JSON content into the appropriate fields.', 'portal-builder'); ?></li>
+					<li><?php _e( 'Go to the Google Cloud Console at <a href="https://console.cloud.google.com/" target="_blank">https://console.cloud.google.com/</a>.', 'portal-builder' ); ?></li>
+					<li><?php esc_html_e( 'Create a Google Cloud project or select an existing one.', 'portal-builder' ); ?></li>
+					<li><?php esc_html_e( 'Enable the Drive API and the Sheets API.', 'portal-builder' ); ?></li>
+					<li><?php esc_html_e( 'Create an OAuth client (Desktop or Web).', 'portal-builder' ); ?></li>
+					<li><?php esc_html_e( 'Paste the OAuth client JSON into Google Secret Key on Default Settings.', 'portal-builder' ); ?></li>
+					<li><?php esc_html_e( 'Complete OAuth as the Google user who will own the files, then paste the access token into Google Access Key.', 'portal-builder' ); ?></li>
+					<li><?php esc_html_e( 'Share the Drive folder and Sheet with the Google identity that token represents (the human or user the OAuth consent used), not a service-account email.', 'portal-builder' ); ?></li>
 				</ol>
-				<p><?php _e('Once configured, you can test the setup by performing a simple operation, such as listing files in a Google Drive folder or appending a row to a Google Sheet.', 'portal-builder'); ?></p>
 			</div>
 			<?php
         }
@@ -631,21 +627,24 @@ if (! class_exists('Portal_Settings')) {
         public function google_api_section_callback()
         {
             $setup_url = admin_url('edit.php?post_type=portal&page=portal-google-api-setup');
-            echo '<p>' . __('For detailed setup instructions on configuring Google API credentials, please visit the ', 'portal-builder') .
-                '<a href="' . esc_url($setup_url) . '">' . __('Google API Setup Instructions', 'portal-builder') . '</a>' .
-                __(' page.', 'portal-builder') . '</p>';
+            echo '<p>' . esc_html__( 'Paste the OAuth client JSON into Google Secret Key and the OAuth access token into Google Access Key. FileStore refreshes the token.', 'portal-builder' ) . '</p>';
+            echo '<p>' . __( 'For the full steps, visit the ', 'portal-builder' ) .
+                '<a href="' . esc_url( $setup_url ) . '">' . __( 'Google API Setup Instructions', 'portal-builder' ) . '</a>' .
+                __( ' page.', 'portal-builder' ) . '</p>';
         }
 
         public function render_google_secret_key_field()
         {
-            $value = get_option('pb_google_secret_key', '');
-            echo '<div class="pb-protected-wrapper"><textarea name="pb_google_secret_key" id="pb_google_secret_key" class="pb-protected-code-field" rows="10" cols="50">' . esc_textarea($value) . '</textarea></div>';
+            $value = get_option( 'pb_google_secret_key', '' );
+            echo '<div class="pb-protected-wrapper"><textarea name="pb_google_secret_key" id="pb_google_secret_key" class="pb-protected-code-field" rows="10" cols="50">' . esc_textarea( $value ) . '</textarea></div>';
+            echo '<p class="description">' . esc_html__( 'OAuth client JSON from Google Cloud (Desktop or Web client). Not a service-account key.', 'portal-builder' ) . '</p>';
         }
 
         public function render_google_access_key_field()
         {
-            $value = get_option('pb_google_access_key', '');
-            echo '<div class="pb-protected-wrapper"><textarea name="pb_google_access_key" id="pb_google_access_key" class="pb-protected-code-field" rows="10" cols="50">' . esc_textarea($value) . '</textarea></div>';
+            $value = get_option( 'pb_google_access_key', '' );
+            echo '<div class="pb-protected-wrapper"><textarea name="pb_google_access_key" id="pb_google_access_key" class="pb-protected-code-field" rows="10" cols="50">' . esc_textarea( $value ) . '</textarea></div>';
+            echo '<p class="description">' . esc_html__( 'OAuth access token for the Google identity that completed consent. FileStore refreshes this token.', 'portal-builder' ) . '</p>';
         }
 
         public function render_county_region_script_field()
