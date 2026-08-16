@@ -538,6 +538,13 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 				return $validated;
 			}
 
+			if ( class_exists( 'Portal_Spam_Gate' ) ) {
+				$captcha = Portal_Spam_Gate::admit( $definition, $values );
+				if ( is_wp_error( $captcha ) ) {
+					return $captcha;
+				}
+			}
+
 			$blocked = $this->admission_error( $portal_id );
 			if ( is_wp_error( $blocked ) ) {
 				return $blocked;
@@ -667,6 +674,7 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 
 			$is_test = class_exists( 'Portal_Definition' ) && Portal_Definition::test_mode_on( $definition );
 			$this->write_operator_log( $portal_id, $submission_id, $dests, 'ok', $to ? $to : '', $is_test );
+			$this->write_packet( $portal_id, $submission_id, $to ? $to : '', $dests );
 
 			return array(
 				'ok'               => true,
@@ -997,6 +1005,37 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 				return;
 			}
 			$log->record( $portal_id, $app_id, $dests, $code, $email, $test );
+		}
+
+		/**
+		 * Persist a packet so staff and the applicant can find this submit later.
+		 *
+		 * @param string               $portal_id Portal id.
+		 * @param string               $app_id    Application id.
+		 * @param string               $email     Applicant email.
+		 * @param array<string,string> $dests     Dest results.
+		 * @return void
+		 */
+		private function write_packet( $portal_id, $app_id, $email, array $dests ) {
+			if ( ! class_exists( 'Portal_Packet_Store' ) ) {
+				return;
+			}
+			$hash = class_exists( 'Portal_Submit_Log' )
+				? Portal_Submit_Log::hash_email( $email )
+				: '';
+			$store = Portal_Packet_Store::for_uploads( $this->files );
+			$store->record(
+				$portal_id,
+				array(
+					'applicationId' => (string) $app_id,
+					'portalId'      => (string) $portal_id,
+					'emailHash'     => $hash,
+					'dests'         => $dests,
+					'status'        => class_exists( 'Portal_Packet_Policy' )
+						? Portal_Packet_Policy::STATUS_CURRENT
+						: 'current',
+				)
+			);
 		}
 
 		/**

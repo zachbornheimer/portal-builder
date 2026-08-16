@@ -732,8 +732,37 @@ if ( ! class_exists( 'Portal_Setup_Screen' ) ) {
 			if ( class_exists( 'Portal_Submit_Log' ) ) {
 				echo Portal_Submit_Log::for_uploads()->render_admin( $portal_id );
 			}
+			if ( class_exists( 'Portal_Packet_Store' ) ) {
+				echo self::render_packet_console( $portal_id );
+			}
 
 			echo '</div>';
+		}
+
+		/**
+		 * Staff packet table: application id, status, replace/recall.
+		 *
+		 * @param int $portal_id Portal post id.
+		 * @return string
+		 */
+		public static function render_packet_console( $portal_id ) {
+			$store   = Portal_Packet_Store::for_uploads();
+			$packets = $store->all( $portal_id );
+			$html    = '<section class="dg-packet-console" data-dg-packet-console aria-labelledby="dg-packet-console-title">';
+			$html   .= '<h2 id="dg-packet-console-title">Submission packets</h2>';
+			$html   .= '<p>Sheet and Drive stay the stored packet. Replace a file here to write through the dest adapter.</p>';
+			if ( empty( $packets ) ) {
+				return $html . '<p>No packets recorded yet.</p></section>';
+			}
+			$html .= '<table><thead><tr><th scope="col">Application</th><th scope="col">Status</th><th scope="col">Time</th></tr></thead><tbody>';
+			foreach ( $packets as $row ) {
+				$html .= '<tr>';
+				$html .= '<td>' . esc_html( isset( $row['applicationId'] ) ? $row['applicationId'] : '' ) . '</td>';
+				$html .= '<td>' . esc_html( isset( $row['status'] ) ? $row['status'] : '' ) . '</td>';
+				$html .= '<td>' . esc_html( isset( $row['time'] ) ? $row['time'] : '' ) . '</td>';
+				$html .= '</tr>';
+			}
+			return $html . '</tbody></table></section>';
 		}
 	}
 

@@ -178,9 +178,11 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 				return self::wrap_packet(
 					$banner
 					. self::render_packet_head( $title )
-					. self::render_packet_meta( $definition )
+					. self::render_packet_meta( $definition, $site )
 					. $errors_html
+					. self::render_applicant_packets( $post_id )
 					. Portal_Definition_Renderer::render( $definition, $site )
+					. self::render_spam_widget( $definition )
 				);
 			}
 
@@ -415,9 +417,10 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 		 * Scored meta row from definition publish/options. Omits empty items.
 		 *
 		 * @param array|null $definition Definition document or null.
+		 * @param array|null $site       Site bag. Null reads live WP options.
 		 * @return string
 		 */
-		public static function render_packet_meta( $definition ) {
+		public static function render_packet_meta( $definition, $site = null ) {
 			if ( ! is_array( $definition ) ) {
 				return '';
 			}
@@ -441,7 +444,7 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 				$items[] = sprintf(
 					'<a class="dg-meta-link" href="%1$s" target="_blank" rel="noopener noreferrer">%2$s</a>',
 					esc_url( $guidelines ),
-					esc_html__( 'Read the call →', 'dragongate-portals' )
+					esc_html( self::guidelines_link_label( $definition, $site ) )
 				);
 			}
 
@@ -450,6 +453,23 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 			}
 
 			return '<div class="dg-meta">' . implode( '<span class="dg-meta-split" aria-hidden="true"></span>', $items ) . '</div>';
+		}
+
+		/**
+		 * Portal label, else site, else built-in. Never appends an arrow.
+		 *
+		 * @param array      $definition Definition document.
+		 * @param array|null $site       Site bag or null for live WP options.
+		 * @return string
+		 */
+		private static function guidelines_link_label( array $definition, $site ) {
+			if ( ! class_exists( 'Portal_Site_Defaults' ) ) {
+				return 'Link to Guidelines';
+			}
+			$site_bag = is_array( $site ) ? $site : Portal_Site_Defaults::read_site();
+			$resolved = Portal_Site_Defaults::resolve( $definition, $site_bag );
+			$label    = isset( $resolved['guidelinesLinkLabel'] ) ? (string) $resolved['guidelinesLinkLabel'] : '';
+			return '' !== $label ? $label : Portal_Site_Defaults::BUILTIN_GUIDELINES_LINK_LABEL;
 		}
 
 		/**
@@ -546,6 +566,71 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 		 */
 		public static function wrap_packet( $inner ) {
 			return '<div class="dg-packet">' . $inner . '</div>';
+		}
+
+		/**
+		 * Turnstile widget for anyone-audience portals when a site key is set.
+		 *
+		 * @param array $definition Definition.
+		 * @return string
+		 */
+		/**
+		 * Logged-in applicant: past packets for this portal + recall control.
+		 *
+		 * @param int $post_id Portal id.
+		 * @return string
+		 */
+		public static function render_applicant_packets( $post_id ) {
+			if ( ! function_exists( 'is_user_logged_in' ) || ! is_user_logged_in() ) {
+				return '';
+			}
+			if ( ! class_exists( 'Portal_Packet_Store' ) ) {
+				return '';
+			}
+			$user  = function_exists( 'wp_get_current_user' ) ? wp_get_current_user() : null;
+			$email = $user && isset( $user->user_email ) ? (string) $user->user_email : '';
+			if ( '' === $email ) {
+				return '';
+			}
+			$rows = Portal_Packet_Store::for_uploads()->list_for_email( $post_id, $email );
+			if ( empty( $rows ) ) {
+				return '';
+			}
+			$html = '<section class="dg-applicant-packets" data-dg-applicant-packets aria-labelledby="dg-applicant-packets-title">';
+			$html .= '<h2 id="dg-applicant-packets-title">Your submissions for this portal</h2>';
+			$html .= '<ul>';
+			foreach ( $rows as $row ) {
+				$id     = isset( $row['applicationId'] ) ? (string) $row['applicationId'] : '';
+				$status = isset( $row['status'] ) ? (string) $row['status'] : '';
+				$html  .= '<li><span>' . esc_html( $id ) . ' — ' . esc_html( $status ) . '</span>';
+				if ( Portal_Packet_Policy::is_current( $row ) ) {
+					$html .= ' <button type="button" class="dg-btn" data-dg-recall="' . esc_attr( $id ) . '" aria-label="Recall submission ' . esc_attr( $id ) . '">Recall</button>';
+				}
+				$html .= '</li>';
+			}
+			return $html . '</ul></section>';
+		}
+
+		public static function render_spam_widget( array $definition ) {
+			if ( ! class_exists( 'Portal_Spam_Gate' ) ) {
+				return '';
+			}
+			$access   = isset( $definition['access'] ) && is_array( $definition['access'] )
+				? $definition['access']
+				: array();
+			$audience = isset( $access['audience'] ) ? (string) $access['audience'] : 'anyone';
+			if ( ! Portal_Spam_Gate::required_for_audience( $audience ) ) {
+				return '';
+			}
+			$key = Portal_Spam_Gate::site_key();
+			if ( '' === $key ) {
+				return '';
+			}
+			return sprintf(
+				'<div class="dg-turnstile" data-dg-spam-gate="turnstile"><div class="cf-turnstile" data-sitekey="%1$s" role="group" aria-label="%2$s"></div><script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script></div>',
+				esc_attr( $key ),
+				esc_attr( 'Spam check' )
+			);
 		}
 
 		/**

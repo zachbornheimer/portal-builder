@@ -20,6 +20,9 @@ function _e( $text, $domain = null ) {
 function esc_html( $text ) {
 	return htmlspecialchars( (string) $text, ENT_QUOTES, 'UTF-8' );
 }
+function esc_attr( $text ) {
+	return htmlspecialchars( (string) $text, ENT_QUOTES, 'UTF-8' );
+}
 function esc_html__( $text, $domain = null ) {
 	return esc_html( __( $text, $domain ) );
 }
@@ -41,6 +44,8 @@ function get_option( $name, $default = false ) {
 }
 
 $repo_root = dirname( __DIR__, 2 );
+require_once $repo_root . '/includes/class-portal-secret-field.php';
+require_once $repo_root . '/includes/Submission/class-portal-spam-gate.php';
 require_once $repo_root . '/includes/class-portal-settings.php';
 
 if ( ! class_exists( 'Portal_Settings' ) ) {

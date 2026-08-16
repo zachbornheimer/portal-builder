@@ -71,6 +71,11 @@ require_once plugin_dir_path( __FILE__ ) . 'includes/adapters/class-portal-googl
 require_once plugin_dir_path( __FILE__ ) . 'includes/adapters/class-portal-google-probe-store.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/adapters/class-portal-google-probe.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-portal-google-connect.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/class-portal-secret-field.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-spam-gate.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-packet-policy.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-packet-store.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/class-portal-console-rest.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-portal-definition-rest.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-portal-staged-file-rest.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-portal-setup-screen.php';

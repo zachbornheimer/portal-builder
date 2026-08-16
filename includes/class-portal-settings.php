@@ -57,7 +57,22 @@ if (! class_exists('Portal_Settings')) {
         public function register_settings()
         {
             // Register the settings
-            register_setting('pb_settings_group', 'pb_google_secret_key');
+            register_setting(
+                'pb_settings_group',
+                'pb_google_secret_key',
+                array( 'sanitize_callback' => array( $this, 'sanitize_google_secret_key' ) )
+            );
+            register_setting(
+                'pb_settings_group',
+                'pb_google_access_key',
+                array( 'sanitize_callback' => array( $this, 'sanitize_google_access_key' ) )
+            );
+            register_setting('pb_settings_group', Portal_Spam_Gate::OPTION_SITE);
+            register_setting(
+                'pb_settings_group',
+                Portal_Spam_Gate::OPTION_SECRET,
+                array( 'sanitize_callback' => array( $this, 'sanitize_turnstile_secret' ) )
+            );
             register_setting('pb_settings_group', 'pb_county_region_script');
             register_setting(
                 'pb_settings_group',
@@ -67,7 +82,7 @@ if (! class_exists('Portal_Settings')) {
                     'default'           => json_encode(array()),
                 )
             );
-            register_setting('pb_settings_group', 'pb_recaptcha_sitekey');
+            register_setting('pb_settings_group', 'pb_recaptcha_sitekey'); // leftover; hidden from UI.
             register_setting('pb_settings_group', 'pb_exiftool_path');
             register_setting('pb_settings_group', 'pb_qpdf_path');
             register_setting('pb_settings_group', 'pb_eyed3_path');
@@ -177,9 +192,16 @@ if (! class_exists('Portal_Settings')) {
             );
 
             add_settings_field(
-                'pb_recaptcha_sitekey',
-                __('reCAPTCHA Site Key', 'portal-builder'),
-                array( $this, 'render_recaptcha_sitekey_field' ),
+                Portal_Spam_Gate::OPTION_SITE,
+                __( 'Turnstile site key', 'portal-builder' ),
+                array( $this, 'render_turnstile_site_field' ),
+                'portal-default-settings',
+                'pb_general_settings_section'
+            );
+            add_settings_field(
+                Portal_Spam_Gate::OPTION_SECRET,
+                __( 'Turnstile secret', 'portal-builder' ),
+                array( $this, 'render_turnstile_secret_field' ),
                 'portal-default-settings',
                 'pb_general_settings_section'
             );
@@ -706,16 +728,32 @@ if (! class_exists('Portal_Settings')) {
 
         public function render_google_secret_key_field()
         {
-            $value = get_option( 'pb_google_secret_key', '' );
-            echo '<div class="pb-protected-wrapper"><textarea name="pb_google_secret_key" id="pb_google_secret_key" class="pb-protected-code-field" rows="10" cols="50">' . esc_textarea( $value ) . '</textarea></div>';
-            echo '<p class="description">' . esc_html__( 'OAuth client JSON from Google Cloud (Desktop or Web client). Not a service-account key.', 'portal-builder' ) . '</p>';
+            echo Portal_Secret_Field::render_textarea(
+                'pb_google_secret_key',
+                get_option( 'pb_google_secret_key', '' ),
+                __( 'OAuth client JSON from Google Cloud (Desktop or Web client). Not a service-account key.', 'portal-builder' )
+            );
         }
 
         public function render_google_access_key_field()
         {
-            $value = get_option( 'pb_google_access_key', '' );
-            echo '<div class="pb-protected-wrapper"><textarea name="pb_google_access_key" id="pb_google_access_key" class="pb-protected-code-field" rows="10" cols="50">' . esc_textarea( $value ) . '</textarea></div>';
-            echo '<p class="description">' . esc_html__( 'OAuth access token for the Google identity that completed consent. FileStore refreshes this token.', 'portal-builder' ) . '</p>';
+            echo Portal_Secret_Field::render_textarea(
+                'pb_google_access_key',
+                get_option( 'pb_google_access_key', '' ),
+                __( 'OAuth access token for the Google identity that completed consent. FileStore refreshes this token.', 'portal-builder' )
+            );
+        }
+
+        public function sanitize_google_secret_key( $incoming ) {
+            return Portal_Secret_Field::keep_if_blank( $incoming, get_option( 'pb_google_secret_key', '' ) );
+        }
+
+        public function sanitize_google_access_key( $incoming ) {
+            return Portal_Secret_Field::keep_if_blank( $incoming, get_option( 'pb_google_access_key', '' ) );
+        }
+
+        public function sanitize_turnstile_secret( $incoming ) {
+            return Portal_Secret_Field::keep_if_blank( $incoming, get_option( Portal_Spam_Gate::OPTION_SECRET, '' ) );
         }
 
         /**
@@ -796,13 +834,18 @@ if (! class_exists('Portal_Settings')) {
 			<?php
         }
 
-        public function render_recaptcha_sitekey_field()
-        {
-            $value = get_option('pb_recaptcha_sitekey', '');
-            ?>
-			<input type="text" name="pb_recaptcha_sitekey" id="pb_recaptcha_sitekey" class="form-control monospace" style="width:100%" value="<?php echo $value; ?>" placeholder="<?php _e('reCAPTCHA sitekey', 'portal-builder'); ?>" />
+        public function render_turnstile_site_field() {
+            $value = get_option( Portal_Spam_Gate::OPTION_SITE, '' );
+            echo '<input type="text" name="' . esc_attr( Portal_Spam_Gate::OPTION_SITE ) . '" class="regular-text" value="' . esc_attr( (string) $value ) . '" autocomplete="off" />';
+            echo '<p class="description">' . esc_html__( 'Cloudflare Turnstile site key. Required on anyone-audience public forms. Logged-in and members portals skip the widget.', 'portal-builder' ) . '</p>';
+        }
 
-			<?php
+        public function render_turnstile_secret_field() {
+            echo Portal_Secret_Field::render_textarea(
+                Portal_Spam_Gate::OPTION_SECRET,
+                get_option( Portal_Spam_Gate::OPTION_SECRET, '' ),
+                __( 'Cloudflare Turnstile secret. Anyone-audience submits are rejected without a valid token.', 'portal-builder' )
+            );
         }
 
         public function render_legal_disclaimers_field()
