@@ -93,6 +93,7 @@ require_once $repo_root . '/includes/Submission/class-portal-anonymizer-reply.ph
 require_once $repo_root . '/includes/Submission/class-portal-anonymizer-api.php';
 require_once $repo_root . '/includes/Submission/class-portal-anonymize-decision.php';
 require_once $repo_root . '/includes/Submission/class-portal-anonymizer.php';
+require_once $repo_root . '/includes/Submission/class-portal-submit-log.php';
 require_once $repo_root . '/includes/Submission/class-portal-submission-pipeline.php';
 
 $staged_unit = $repo_root . '/includes/Submission/class-portal-staged-file.php';
@@ -399,7 +400,8 @@ if ( 'pipeline' === $entry ) {
 			$anon_bytes = $decoded;
 		}
 	}
-	$anonymize = ! empty( $scenario['anonymize'] );
+	$anonymize   = ! empty( $scenario['anonymize'] );
+	$fail_closed = ! empty( $scenario['anonymizeFailClosed'] );
 
 	$definition = array(
 		'version' => 1,
@@ -420,9 +422,10 @@ if ( 'pipeline' === $entry ) {
 			),
 		),
 		'options' => array(
-			'anonymize'         => $anonymize,
-			'anonymizeEndpoint' => 'https://anon.test',
-			'anonymizeApiKey'   => 'test-key-not-real',
+			'anonymize'           => $anonymize,
+			'anonymizeFailClosed' => $fail_closed,
+			'anonymizeEndpoint'   => 'https://anon.test',
+			'anonymizeApiKey'     => 'test-key-not-real',
 		),
 	);
 
@@ -501,6 +504,13 @@ if ( 'pipeline' === $entry ) {
 	if ( method_exists( $pipeline, 'with_transport' ) ) {
 		$pipeline->with_transport( $transport );
 	}
+	$log_dir = $artifact . DIRECTORY_SEPARATOR . 'dg-logs';
+	$log     = class_exists( 'Portal_Submit_Log' )
+		? new Portal_Submit_Log( $log_dir, $files_facade )
+		: null;
+	if ( $log instanceof Portal_Submit_Log && method_exists( $pipeline, 'with_log' ) ) {
+		$pipeline->with_log( $log );
+	}
 	$result = $pipeline->process( $portal_id, $definition, $values, $files );
 
 	if ( is_wp_error( $result ) ) {
@@ -523,7 +533,7 @@ if ( 'pipeline' === $entry ) {
 		$stored = (string) file_get_contents( $result['drivePaths'][ $field_id ] );
 	}
 
-	$expected_drive = $anonymize ? $anon_bytes : $buffer;
+	$expected_drive = ( $anonymize && empty( $scenario['script'] ) ) ? $anon_bytes : $buffer;
 	echo json_encode(
 		array(
 			'ok'                 => true,
@@ -537,9 +547,26 @@ if ( 'pipeline' === $entry ) {
 			'callCount'          => count( $transport->calls ),
 			'extraAnonCalls'     => max( 0, count( $transport->calls ) - $calls_after_stage ),
 			'submitOk'           => ! empty( $result['ok'] ),
+			'dests'              => dests_from_staged_log( $log, $portal_id ),
 		)
 	) . "\n";
 	exit( 0 );
+}
+
+/**
+ * @param Portal_Submit_Log|null $log       Operator log.
+ * @param string                 $portal_id Portal id.
+ * @return array<string,string>|null
+ */
+function dests_from_staged_log( $log, $portal_id ) {
+	if ( ! $log instanceof Portal_Submit_Log ) {
+		return null;
+	}
+	$rows = $log->last( $portal_id, 1 );
+	if ( empty( $rows ) || ! isset( $rows[0]['dests'] ) || ! is_array( $rows[0]['dests'] ) ) {
+		return null;
+	}
+	return $rows[0]['dests'];
 }
 
 fwrite( STDERR, "unknown entry: $entry\n" );

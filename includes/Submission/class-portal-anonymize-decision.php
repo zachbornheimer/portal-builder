@@ -102,6 +102,23 @@ if ( ! class_exists( 'Portal_Anonymize_Decision' ) ) {
 		}
 
 		/**
+		 * Rebuild a decision from a persisted dest (staged submit).
+		 *
+		 * @param string $dest  ok|skip|fail.
+		 * @param string $bytes Bytes already chosen at stage time.
+		 * @return self
+		 */
+		public static function from_dest( $dest, $bytes ) {
+			if ( 'ok' === $dest ) {
+				return self::replace( $bytes );
+			}
+			if ( 'fail' === $dest ) {
+				return self::keep( $bytes );
+			}
+			return self::skip( $bytes );
+		}
+
+		/**
 		 * Required config is missing. Never store originals.
 		 *
 		 * @param string $message Reason.

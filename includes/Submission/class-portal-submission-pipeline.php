@@ -775,11 +775,9 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 		 * @return Portal_Anonymize_Decision
 		 */
 		private function anonymize_judge_bytes( array $definition, $buffer, $filename, array $meta ) {
-			if ( ! empty( $meta['already_anonymized'] ) ) {
-				return Portal_Anonymize_Decision::replace( $buffer );
-			}
-			if ( ! empty( $meta['staged'] ) ) {
-				return Portal_Anonymize_Decision::skip( $buffer );
+			if ( ! empty( $meta['already_anonymized'] ) || ! empty( $meta['staged'] ) ) {
+				$dest = isset( $meta['anonymize_dest'] ) ? (string) $meta['anonymize_dest'] : 'skip';
+				return Portal_Anonymize_Decision::from_dest( $dest, $buffer );
 			}
 			$options = class_exists( 'Portal_Site_Defaults' )
 				? Portal_Site_Defaults::resolve_for_site( $definition )

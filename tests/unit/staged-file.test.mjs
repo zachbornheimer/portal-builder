@@ -237,6 +237,29 @@ test('pipeline without anonymize stages suffix and writes original bytes', () =>
   assert.equal(data.anonymized, false);
   assert.equal(data.driveEqualsStaged, true);
   assert.equal(data.extraAnonCalls, 0);
+  assert.equal(data.dests && data.dests.anonymize, 'skip');
+});
+
+test('staged-token submit dest is fail when anonymize fail-open keeps original', () => {
+  const original = '%PDF-1.4\n%pipe-keep-original\n';
+  const { code, out, data } = runScenario({
+    entry: 'pipeline',
+    portalId: 'stage-pipe-fail-open',
+    fieldId: 'score',
+    originalName: 'blank.pdf',
+    fileSuffix: '_SCORE',
+    buffer: original,
+    anonymize: true,
+    anonymizeFailClosed: false,
+    script: [{ throw: 'timed out after 120s' }],
+  });
+  assert.equal(code, 0, out);
+  assert.ok(data, out);
+  assert.equal(data.ok, true, out);
+  assert.equal(data.submitOk, true);
+  assert.equal(data.driveEqualsOrig, true);
+  assert.equal(data.extraAnonCalls, 0, `second anonymize fired: ${JSON.stringify(data)}`);
+  assert.equal(data.dests && data.dests.anonymize, 'fail');
 });
 
 test('forget removes staged token', () => {

@@ -140,6 +140,7 @@ if ( ! class_exists( 'Portal_Staged_File' ) ) {
 				'storedName'   => $stored_name,
 				'originalName' => $original_name,
 				'anonymized'   => $anonymized,
+				'dest'         => $decision->dest,
 				'bytes'        => strlen( $final ),
 			);
 			$this->files->write(
@@ -185,6 +186,7 @@ if ( ! class_exists( 'Portal_Staged_File' ) ) {
 				'storedName'   => isset( $decoded['storedName'] ) ? (string) $decoded['storedName'] : self::FALLBACK_NAME,
 				'originalName' => isset( $decoded['originalName'] ) ? (string) $decoded['originalName'] : '',
 				'anonymized'   => ! empty( $decoded['anonymized'] ),
+				'dest'         => self::normalize_dest( isset( $decoded['dest'] ) ? $decoded['dest'] : '' ),
 				'bytes'        => $bytes,
 				'path'         => $content,
 			);
@@ -225,6 +227,7 @@ if ( ! class_exists( 'Portal_Staged_File' ) ) {
 				'already_anonymized' => true,
 				'staged'             => true,
 				'staged_token'       => $token,
+				'anonymize_dest'     => isset( $rec['dest'] ) ? $rec['dest'] : 'skip',
 			);
 		}
 
@@ -396,6 +399,20 @@ if ( ! class_exists( 'Portal_Staged_File' ) ) {
 				}
 			}
 			return null;
+		}
+
+		/**
+		 * Closed dest for a staged record. Unknown values are skip, not ok.
+		 *
+		 * @param mixed $dest Raw dest.
+		 * @return string ok|skip|fail
+		 */
+		private static function normalize_dest( $dest ) {
+			$dest = (string) $dest;
+			if ( 'ok' === $dest || 'fail' === $dest || 'skip' === $dest ) {
+				return $dest;
+			}
+			return 'skip';
 		}
 
 		/**
