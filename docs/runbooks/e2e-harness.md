@@ -22,7 +22,7 @@
 | `npm run test:seed` | Create one `dg-e2e-*` portal (CLI) |
 | `npm run test:cleanup` | Remove all `dg-e2e-*` portals (+ registry) |
 | `npm run test:import` | Importer fixture match (Phase 6) |
-| `npm run ci:offline` | mocks + unit (no LocalWP; GH-safe) |
+| `npm run ci:offline` | mocks + unit (no LocalWP; GH-safe). Filmed ISJAC / `isjac.org` walks are extra, not this gate. |
 | `npm run ci` | env + mocks + unit + smoke (LocalWP required) |
 
 Artifacts land in `tests/.artifacts/` (gitignored). Seed registry: `tests/.artifacts/seeded-portals.json`.

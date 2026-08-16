@@ -263,7 +263,7 @@ export function genericStarterTemplate(title = 'New portal') {
 			required: true,
 		},
 		{
-			id: 'title',
+			id: 'work_title',
 			type: 'short_text',
 			label: 'Title',
 			required: true,

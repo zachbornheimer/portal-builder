@@ -1,0 +1,21 @@
+{
+  "portalId": "generic-host",
+  "values": {
+    "sub_title": "Mx",
+    "sub_name": "Alex Rivera",
+    "sub_email": "applicant@example.com",
+    "sub_address_first_part": "100 Oak Ave",
+    "sub_city": "Portland",
+    "sub_country": "US",
+    "sub_state": "OR",
+    "sub_zip": "97201",
+    "sub_phone": "503-555-0142",
+    "sub_work_title": "River Suite"
+  },
+  "files": {
+    "file": {
+      "name": "sample-score.pdf",
+      "path": "tests/fixtures/files/sample-score.pdf"
+    }
+  }
+}
