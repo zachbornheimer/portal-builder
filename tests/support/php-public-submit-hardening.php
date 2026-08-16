@@ -69,7 +69,13 @@ function wp_clear_scheduled_hook( $hook ) {
 	}
 }
 function add_action() {}
-function add_filter() {}
+function add_filter( $tag = '', $fn = null, $priority = 10, $accepted = 1 ) {
+	unset( $priority, $accepted );
+	$GLOBALS['added_filters'][] = array(
+		'tag' => (string) $tag,
+		'fn'  => $fn,
+	);
+}
 function wp_upload_dir() {
 	$basedir = isset( $GLOBALS['upload_basedir'] ) ? (string) $GLOBALS['upload_basedir'] : sys_get_temp_dir();
 	return array(
@@ -155,6 +161,11 @@ if ( 'schedule' === $entry ) {
 	exit( 0 );
 }
 
+if ( 'legacy_submit_failure' === $entry ) {
+	echo json_encode( run_legacy_submit_failure( $scenario, $repo_root ) ) . "\n";
+	exit( 0 );
+}
+
 fwrite( STDERR, "unknown entry: $entry\n" );
 exit( 2 );
 
@@ -188,6 +199,10 @@ function inspect_public_submit_sources( $repo_root ) {
 	$schedules         = (bool) preg_match( '/wp_schedule_event\s*\(/', $wired );
 	$clears            = (bool) preg_match( '/wp_clear_scheduled_hook\s*\(/', $wired );
 	$cleanup_hook      = (bool) preg_match( '/purge|cleanup|dg_purge_staged/', $wired );
+	$unconditional     = (bool) preg_match(
+		'/process_submission\s*\([^;]+\)\s*;\s*define\s*\(\s*[\'"]PB_RECEIPT_LINK/',
+		$plugin
+	);
 
 	return array(
 		'ok'                      => true,
@@ -203,7 +218,10 @@ function inspect_public_submit_sources( $repo_root ) {
 		'hasUploadStore'          => class_exists( 'Portal_Upload_Store' ),
 		'hasRecordPublicFailure'  => class_exists( 'Portal_Submission_Pipeline' )
 			&& method_exists( 'Portal_Submission_Pipeline', 'record_public_failure' ),
-		'hasPurgeExpired'         => has_purge_owner(),
+		'hasPurgeExpired'            => has_purge_owner(),
+		'unconditionalLegacySuccess' => $unconditional,
+		'hasFinishPublicSubmit'      => class_exists( 'Portal_Submission_Pipeline' )
+			&& method_exists( 'Portal_Submission_Pipeline', 'finish_public_submit' ),
 	);
 }
 
@@ -328,6 +346,190 @@ function run_public_failure( array $scenario, $repo_root ) {
 		'submissionDiesRaw'  => $inspect['submissionDiesRaw'],
 		'publicCatchRecordsHuman' => $inspect['publicCatchRecordsHuman'],
 	);
+}
+
+/**
+ * Drive Portal_Submission::process_submission on a throwing path, then the
+ * shipped post-submit decision. A failure must not attach the success filter.
+ *
+ * @param array  $scenario  Scenario.
+ * @param string $repo_root Plugin root.
+ * @return array<string,mixed>
+ */
+function run_legacy_submit_failure( array $scenario, $repo_root ) {
+	$inspect = inspect_public_submit_sources( $repo_root );
+	$secret  = isset( $scenario['secret'] )
+		? (string) $scenario['secret']
+		: 'Google JSON /var/www/html/wp-content/uploads/secret.json {"error":"invalid_grant"}';
+
+	$GLOBALS['added_filters'] = array();
+	load_portal_submission_for_cli( $repo_root );
+
+	if ( ! class_exists( 'Portal_Submission' ) ) {
+		return array(
+			'ok'                         => false,
+			'code'                       => 'missing_portal_submission',
+			'unconditionalLegacySuccess' => $inspect['unconditionalLegacySuccess'],
+			'hasFinishPublicSubmit'      => $inspect['hasFinishPublicSubmit'],
+		);
+	}
+
+	$artifact = scenario_artifact( $scenario );
+	$log_path = $artifact . DIRECTORY_SEPARATOR . 'legacy-error.log';
+	if ( file_exists( $log_path ) ) {
+		unlink( $log_path );
+	}
+	ini_set( 'log_errors', '1' );
+	ini_set( 'error_log', $log_path );
+
+	$_POST = array();
+	$handler = new Portal_Public_Submit_Fake_Handler();
+	$submission = new Portal_Submission( 'ready_to_submit_nonce', $handler );
+
+	$died = false;
+	$die_message = '';
+	$completed = null;
+	try {
+		$completed = $submission->process_submission(
+			array(
+				'post_id' => 1,
+				'throw'   => $secret,
+			)
+		);
+	} catch ( Exception $e ) {
+		if ( 0 === strpos( $e->getMessage(), 'wp_die:' ) ) {
+			$died        = true;
+			$die_message = substr( $e->getMessage(), 7 );
+		} else {
+			$completed = false;
+			if ( class_exists( 'Portal_Submission_Pipeline' )
+				&& method_exists( 'Portal_Submission_Pipeline', 'record_public_failure' ) ) {
+				Portal_Submission_Pipeline::record_public_failure( $e );
+				Portal_Submission_Pipeline::mark_public_errors();
+			}
+		}
+	}
+
+	$outcome = 'missing';
+	if ( class_exists( 'Portal_Submission_Pipeline' )
+		&& method_exists( 'Portal_Submission_Pipeline', 'finish_public_submit' ) ) {
+		$outcome = Portal_Submission_Pipeline::finish_public_submit( (bool) $completed );
+	} else {
+		// Current handle_submissions treats a returned process_submission as success.
+		if ( ! defined( 'PB_RECEIPT_LINK' ) ) {
+			define( 'PB_RECEIPT_LINK', '' );
+		}
+		add_filter( 'the_content', 'pb_post_submitted_content_filter', 10, 1 );
+		$outcome = 'success';
+	}
+
+	$filters = isset( $GLOBALS['added_filters'] ) ? $GLOBALS['added_filters'] : array();
+	$success_fns = array();
+	foreach ( $filters as $row ) {
+		if ( 'the_content' !== $row['tag'] ) {
+			continue;
+		}
+		$fn = $row['fn'];
+		if ( is_string( $fn ) ) {
+			$success_fns[] = $fn;
+		}
+	}
+
+	$errors = class_exists( 'Portal_Submission_Pipeline' )
+		? Portal_Submission_Pipeline::last_errors()
+		: null;
+	$human  = '';
+	if ( is_array( $errors ) && isset( $errors[0]['message'] ) ) {
+		$human = (string) $errors[0]['message'];
+	}
+	$rendered = is_array( $errors )
+		? Portal_Submission_Pipeline::render_errors( $errors )
+		: '';
+
+	return array(
+		'ok'                         => true,
+		'completed'                  => $completed,
+		'outcome'                    => $outcome,
+		'died'                       => $died || ! empty( $GLOBALS['wp_died'] ),
+		'dieMessage'                 => $die_message,
+		'successFilterAttached'      => in_array( 'pb_post_submitted_content_filter', $success_fns, true ),
+		'successFilters'             => $success_fns,
+		'receiptDefined'             => defined( 'PB_RECEIPT_LINK' ),
+		'definedErrors'              => defined( 'DG_DEFINITION_SUBMIT_ERRORS' ) && DG_DEFINITION_SUBMIT_ERRORS,
+		'humanMessage'               => $human,
+		'rendered'                   => $rendered,
+		'unconditionalLegacySuccess' => $inspect['unconditionalLegacySuccess'],
+		'hasFinishPublicSubmit'      => $inspect['hasFinishPublicSubmit'],
+	);
+}
+
+/**
+ * Load Portal_Submission with CLI stubs (no Google, no Composer).
+ *
+ * @param string $repo_root Plugin root.
+ * @return void
+ */
+function load_portal_submission_for_cli( $repo_root ) {
+	if ( class_exists( 'Portal_Submission' ) ) {
+		return;
+	}
+	if ( ! function_exists( 'plugin_dir_path' ) ) {
+		function plugin_dir_path( $file ) {
+			return dirname( $file ) . '/';
+		}
+	}
+	if ( ! function_exists( 'get_option' ) ) {
+		function get_option( $key, $default = false ) {
+			unset( $key );
+			return $default;
+		}
+	}
+	if ( ! function_exists( 'update_option' ) ) {
+		function update_option() {}
+	}
+	if ( ! function_exists( 'wp_verify_nonce' ) ) {
+		function wp_verify_nonce() {
+			return false;
+		}
+	}
+	if ( ! class_exists( 'Zysys_FileStore' ) ) {
+		class Zysys_FileStore {
+			public function __construct( $credentials ) {
+				unset( $credentials );
+			}
+			public function __get( $key ) {
+				unset( $key );
+				return null;
+			}
+		}
+	}
+	if ( ! class_exists( 'PHPMailer\\PHPMailer\\Exception' ) ) {
+		class_alias( 'Exception', 'PHPMailer\\PHPMailer\\Exception' );
+	}
+	$autoload = $repo_root . '/vendor/autoload.php';
+	if ( ! is_readable( $autoload ) ) {
+		if ( ! is_dir( $repo_root . '/vendor' ) ) {
+			mkdir( $repo_root . '/vendor', 0755, true );
+		}
+		file_put_contents( $autoload, "<?php\n" );
+	}
+	require_once $repo_root . '/includes/class-portal-submission.php';
+}
+
+/**
+ * File handler stand-in so Portal_Submission can be constructed.
+ */
+class Portal_Public_Submit_Fake_Handler {
+	public $stored_file_paths = array();
+	public function get_appId() {
+		return 'test-app';
+	}
+	public function get_temp_file_dir() {
+		return sys_get_temp_dir();
+	}
+	public function permanently_store_temp() {
+		return true;
+	}
 }
 
 /**

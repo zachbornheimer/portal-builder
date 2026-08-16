@@ -76,6 +76,30 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 		}
 
 		/**
+		 * Attach the success surface only when the submission completed.
+		 *
+		 * @param bool   $completed         Whether processing finished.
+		 * @param string $receipt_link      Receipt URL.
+		 * @param string $notification_date Human-readable date.
+		 * @return string 'success' or 'error'
+		 */
+		public static function finish_public_submit( $completed, $receipt_link = '', $notification_date = '' ) {
+			if ( ! $completed ) {
+				return 'error';
+			}
+			if ( ! defined( 'PB_RECEIPT_LINK' ) ) {
+				define( 'PB_RECEIPT_LINK', (string) $receipt_link );
+			}
+			if ( ! defined( 'PB_APPLICATION_NOTIFICATION_DATE' ) ) {
+				define( 'PB_APPLICATION_NOTIFICATION_DATE', (string) $notification_date );
+			}
+			if ( function_exists( 'add_filter' ) ) {
+				add_filter( 'the_content', 'pb_post_submitted_content_filter', 10, 1 );
+			}
+			return 'success';
+		}
+
+		/**
 		 * @return array|null
 		 */
 		public static function last_success() {

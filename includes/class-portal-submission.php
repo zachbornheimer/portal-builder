@@ -71,18 +71,20 @@ if ( ! class_exists( 'Portal_Submission' ) ) {
 				if ( $this->should_send_email( $data ) ) {
 					$this->send_email( $data );
 				}
-			} catch ( Exception $e ) {
+			} catch ( \Exception $e ) {
 				if ( function_exists( 'pb_record_public_submit_failure' ) ) {
 					pb_record_public_submit_failure( $e );
-					return;
+					return false;
 				}
 				if ( class_exists( 'Portal_Submission_Pipeline' ) ) {
 					Portal_Submission_Pipeline::record_public_failure( $e );
 					Portal_Submission_Pipeline::mark_public_errors();
-					return;
+					return false;
 				}
 				error_log( 'Portal Submission Error: ' . $e->getMessage() );
+				return false;
 			}
+			return true;
 		}
 
 		// Example method to determine if payment should be collected
