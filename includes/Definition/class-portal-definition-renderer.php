@@ -16,6 +16,9 @@ if ( ! class_exists( 'Portal_Definition_Renderer' ) ) {
 		const ROOT_VALUE = 'definition';
 		const ROOT_CLASS = 'dg-form portal-definition-form';
 
+		const TEST_BANNER_TEXT  = 'Test — not a real application.';
+		const TEST_BANNER_CLASS = 'dg-test-banner';
+
 		const ACCEPT_SCORE     = 'application/pdf';
 		const ACCEPT_RECORDING = 'audio/mpeg,.mp3';
 		const ACCEPT_BIO       = 'application/pdf';
@@ -53,7 +56,8 @@ if ( ! class_exists( 'Portal_Definition_Renderer' ) ) {
 				return '';
 			}
 
-			$inner = self::render_fields( $definition['fields'] );
+			$inner  = self::render_test_banner( $definition );
+			$inner .= self::render_fields( $definition['fields'] );
 			$inner .= self::render_anonymize_ack_if_needed( $definition, $site );
 
 			return sprintf(
@@ -62,6 +66,23 @@ if ( ! class_exists( 'Portal_Definition_Renderer' ) ) {
 				esc_attr( self::ROOT_ATTR ),
 				esc_attr( self::ROOT_VALUE ),
 				$inner
+			);
+		}
+
+		/**
+		 * Applicant-facing banner when the portal is in per-portal testMode.
+		 *
+		 * @param array $definition Validated definition.
+		 * @return string
+		 */
+		private static function render_test_banner( array $definition ) {
+			if ( ! class_exists( 'Portal_Definition' ) || ! Portal_Definition::test_mode_on( $definition ) ) {
+				return '';
+			}
+			return sprintf(
+				'<div class="%1$s" data-dg-test-mode="true" role="status"><strong>%2$s</strong></div>',
+				esc_attr( self::TEST_BANNER_CLASS ),
+				esc_html( self::TEST_BANNER_TEXT )
 			);
 		}
 

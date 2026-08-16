@@ -339,8 +339,9 @@ const liveArtifactDir = path.join(root, 'tests/.artifacts/live-adapters');
 /**
  * @param {string[]} extraArgs
  * @param {NodeJS.ProcessEnv} [envOverride]
+ * @param {string} [definitionPath]
  */
-function runLivePipeline(extraArgs = [], envOverride = {}) {
+function runLivePipeline(extraArgs = [], envOverride = {}, definitionPath = definition) {
   const env = { ...process.env, ...envOverride };
   delete env.DG_TEST_MODE;
   env.DG_ARTIFACT_DIR = liveArtifactDir;
@@ -348,7 +349,7 @@ function runLivePipeline(extraArgs = [], envOverride = {}) {
     'php',
     [
       harness,
-      definition,
+      definitionPath,
       submission,
       liveArtifactDir,
       '42',
@@ -489,6 +490,61 @@ test('anonymize off without ack is still valid', () => {
   assert.equal(code, 0, out);
   const data = JSON.parse(stdout.trim());
   assert.equal(data.ok, true);
+});
+
+const PRODUCTION_SHEET_ID = 'sheet_hk_fixture_not_prod';
+const PRODUCTION_FOLDER_ID = 'drive_sub_fixture_not_prod';
+
+/**
+ * Live Google path with per-portal testMode on and a production mapping id.
+ * DG_TEST_MODE stays unset so file adapters are not selected.
+ */
+function runTestModeLivePipeline() {
+  const defPath = path.join(liveArtifactDir, 'zys-635-test-mode.definition.json');
+  const raw = JSON.parse(fs.readFileSync(definition, 'utf8'));
+  raw.publish = { ...(raw.publish || {}), enabled: true, testMode: true };
+  fs.mkdirSync(liveArtifactDir, { recursive: true });
+  fs.writeFileSync(defPath, JSON.stringify(raw));
+  return runLivePipeline([], {}, defPath);
+}
+
+test('testMode does not write the mapped production spreadsheet id', () => {
+  const { code, out } = runTestModeLivePipeline();
+  assert.equal(code, 0, out);
+  const data = parseHarnessJson(out);
+  assert.equal(data.ok, true);
+  const store = data.googleStore;
+  assert.ok(store, 'fake google store record');
+  const ids = store.spreadsheetIds || [];
+  assert.ok(
+    !ids.includes(PRODUCTION_SHEET_ID),
+    `testMode must not write production spreadsheetId, got ${JSON.stringify(ids)}`,
+  );
+  const folders = store.driveFolders || [];
+  assert.ok(
+    !folders.includes(PRODUCTION_FOLDER_ID),
+    `testMode must not write production folderId, got ${JSON.stringify(folders)}`,
+  );
+  const blob = JSON.stringify(store);
+  assert.ok(
+    !blob.includes(PRODUCTION_SHEET_ID),
+    `production spreadsheetId leaked into store: ${blob}`,
+  );
+  assert.ok(
+    !blob.includes(PRODUCTION_FOLDER_ID),
+    `production folderId leaked into store: ${blob}`,
+  );
+  const rows = Array.isArray(data.logRows) ? data.logRows : [];
+  const marked =
+    data.test === true ||
+    rows.some((row) => row && (row.test === true || row.mode === 'test'));
+  assert.ok(
+    marked,
+    `operator log should mark the submit as test, got ${JSON.stringify({
+      test: data.test,
+      logRows: rows,
+    })}`,
+  );
 });
 
 test('multi-dest fieldDest writes two spreadsheet ids', () => {

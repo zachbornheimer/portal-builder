@@ -513,6 +513,9 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 			$file_store = isset( $options['file_store'] ) ? $options['file_store'] : null;
 			$open_state = isset( $options['open_state'] ) ? $options['open_state'] : null;
 			$pipeline   = self::for_environment( $definition, null, null, $file_store, $open_state );
+			if ( isset( $options['log'] ) && class_exists( 'Portal_Submit_Log' ) && $options['log'] instanceof Portal_Submit_Log ) {
+				$pipeline->with_log( $options['log'] );
+			}
 			return $pipeline->process( $post_id, $definition, $values, $files );
 		}
 
@@ -658,15 +661,18 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 			} catch ( Exception $e ) {
 				$dests[ $phase ] = 'fail';
 				$code            = $phase . '_fail';
-				return $this->fail_after_dests( $portal_id, $submission_id, $dests, $code, $e, $to ? $to : '' );
+				$is_test         = class_exists( 'Portal_Definition' ) && Portal_Definition::test_mode_on( $definition );
+				return $this->fail_after_dests( $portal_id, $submission_id, $dests, $code, $e, $to ? $to : '', $is_test );
 			}
 
-			$this->write_operator_log( $portal_id, $submission_id, $dests, 'ok', $to ? $to : '' );
+			$is_test = class_exists( 'Portal_Definition' ) && Portal_Definition::test_mode_on( $definition );
+			$this->write_operator_log( $portal_id, $submission_id, $dests, 'ok', $to ? $to : '', $is_test );
 
 			return array(
 				'ok'               => true,
 				'status'           => self::STATUS_SYNCED,
 				'portalId'         => $portal_id,
+				'test'             => $is_test,
 				'sheetPath'        => $sheet_path,
 				'drivePaths'       => $drive_paths,
 				'mailPath'         => $mail_path,
@@ -982,14 +988,15 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 		 * @param array<string,string> $dests     Dest results.
 		 * @param string               $code      Error code.
 		 * @param string               $email     Applicant email (hashed only).
+		 * @param bool                 $test      Per-portal testMode submit.
 		 * @return void
 		 */
-		private function write_operator_log( $portal_id, $app_id, array $dests, $code, $email ) {
+		private function write_operator_log( $portal_id, $app_id, array $dests, $code, $email, $test = false ) {
 			$log = $this->submit_log();
 			if ( null === $log ) {
 				return;
 			}
-			$log->record( $portal_id, $app_id, $dests, $code, $email );
+			$log->record( $portal_id, $app_id, $dests, $code, $email, $test );
 		}
 
 		/**
@@ -1001,10 +1008,11 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 		 * @param string               $code       Error code.
 		 * @param Exception            $exception  Dest failure.
 		 * @param string               $email      Applicant email.
+		 * @param bool                 $test       Per-portal testMode submit.
 		 * @return WP_Error
 		 */
-		private function fail_after_dests( $portal_id, $app_id, array $dests, $code, $exception, $email ) {
-			$this->write_operator_log( $portal_id, $app_id, $dests, $code, $email );
+		private function fail_after_dests( $portal_id, $app_id, array $dests, $code, $exception, $email, $test = false ) {
+			$this->write_operator_log( $portal_id, $app_id, $dests, $code, $email, $test );
 			self::record_public_failure( $exception );
 			return new WP_Error( 'dg_submission_dest', self::PUBLIC_FAILURE_COPY );
 		}

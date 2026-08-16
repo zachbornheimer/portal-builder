@@ -186,6 +186,51 @@ test('anonymizeAck persists as nullable string', () => {
   assert.equal(offData.definition.options.anonymizeAck, null);
 });
 
+test('testMode persists without rewriting mapping dest ids', () => {
+  const file = path.join(root, 'tests/.artifacts/test-mode-persist.json');
+  const sheetId = '1a2B3c4D5e6F7g8H9i0Jklmnopqrstuvwx';
+  const folderId = '1folderfolderfolderfolderfoldr';
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(
+    file,
+    JSON.stringify({
+      version: 1,
+      fields: [{ id: 'work_title', type: 'short_text', label: 'Title' }],
+      mapping: {
+        sheets: [
+          {
+            id: 'sheet_housekeeping',
+            name: 'Housekeeping',
+            spreadsheetId: sheetId,
+          },
+        ],
+        drive: [{ id: 'drive_submissions', name: 'Submissions', folderId }],
+      },
+      publish: { enabled: true, testMode: true },
+    }),
+  );
+  const on = runPhp(file);
+  assert.equal(on.code, 0, on.out);
+  const onData = JSON.parse(on.out.trim());
+  assert.equal(onData.definition.publish.testMode, true);
+  assert.equal(onData.definition.mapping.sheets[0].spreadsheetId, sheetId);
+  assert.equal(onData.definition.mapping.drive[0].folderId, folderId);
+
+  fs.writeFileSync(
+    file,
+    JSON.stringify({
+      ...onData.definition,
+      publish: { ...onData.definition.publish, testMode: false },
+    }),
+  );
+  const off = runPhp(file);
+  assert.equal(off.code, 0, off.out);
+  const offData = JSON.parse(off.out.trim());
+  assert.equal(offData.definition.publish.testMode, false);
+  assert.equal(offData.definition.mapping.sheets[0].spreadsheetId, sheetId);
+  assert.equal(offData.definition.mapping.drive[0].folderId, folderId);
+});
+
 test('legacy forceClosed dual-writes enabled false', () => {
   const file = path.join(root, 'tests/.artifacts/legacy-force-closed.json');
   fs.writeFileSync(

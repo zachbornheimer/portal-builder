@@ -2,6 +2,7 @@
 	import {
 		BUILTIN_ANONYMIZE_ACK,
 		BUILTIN_ANONYMIZE_ENDPOINT,
+		BUILTIN_GUIDELINES_LINK_LABEL,
 		DEFAULT_TIMEZONE,
 		countLeafFields,
 		dualWritePublish,
@@ -298,6 +299,20 @@
 
 <div class="dg-publish-card cardish">
 	<div class="dg-publish-block" style="margin-top: 0;">
+		<label class="dg-check-row">
+			<input
+				type="checkbox"
+				checked={Boolean(publish.testMode)}
+				onchange={(e) => setPublish('testMode', e.currentTarget.checked)}
+			/>
+			<span>Test mode</span>
+		</label>
+		<p class="dg-field-help">
+			Applicants see “Test — not a real application.” Submissions are logged as test and do
+			not write the mapped Sheet or Drive folder.
+		</p>
+	</div>
+	<div class="dg-publish-block">
 		<label class="dg-field-label" for="dg-portal-name">Portal name</label>
 		<input
 			id="dg-portal-name"
@@ -628,6 +643,19 @@
 			oninput={(e) => setOption('guidelinesUrl', emptyToNull(e.currentTarget.value))}
 		/>
 		{#if !options.guidelinesUrl && siteDefaults.guidelinesUrl}
+			<p class="dg-field-help">Using site default</p>
+		{/if}
+		<label class="dg-field-label" for="dg-guidelines-label">Guidelines link label</label>
+		<input
+			id="dg-guidelines-label"
+			type="text"
+			class="dg-input"
+			placeholder={emptyToNull(siteDefaults.guidelinesLinkLabel) ||
+				BUILTIN_GUIDELINES_LINK_LABEL}
+			value={options.guidelinesLinkLabel || ''}
+			oninput={(e) => setOption('guidelinesLinkLabel', emptyToNull(e.currentTarget.value))}
+		/>
+		{#if !options.guidelinesLinkLabel && siteDefaults.guidelinesLinkLabel}
 			<p class="dg-field-help">Using site default</p>
 		{/if}
 	</div>

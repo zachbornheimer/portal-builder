@@ -30,7 +30,8 @@ if ( ! class_exists( 'Portal_Definition' ) ) {
 			'static_html',
 		);
 
-		const SHEET_ROLES = array( 'housekeeping', 'adjudicator' );
+		const SHEET_ROLES       = array( 'housekeeping', 'adjudicator' );
+		const PUBLISH_TEST_MODE = 'testMode';
 
 		/**
 		 * Decode JSON string into array or WP_Error.
@@ -112,6 +113,9 @@ if ( ! class_exists( 'Portal_Definition' ) ) {
 					'guidelinesUrl'             => self::nullable_string(
 						array_key_exists( 'guidelinesUrl', $options ) ? $options['guidelinesUrl'] : null
 					),
+					'guidelinesLinkLabel'       => self::nullable_string(
+						array_key_exists( 'guidelinesLinkLabel', $options ) ? $options['guidelinesLinkLabel'] : null
+					),
 					'applicantNotificationDate' => isset( $options['applicantNotificationDate'] ) ? $options['applicantNotificationDate'] : null,
 					'freeForMembers'            => self::nullable_bool(
 						array_key_exists( 'freeForMembers', $options ) ? $options['freeForMembers'] : null
@@ -144,17 +148,31 @@ if ( ! class_exists( 'Portal_Definition' ) ) {
 				? ! empty( $publish['enabled'] )
 				: empty( $publish['forceClosed'] );
 			return array(
-				'deadline'       => array_key_exists( 'deadline', $publish ) ? $publish['deadline'] : null,
-				'timezone'       => self::nullable_string(
+				'deadline'              => array_key_exists( 'deadline', $publish ) ? $publish['deadline'] : null,
+				'timezone'              => self::nullable_string(
 					array_key_exists( 'timezone', $publish ) ? $publish['timezone'] : null
 				),
-				'applicationFee' => array_key_exists( 'applicationFee', $publish ) ? $publish['applicationFee'] : null,
-				'enabled'        => $enabled,
-				'forceClosed'    => ! $enabled,
-				'launchAt'       => self::nullable_string(
+				'applicationFee'        => array_key_exists( 'applicationFee', $publish ) ? $publish['applicationFee'] : null,
+				'enabled'               => $enabled,
+				'forceClosed'           => ! $enabled,
+				'launchAt'              => self::nullable_string(
 					array_key_exists( 'launchAt', $publish ) ? $publish['launchAt'] : null
 				),
+				self::PUBLISH_TEST_MODE => ! empty( $publish[ self::PUBLISH_TEST_MODE ] ),
 			);
+		}
+
+		/**
+		 * Per-portal publish flag. Independent of DG_TEST_MODE / Portal_Test_Mode.
+		 *
+		 * @param array $definition Validated or raw definition.
+		 * @return bool
+		 */
+		public static function test_mode_on( array $definition ) {
+			$publish = isset( $definition['publish'] ) && is_array( $definition['publish'] )
+				? $definition['publish']
+				: array();
+			return ! empty( $publish[ self::PUBLISH_TEST_MODE ] );
 		}
 
 		/**

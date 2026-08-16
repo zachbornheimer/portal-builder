@@ -41,7 +41,9 @@ if ( ! class_exists( 'Portal_Google_Store' ) ) {
 		 */
 		public function __construct( $file_store, array $definition, $files = null ) {
 			$this->file_store = $file_store;
-			$this->definition = $definition;
+			$this->definition = class_exists( 'Portal_Submission_Destinations' )
+				? Portal_Submission_Destinations::route_for_submit( $definition )
+				: $definition;
 			$this->files      = $files instanceof Portal_Files ? $files : new Portal_Files();
 		}
 
