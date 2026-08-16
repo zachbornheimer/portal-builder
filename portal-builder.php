@@ -5,6 +5,8 @@
  * Plugin URI:  https://dragongateportals.com
  * Description: A plugin to build portals for accepting applications and managing submissions with Google Sheets and Google Drive integration.
  * Version:     0.0.4a
+ * Requires at least: 6.4
+ * Requires PHP: 8.0
  * Author:      Z. Bornheimer (ZYSYS)
  * Author URI:  https://zysys.org/
  * License:     GPLv2 or later
