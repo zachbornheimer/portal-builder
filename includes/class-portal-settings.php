@@ -284,6 +284,7 @@ if (! class_exists('Portal_Settings')) {
                 'default'           => false,
             );
             register_setting( 'pb_settings_group', 'pb_default_anonymize', $bool );
+            register_setting( 'pb_settings_group', 'pb_default_anonymize_fail_closed', $bool );
             register_setting( 'pb_settings_group', 'pb_default_free_for_members', $bool );
             register_setting(
                 'pb_settings_group',
@@ -364,6 +365,13 @@ if (! class_exists('Portal_Settings')) {
                 'pb_default_anonymize',
                 __( 'Anonymize files', 'portal-builder' ),
                 array( $this, 'render_default_anonymize_field' ),
+                'portal-default-settings',
+                'pb_anonymizer_defaults_section'
+            );
+            add_settings_field(
+                'pb_default_anonymize_fail_closed',
+                __( 'Fail closed', 'portal-builder' ),
+                array( $this, 'render_default_anonymize_fail_closed_field' ),
                 'portal-default-settings',
                 'pb_anonymizer_defaults_section'
             );
@@ -504,6 +512,17 @@ if (! class_exists('Portal_Settings')) {
             echo '<label><input type="hidden" name="pb_default_anonymize" value="0" />';
             echo '<input type="checkbox" name="pb_default_anonymize" value="1" ' . checked( $on, true, false ) . ' /> ';
             echo esc_html__( 'Anonymize files for adjudicators by default', 'portal-builder' ) . '</label>';
+        }
+
+        /**
+         * @return void
+         */
+        public function render_default_anonymize_fail_closed_field() {
+            $on = ! empty( get_option( 'pb_default_anonymize_fail_closed', false ) );
+            echo '<label><input type="hidden" name="pb_default_anonymize_fail_closed" value="0" />';
+            echo '<input type="checkbox" name="pb_default_anonymize_fail_closed" value="1" ' . checked( $on, true, false ) . ' /> ';
+            echo esc_html__( 'Do not store the original if anonymize fails', 'portal-builder' ) . '</label>';
+            echo '<p class="description">' . esc_html__( 'Off keeps the identifying file when the API errors. On refuses the original.', 'portal-builder' ) . '</p>';
         }
 
         /**

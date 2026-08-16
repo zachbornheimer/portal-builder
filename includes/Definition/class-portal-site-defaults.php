@@ -12,10 +12,11 @@ if ( ! class_exists( 'Portal_Site_Defaults' ) ) {
 	 */
 	class Portal_Site_Defaults {
 
-		const OPTION_ANONYMIZE          = 'pb_default_anonymize';
-		const OPTION_ANONYMIZE_ENDPOINT = 'pb_default_anonymize_endpoint';
-		const OPTION_ANONYMIZE_API_KEY  = 'pb_default_anonymize_api_key';
-		const OPTION_ANONYMIZE_ACK      = 'pb_default_anonymize_ack';
+		const OPTION_ANONYMIZE             = 'pb_default_anonymize';
+		const OPTION_ANONYMIZE_ENDPOINT    = 'pb_default_anonymize_endpoint';
+		const OPTION_ANONYMIZE_API_KEY     = 'pb_default_anonymize_api_key';
+		const OPTION_ANONYMIZE_ACK         = 'pb_default_anonymize_ack';
+		const OPTION_ANONYMIZE_FAIL_CLOSED = 'pb_default_anonymize_fail_closed';
 		const OPTION_GUIDELINES_URL     = 'pb_default_guidelines_url';
 		const OPTION_FREE_FOR_MEMBERS   = 'pb_default_free_for_members';
 		const OPTION_TIMEZONE           = 'pb_default_timezone';
@@ -33,7 +34,7 @@ if ( ! class_exists( 'Portal_Site_Defaults' ) ) {
 		 *
 		 * @param array $definition Definition document (options + publish).
 		 * @param array $site       Site bag with the same keys as the return value.
-		 * @return array{anonymize:bool,anonymizeEndpoint:string,anonymizeApiKey:string,anonymizeAck:string,guidelinesUrl:?string,freeForMembers:bool,timezone:string,brand:?array}
+		 * @return array{anonymize:bool,anonymizeFailClosed:bool,anonymizeEndpoint:string,anonymizeApiKey:string,anonymizeAck:string,guidelinesUrl:?string,freeForMembers:bool,timezone:string,brand:?array}
 		 */
 		public static function resolve( array $definition, array $site = array() ) {
 			$options = isset( $definition['options'] ) && is_array( $definition['options'] )
@@ -44,8 +45,9 @@ if ( ! class_exists( 'Portal_Site_Defaults' ) ) {
 				: array();
 
 			return array(
-				'anonymize'         => self::resolve_bool( $options, 'anonymize', $site, false ),
-				'anonymizeEndpoint' => self::resolve_string(
+				'anonymize'           => self::resolve_bool( $options, 'anonymize', $site, false ),
+				'anonymizeFailClosed' => self::resolve_bool( $options, 'anonymizeFailClosed', $site, false ),
+				'anonymizeEndpoint'   => self::resolve_string(
 					$options,
 					'anonymizeEndpoint',
 					$site,
@@ -75,8 +77,9 @@ if ( ! class_exists( 'Portal_Site_Defaults' ) ) {
 				return array();
 			}
 			return array(
-				'anonymize'         => ! empty( get_option( self::OPTION_ANONYMIZE, false ) ),
-				'anonymizeEndpoint' => self::trim_or_null( get_option( self::OPTION_ANONYMIZE_ENDPOINT, '' ) ),
+				'anonymize'           => ! empty( get_option( self::OPTION_ANONYMIZE, false ) ),
+				'anonymizeFailClosed' => ! empty( get_option( self::OPTION_ANONYMIZE_FAIL_CLOSED, false ) ),
+				'anonymizeEndpoint'   => self::trim_or_null( get_option( self::OPTION_ANONYMIZE_ENDPOINT, '' ) ),
 				'anonymizeApiKey'   => self::trim_or_null( get_option( self::OPTION_ANONYMIZE_API_KEY, '' ) ),
 				'anonymizeAck'      => self::trim_or_null( get_option( self::OPTION_ANONYMIZE_ACK, '' ) ),
 				'guidelinesUrl'     => self::trim_or_null( get_option( self::OPTION_GUIDELINES_URL, '' ) ),
@@ -106,6 +109,7 @@ if ( ! class_exists( 'Portal_Site_Defaults' ) ) {
 			$key  = isset( $site['anonymizeApiKey'] ) ? $site['anonymizeApiKey'] : null;
 			return array(
 				'anonymize'            => ! empty( $site['anonymize'] ),
+				'anonymizeFailClosed'  => ! empty( $site['anonymizeFailClosed'] ),
 				'anonymizeEndpoint'    => self::non_empty_string( $site, 'anonymizeEndpoint', self::BUILTIN_ANONYMIZE_ENDPOINT ),
 				'anonymizeApiKeySet'   => is_string( $key ) && '' !== $key,
 				'anonymizeApiKeyHint'  => self::key_hint( $key ),

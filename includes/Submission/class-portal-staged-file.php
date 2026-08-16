@@ -5,6 +5,13 @@
  * @package DragonGate
  */
 
+if ( ! class_exists( 'Portal_Anonymize_Decision' ) ) {
+	$decision = __DIR__ . '/class-portal-anonymize-decision.php';
+	if ( is_readable( $decision ) ) {
+		require_once $decision;
+	}
+}
+
 if ( ! class_exists( 'Portal_Staged_File' ) ) {
 
 	/**
@@ -112,11 +119,12 @@ if ( ! class_exists( 'Portal_Staged_File' ) ) {
 				);
 			}
 
-			$anonymized = false;
-			$final      = $this->maybe_anonymize( $definition, $buffer, $stored_name, $field_type );
-			if ( $final !== $buffer ) {
-				$anonymized = true;
+			$decision = $this->decide_anonymize( $definition, $buffer, $stored_name, $field_type );
+			if ( $decision->blocks_store() ) {
+				return new WP_Error( $decision->code, $decision->message );
 			}
+			$final      = $decision->bytes;
+			$anonymized = Portal_Anonymize_Decision::ACTION_REPLACE === $decision->action;
 
 			$token = self::mint_token();
 			$dir   = $this->token_dir( $token );
@@ -232,25 +240,18 @@ if ( ! class_exists( 'Portal_Staged_File' ) ) {
 		 * @param string $buffer     Bytes.
 		 * @param string $filename   Retained name.
 		 * @param string $field_type Field type.
-		 * @return string
+		 * @return Portal_Anonymize_Decision
 		 */
-		private function maybe_anonymize( array $definition, $buffer, $filename, $field_type ) {
+		private function decide_anonymize( array $definition, $buffer, $filename, $field_type ) {
+			$options = $this->resolved_options( $definition );
 			if ( ! class_exists( 'Portal_Anonymizer' ) ) {
-				return $buffer;
-			}
-			$options = class_exists( 'Portal_Site_Defaults' ) && function_exists( 'get_option' )
-				? Portal_Site_Defaults::resolve_for_site( $definition )
-				: ( class_exists( 'Portal_Site_Defaults' )
-					? Portal_Site_Defaults::resolve( $definition, array() )
-					: ( isset( $definition['options'] ) && is_array( $definition['options'] )
-						? $definition['options']
-						: array() ) );
-			// Prefer definition options when site bag is empty (CLI).
-			if ( empty( $options['anonymize'] ) && isset( $definition['options']['anonymize'] ) ) {
-				$options = array_merge( $options, $definition['options'] );
-			}
-			if ( empty( $options['anonymize'] ) ) {
-				return $buffer;
+				if ( empty( $options['anonymize'] ) ) {
+					return Portal_Anonymize_Decision::skip( $buffer );
+				}
+				if ( ! empty( $options['anonymizeFailClosed'] ) ) {
+					return Portal_Anonymize_Decision::refuse( Portal_Anonymize_Decision::MSG_UNUSABLE );
+				}
+				return Portal_Anonymize_Decision::keep( $buffer );
 			}
 			$type = null;
 			if ( 'score_file' === $field_type || 'bio_file' === $field_type ) {
@@ -259,7 +260,25 @@ if ( ! class_exists( 'Portal_Staged_File' ) ) {
 				$type = 'audio/mpeg';
 			}
 			$owner = new Portal_Anonymizer( $options, $this->transport );
-			return $owner->maybe_anonymize( $buffer, $filename, $type );
+			return $owner->decide( $buffer, $filename, $type );
+		}
+
+		/**
+		 * @param array $definition Definition.
+		 * @return array
+		 */
+		private function resolved_options( array $definition ) {
+			$options = class_exists( 'Portal_Site_Defaults' ) && function_exists( 'get_option' )
+				? Portal_Site_Defaults::resolve_for_site( $definition )
+				: ( class_exists( 'Portal_Site_Defaults' )
+					? Portal_Site_Defaults::resolve( $definition, array() )
+					: ( isset( $definition['options'] ) && is_array( $definition['options'] )
+						? $definition['options']
+						: array() ) );
+			if ( empty( $options['anonymize'] ) && isset( $definition['options']['anonymize'] ) ) {
+				$options = array_merge( $options, $definition['options'] );
+			}
+			return $options;
 		}
 
 		/**

@@ -105,6 +105,9 @@ if ( ! class_exists( 'Portal_Definition' ) ) {
 					'anonymize'                 => self::nullable_bool(
 						array_key_exists( 'anonymize', $options ) ? $options['anonymize'] : null
 					),
+					'anonymizeFailClosed'       => self::nullable_bool(
+						array_key_exists( 'anonymizeFailClosed', $options ) ? $options['anonymizeFailClosed'] : null
+					),
 					'skipHeader'                => ! empty( $options['skipHeader'] ),
 					'guidelinesUrl'             => self::nullable_string(
 						array_key_exists( 'guidelinesUrl', $options ) ? $options['guidelinesUrl'] : null

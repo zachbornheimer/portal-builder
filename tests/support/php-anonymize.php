@@ -96,6 +96,7 @@ class Portal_Anonymizer_Fake_Transport {
 $repo_root = dirname( __DIR__, 2 );
 
 require_once $repo_root . '/includes/Definition/class-portal-definition.php';
+require_once $repo_root . '/includes/Definition/class-portal-site-defaults.php';
 require_once $repo_root . '/includes/Submission/class-portal-files.php';
 require_once $repo_root . '/includes/Submission/class-portal-test-mode.php';
 require_once $repo_root . '/includes/Submission/class-portal-sheet-store.php';
@@ -106,6 +107,7 @@ require_once $repo_root . '/includes/Submission/class-portal-submission-validato
 require_once $repo_root . '/includes/Submission/class-portal-submission-selections.php';
 require_once $repo_root . '/includes/Submission/class-portal-submit-admission.php';
 require_once $repo_root . '/includes/Submission/class-portal-submission-destinations.php';
+require_once $repo_root . '/includes/Submission/class-portal-submit-log.php';
 require_once $repo_root . '/includes/Submission/class-portal-submission-pipeline.php';
 
 $anon_units = array(
@@ -113,6 +115,7 @@ $anon_units = array(
 	$repo_root . '/includes/Submission/class-portal-anonymizer-transport.php',
 	$repo_root . '/includes/Submission/class-portal-anonymizer-reply.php',
 	$repo_root . '/includes/Submission/class-portal-anonymizer-api.php',
+	$repo_root . '/includes/Submission/class-portal-anonymize-decision.php',
 	$repo_root . '/includes/Submission/class-portal-anonymizer.php',
 );
 foreach ( $anon_units as $unit ) {
@@ -197,6 +200,7 @@ $values = array(
 	'sub_country'            => 'US',
 	'sub_state'              => 'NC',
 	'sub_phone'              => '+1-919-555-0100',
+	'sub_anonymize_ack'      => '1',
 );
 $files  = array(
 	'score' => array(
@@ -215,7 +219,14 @@ $fixed_ms = static function () {
 	return 1700000000000;
 };
 
+$log_dir = $artifact . DIRECTORY_SEPARATOR . 'dg-logs';
+$log     = class_exists( 'Portal_Submit_Log' )
+	? new Portal_Submit_Log( $log_dir, $files_facade )
+	: null;
 $pipeline = pipeline_with_transport( $sheets, $drive, $files_facade, $fixed_ms, $artifact, $transport );
+if ( $log instanceof Portal_Submit_Log && method_exists( $pipeline, 'with_log' ) ) {
+	$pipeline->with_log( $log );
+}
 $result   = $pipeline->process( $portal_id, $definition, $values, $files );
 
 if ( is_wp_error( $result ) ) {
@@ -228,7 +239,10 @@ if ( is_wp_error( $result ) ) {
 			'message'                 => $result->get_error_message(),
 			'stored_equals_original'  => null,
 			'stored_equals_download'  => false,
+			'drive_has_file'          => drive_has_file( $drive, $portal_id ),
+			'dests'                   => dests_from_log( $log, $portal_id ),
 			'calls'                   => $transport->calls,
+			'call_count'              => count( $transport->calls ),
 		)
 	) . "\n";
 	exit( 0 );
@@ -239,9 +253,10 @@ if ( ! empty( $result['drivePaths']['score'] ) && is_readable( $result['drivePat
 	$stored = (string) file_get_contents( $result['drivePaths']['score'] );
 }
 
-echo json_encode(
-	result_payload( $stored, $original, $download, $transport, true, $anonymizer_loaded )
-) . "\n";
+$payload                       = result_payload( $stored, $original, $download, $transport, true, $anonymizer_loaded );
+$payload['drive_has_file']     = '' !== $stored;
+$payload['dests']              = dests_from_log( $log, $portal_id );
+echo json_encode( $payload ) . "\n";
 exit( 0 );
 
 /**
@@ -292,4 +307,37 @@ function result_payload( $result, $original, $download, $transport, $submit_ok, 
 		'call_count'             => count( $transport->calls ),
 		'calls'                  => $transport->calls,
 	);
+}
+
+/**
+ * @param Portal_Submit_Log|null $log       Operator log.
+ * @param string                 $portal_id Portal id.
+ * @return array<string,string>|null
+ */
+function dests_from_log( $log, $portal_id ) {
+	if ( ! $log instanceof Portal_Submit_Log ) {
+		return null;
+	}
+	$rows = $log->last( $portal_id, 1 );
+	if ( empty( $rows ) || ! isset( $rows[0]['dests'] ) || ! is_array( $rows[0]['dests'] ) ) {
+		return null;
+	}
+	return $rows[0]['dests'];
+}
+
+/**
+ * @param Portal_Drive_Store $drive     Drive store.
+ * @param string             $portal_id Portal id.
+ * @return bool
+ */
+function drive_has_file( $drive, $portal_id ) {
+	if ( ! is_object( $drive ) || ! method_exists( $drive, 'dir_for' ) ) {
+		return false;
+	}
+	$dir = $drive->dir_for( $portal_id );
+	if ( ! is_string( $dir ) || ! is_dir( $dir ) ) {
+		return false;
+	}
+	$found = glob( $dir . DIRECTORY_SEPARATOR . '*' );
+	return is_array( $found ) && array() !== $found;
 }

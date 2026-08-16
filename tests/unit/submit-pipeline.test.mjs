@@ -164,6 +164,23 @@ test('herbolzheimer submission writes sheet, drive, and mail artifacts', () => {
   assertOperatorNotify(operatorMail, data);
 });
 
+test('operator log dest for anonymize is skip when anonymize is off', () => {
+  const portal = 'herbolzheimer-anon-skip';
+  const r = spawnSync(
+    'php',
+    [harness, definition, submission, artifactDir, portal],
+    { encoding: 'utf8', env: { ...process.env, DG_TEST_MODE: '1' } },
+  );
+  const out = (r.stdout || '') + (r.stderr || '');
+  assert.equal(r.status, 0, out);
+  const data = JSON.parse((r.stdout || '').trim());
+  assert.equal(data.ok, true);
+  const rows = Array.isArray(data.logRows) ? data.logRows : [];
+  assert.ok(rows.length > 0, `expected operator log rows: ${out}`);
+  const dests = rows[rows.length - 1].dests || {};
+  assert.equal(dests.anonymize, 'skip');
+});
+
 test('operator notify uses admin_email when notify setting is empty', () => {
   const portal = 'herbolzheimer-admin-email';
   const r = spawnSync(
@@ -421,7 +438,10 @@ function runAnonAckPipeline(anonymize, extraValues = {}) {
     JSON.stringify({
       version: 1,
       fields: [{ id: 'piece', type: 'short_text', label: 'Piece', required: true }],
-      options: { anonymize },
+      options: {
+        anonymize,
+        anonymizeApiKey: anonymize ? 'anon_ack_harness_key' : '',
+      },
       publish: { enabled: true },
     }),
   );

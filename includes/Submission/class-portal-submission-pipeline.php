@@ -5,6 +5,13 @@
  * @package DragonGate
  */
 
+if ( ! class_exists( 'Portal_Anonymize_Decision' ) ) {
+	$decision = __DIR__ . '/class-portal-anonymize-decision.php';
+	if ( is_readable( $decision ) ) {
+		require_once $decision;
+	}
+}
+
 if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 
 	/**
@@ -553,10 +560,13 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 							sprintf( 'Could not read upload for field "%s".', $field_id )
 						);
 					}
-					$anon_status              = 'skip';
-					$buffer                   = $this->anonymize_judge_bytes( $definition, $buffer, $filename, $meta, $anon_status );
-					$dests['anonymize']       = $anon_status;
-					$path                     = $this->drive->store_file( $portal_id, $field_id, $buffer, $filename );
+					$decision           = $this->anonymize_judge_bytes( $definition, $buffer, $filename, $meta );
+					$dests['anonymize'] = $decision->dest;
+					if ( $decision->blocks_store() ) {
+						return $this->fail_anonymize( $portal_id, $submission_id, $dests, $decision, $to ? $to : '' );
+					}
+					$buffer = $decision->bytes;
+					$path   = $this->drive->store_file( $portal_id, $field_id, $buffer, $filename );
 					$drive_paths[ $field_id ] = $path;
 					$file_meta[ $field_id ]   = array(
 						'fieldId'  => $field_id,
@@ -567,9 +577,6 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 				}
 				if ( ! empty( $validated['files'] ) ) {
 					$dests['drive'] = 'ok';
-					if ( 'skip' === $dests['anonymize'] ) {
-						$dests['anonymize'] = 'warning';
-					}
 				}
 
 				$row                  = $this->build_sheet_row( $portal_id, $definition, $validated, $drive_paths );
@@ -759,44 +766,57 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 		}
 
 		/**
-		 * Strip identity from judge-facing bytes. Fail-open to $buffer.
+		 * Strip identity from judge-facing bytes. Decision says whether to store.
 		 *
-		 * @param array       $definition Definition document.
-		 * @param string      $buffer     Original upload bytes.
-		 * @param string      $filename   Original filename.
-		 * @param array       $meta       File meta.
-		 * @param string|null $dest       Set to ok|skip|warning.
-		 * @return string
+		 * @param array  $definition Definition document.
+		 * @param string $buffer     Original upload bytes.
+		 * @param string $filename   Original filename.
+		 * @param array  $meta       File meta.
+		 * @return Portal_Anonymize_Decision
 		 */
-		private function anonymize_judge_bytes( array $definition, $buffer, $filename, array $meta, &$dest = null ) {
-			$dest = 'skip';
-			// Staged uploads already ran anonymize (or deliberately skipped it).
+		private function anonymize_judge_bytes( array $definition, $buffer, $filename, array $meta ) {
 			if ( ! empty( $meta['already_anonymized'] ) ) {
-				$dest = 'ok';
-				return $buffer;
+				return Portal_Anonymize_Decision::replace( $buffer );
 			}
 			if ( ! empty( $meta['staged'] ) ) {
-				$dest = 'skip';
-				return $buffer;
-			}
-			if ( ! class_exists( 'Portal_Anonymizer' ) ) {
-				$dest = 'warning';
-				return $buffer;
+				return Portal_Anonymize_Decision::skip( $buffer );
 			}
 			$options = class_exists( 'Portal_Site_Defaults' )
 				? Portal_Site_Defaults::resolve_for_site( $definition )
 				: ( isset( $definition['options'] ) && is_array( $definition['options'] )
 					? $definition['options']
 					: array() );
-			if ( empty( $options['anonymize'] ) ) {
-				$dest = 'warning';
-				return $buffer;
+			if ( ! class_exists( 'Portal_Anonymizer' ) ) {
+				if ( empty( $options['anonymize'] ) ) {
+					return Portal_Anonymize_Decision::skip( $buffer );
+				}
+				if ( ! empty( $options['anonymizeFailClosed'] ) ) {
+					return Portal_Anonymize_Decision::refuse( Portal_Anonymize_Decision::MSG_UNUSABLE );
+				}
+				return Portal_Anonymize_Decision::keep( $buffer );
 			}
-			$type    = isset( $meta['type'] ) ? (string) $meta['type'] : null;
-			$owner   = new Portal_Anonymizer( $options, $this->transport );
-			$replaced = $owner->maybe_anonymize( $buffer, $filename, $type );
-			$dest     = ( $replaced !== $buffer ) ? 'ok' : 'warning';
-			return $replaced;
+			$owner = new Portal_Anonymizer( $options, $this->transport );
+			return $owner->decide( $buffer, $filename, isset( $meta['type'] ) ? (string) $meta['type'] : null );
+		}
+
+		/**
+		 * Missing config is a validation error; fail-closed refuse is a dest failure.
+		 *
+		 * @param string                     $portal_id  Portal id.
+		 * @param string                     $app_id     Application id.
+		 * @param array<string,string>       $dests      Dest results.
+		 * @param Portal_Anonymize_Decision  $decision   Anonymize decision.
+		 * @param string                     $email      Applicant email.
+		 * @return WP_Error
+		 */
+		private function fail_anonymize( $portal_id, $app_id, array $dests, $decision, $email ) {
+			$code = '' !== $decision->code ? $decision->code : Portal_Anonymize_Decision::CODE_REFUSED;
+			$this->write_operator_log( $portal_id, $app_id, $dests, $code, $email );
+			if ( Portal_Anonymize_Decision::ACTION_BLOCK === $decision->action ) {
+				return new WP_Error( 'dg_submission_invalid', $decision->message );
+			}
+			self::record_public_failure( new Exception( $decision->message ) );
+			return new WP_Error( 'dg_submission_dest', self::PUBLIC_FAILURE_COPY );
 		}
 
 		/**

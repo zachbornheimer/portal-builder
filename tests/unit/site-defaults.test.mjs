@@ -88,6 +88,36 @@ test('portal anonymize false + site true → disabled', () => {
 	assert.equal(data.anonymize, false);
 });
 
+test('portal anonymizeFailClosed null + site true → enabled', () => {
+	const { code, out, data } = resolve({
+		name: 'inherit-fail-closed-on',
+		definition: { options: { anonymizeFailClosed: null } },
+		site: { anonymizeFailClosed: true },
+	});
+	assert.equal(code, 0, out);
+	assert.equal(data.anonymizeFailClosed, true);
+});
+
+test('portal anonymizeFailClosed false + site true → disabled', () => {
+	const { code, out, data } = resolve({
+		name: 'override-fail-closed-off',
+		definition: { options: { anonymizeFailClosed: false } },
+		site: { anonymizeFailClosed: true },
+	});
+	assert.equal(code, 0, out);
+	assert.equal(data.anonymizeFailClosed, false);
+});
+
+test('both anonymizeFailClosed empty/null → off', () => {
+	const { code, out, data } = resolve({
+		name: 'builtin-fail-closed',
+		definition: { options: { anonymizeFailClosed: null } },
+		site: {},
+	});
+	assert.equal(code, 0, out);
+	assert.equal(data.anonymizeFailClosed, false);
+});
+
 test('empty portal timezone inherits site then America/New_York', () => {
 	const siteTz = resolve({
 		name: 'site-tz',
@@ -109,6 +139,7 @@ test('empty portal timezone inherits site then America/New_York', () => {
 test('blank definition and normalizeLoaded keep inherit (null) for bools and URLs', () => {
 	const blank = blankDefinition('Portal');
 	assert.equal(blank.options.anonymize, null);
+	assert.equal(blank.options.anonymizeFailClosed, null);
 	assert.equal(blank.options.freeForMembers, null);
 	assert.equal(blank.options.anonymizeEndpoint, null);
 	assert.equal(blank.options.guidelinesUrl, null);
@@ -137,6 +168,7 @@ test('blank definition and normalizeLoaded keep inherit (null) for bools and URL
 	assert.equal(cleared.publish.timezone, null);
 	assert.equal(dualWritePublish({ timezone: '' }).timezone, null);
 	assert.equal(defaultOptions().anonymize, null);
+	assert.equal(defaultOptions().anonymizeFailClosed, null);
 });
 
 test('setup screen and wizard mount site defaults on the same channel as accessCatalog', () => {
@@ -157,6 +189,7 @@ test('setup screen and wizard mount site defaults on the same channel as accessC
 	assert.match(settings, /pb_default_anonymize_endpoint/);
 	assert.match(settings, /pb_default_anonymize_api_key/);
 	assert.match(settings, /pb_default_anonymize_ack/);
+	assert.match(settings, /pb_default_anonymize_fail_closed/);
 	assert.match(settings, /pb_default_guidelines_url/);
 	assert.match(settings, /pb_default_free_for_members/);
 	assert.match(settings, /pb_default_timezone/);

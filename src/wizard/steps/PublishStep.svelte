@@ -96,6 +96,9 @@
 	}
 
 	const anonymizeOn = $derived(effectiveBool(options.anonymize, siteDefaults.anonymize));
+	const failClosedOn = $derived(
+		effectiveBool(options.anonymizeFailClosed, siteDefaults.anonymizeFailClosed),
+	);
 	const freeForMembersOn = $derived(
 		effectiveBool(options.freeForMembers, siteDefaults.freeForMembers),
 	);
@@ -442,6 +445,25 @@
 					/>
 				</div>
 			</div>
+			<label class="dg-check-row">
+				<input
+					type="checkbox"
+					checked={failClosedOn}
+					onchange={(e) => setOption('anonymizeFailClosed', e.currentTarget.checked)}
+				/>
+				<span>Do not store the original if anonymize fails</span>
+			</label>
+			{#if inheritCaption(options.anonymizeFailClosed, Boolean(siteDefaults.anonymizeFailClosed))}
+				<p class="dg-field-help">{inheritCaption(options.anonymizeFailClosed, Boolean(siteDefaults.anonymizeFailClosed))}</p>
+			{:else}
+				<button
+					type="button"
+					class="dg-btn dg-btn-ghost dg-btn-sm"
+					onclick={() => setOption('anonymizeFailClosed', null)}
+				>
+					Use site default
+				</button>
+			{/if}
 			<div>
 				<label class="dg-field-label" for="dg-anonymize-ack">Anonymize certification</label>
 				<textarea
@@ -466,9 +488,9 @@
 			</div>
 			<p class="dg-anonymize-help dg-field-help">
 				A custom URL is allowed. Blank URL uses the site default, then All Intersections
-				({BUILTIN_ANONYMIZE_ENDPOINT}). If the call fails we keep the original. The key is
-				never shown on the public form. Certification text appears as a required checkbox on
-				the public form.
+				({BUILTIN_ANONYMIZE_ENDPOINT}). If the call fails we keep the original unless fail
+				closed is on. The key is never shown on the public form. Certification text appears
+				as a required checkbox on the public form. An empty key blocks submit.
 			</p>
 		{/if}
 	</div>

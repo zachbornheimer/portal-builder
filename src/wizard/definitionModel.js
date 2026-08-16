@@ -132,6 +132,7 @@ function instantIsPast(value, now) {
 export function defaultOptions() {
 	return {
 		anonymize: null,
+		anonymizeFailClosed: null,
 		skipHeader: false,
 		guidelinesUrl: null,
 		applicantNotificationDate: null,
@@ -1240,6 +1241,11 @@ export function normalizeLoaded(raw, fallbackTitle = 'Portal') {
 			anonymize: triStateBool(
 				Object.prototype.hasOwnProperty.call(incoming, 'anonymize')
 					? incoming.anonymize
+					: null,
+			),
+			anonymizeFailClosed: triStateBool(
+				Object.prototype.hasOwnProperty.call(incoming, 'anonymizeFailClosed')
+					? incoming.anonymizeFailClosed
 					: null,
 			),
 			freeForMembers: triStateBool(

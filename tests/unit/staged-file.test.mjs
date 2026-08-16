@@ -147,6 +147,52 @@ test('stage with anonymize + fake transport: different bytes, anonymized true', 
   assert.ok(data.callCount >= 1, `expected anonymizer calls, got ${data.callCount}`);
 });
 
+test('stage anonymize on + empty key does not store original', () => {
+  const original = '%PDF-1.4\n%identifying-empty-key\n';
+  const { code, out, data } = runScenario({
+    entry: 'stage',
+    portalId: 'stage-empty-key',
+    fieldId: 'score',
+    originalName: 'blank.pdf',
+    fileSuffix: '_SCORE',
+    buffer: original,
+    options: {
+      anonymize: true,
+      anonymizeEndpoint: null,
+      anonymizeApiKey: '',
+    },
+  });
+  assert.ok(data, out);
+  assert.equal(data.ok, false, `empty key must block stage: ${out}`);
+  assert.match(String(data.code || ''), /invalid|anonymize|config|staged/i);
+  assert.notEqual(data.storedEqualsOrig, true);
+  assert.equal(data.callCount || 0, 0);
+  assert.ok(code !== 0 || data.ok === false);
+});
+
+test('stage anonymizeFailClosed + API error does not store original', () => {
+  const original = '%PDF-1.4\n%identifying-fail-closed\n';
+  const { code, out, data } = runScenario({
+    entry: 'stage',
+    portalId: 'stage-fail-closed',
+    fieldId: 'score',
+    originalName: 'blank.pdf',
+    fileSuffix: '_SCORE',
+    buffer: original,
+    options: {
+      anonymize: true,
+      anonymizeEndpoint: 'https://anon.test',
+      anonymizeApiKey: 'test-key-not-real',
+      anonymizeFailClosed: true,
+    },
+    script: [{ throw: 'timed out after 120s' }],
+  });
+  assert.ok(data, out);
+  assert.equal(data.ok, false, `fail-closed must block stage: ${out}`);
+  assert.notEqual(data.storedEqualsOrig, true);
+  assert.ok(code !== 0 || data.ok === false);
+});
+
 test('pipeline uses staged token; drive has staged bytes; no second anonymize', () => {
   const original = '%PDF-1.4\n%pipe-original\n';
   const download = '%PDF-1.4\n%pipe-anonymized\n';
