@@ -45,7 +45,7 @@ Every control named below is a label that exists in this plugin.
 
 11. **Staff console.** Open the portal in the wizard. Below the wizard, **Recent submissions** and **Submission packets** list dest outcomes and application ids. An administrator (or a user with the `dg_edit_submissions` capability) can replace a file; that write goes through the Drive dest adapter. Sheet and Drive remain the packet of record — this is an operator console, not a second store.
 
-12. **Applicant packets.** A signed-in applicant sees **Your submissions for this portal** on the public form and can **Recall** a current packet so staff no longer treat it as current.
+12. **Applicant packets.** A signed-in applicant sees **Your submissions for this portal** on the public form. They can **Replace file** on a current packet (same Drive dest adapter) or **Recall** it so staff no longer treat it as current.
 
 Anyone-audience portals can require Cloudflare Turnstile (set the site key and secret under Default Settings). Logged-in and members portals skip the widget.
 

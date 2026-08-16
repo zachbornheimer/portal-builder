@@ -113,6 +113,7 @@ function portal_plugin_deactivate() {
 register_activation_hook( __FILE__, 'portal_plugin_activate' );
 register_deactivation_hook( __FILE__, 'portal_plugin_deactivate' );
 add_action( Portal_Upload_Store::CLEANUP_HOOK, array( 'Portal_Upload_Store', 'purge_expired' ) );
+add_action( 'init', array( 'Portal_Packet_Policy', 'register_caps' ) );
 
 // Initialize the plugin
 function pb_initialize_plugin() {

@@ -605,6 +605,11 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 				$html  .= '<li><span>' . esc_html( $id ) . ' — ' . esc_html( $status ) . '</span>';
 				if ( Portal_Packet_Policy::is_current( $row ) ) {
 					$html .= ' <button type="button" class="dg-btn" data-dg-recall="' . esc_attr( $id ) . '" aria-label="Recall submission ' . esc_attr( $id ) . '">Recall</button>';
+					$html .= ' <label><span class="screen-reader-text">Field to replace for ' . esc_html( $id ) . '</span>';
+					$html .= '<input type="text" name="field_id" value="" aria-label="Field to replace for ' . esc_attr( $id ) . '"></label>';
+					$html .= ' <label><span class="screen-reader-text">Replacement file for ' . esc_html( $id ) . '</span>';
+					$html .= '<input type="file" name="file" aria-label="Replacement file for ' . esc_attr( $id ) . '"></label>';
+					$html .= ' <button type="button" class="dg-btn" data-dg-replace="' . esc_attr( $id ) . '" aria-label="Replace file for submission ' . esc_attr( $id ) . '">Replace file</button>';
 				}
 				$html .= '</li>';
 			}
@@ -718,6 +723,16 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 					'anonymize' => $anonymize,
 				)
 			);
+			if ( class_exists( 'Portal_Setup_Screen' ) ) {
+				Portal_Setup_Screen::enqueue_packet_console(
+					$plugin_file,
+					$post_id,
+					static function ( $rel ) use ( $plugin_dir ) {
+						$path = $plugin_dir . '/' . $rel;
+						return is_readable( $path ) ? (string) filemtime( $path ) : PB_VERSION;
+					}
+				);
+			}
 		}
 
 		/**

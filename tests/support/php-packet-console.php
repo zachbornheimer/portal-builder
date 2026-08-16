@@ -10,11 +10,16 @@ function wp_json_encode( $data ) {
 	return json_encode( $data );
 }
 
+if ( ! function_exists( 'add_action' ) ) {
+	function add_action() {}
+}
+
 $repo = dirname( __DIR__, 2 );
 require_once $repo . '/includes/Submission/class-portal-files.php';
 require_once $repo . '/includes/Submission/class-portal-submit-log.php';
 require_once $repo . '/includes/Submission/class-portal-packet-policy.php';
 require_once $repo . '/includes/Submission/class-portal-packet-store.php';
+require_once $repo . '/includes/class-portal-console-rest.php';
 
 $in = json_decode( file_get_contents( $argv[1] ), true );
 $in = is_array( $in ) ? $in : array();
@@ -59,10 +64,21 @@ $other = $store->record(
 );
 unset( $other );
 
-$staff_ok  = Portal_Packet_Policy::staff_can_edit( array( 'manage_options' => true ) );
-$guest_no  = Portal_Packet_Policy::staff_can_edit( array() );
-$owner_ok  = Portal_Packet_Policy::applicant_can_touch( $hash, $packet );
-$stranger  = Portal_Packet_Policy::applicant_can_touch( Portal_Submit_Log::hash_email( 'nope@example.com' ), $packet );
+$staff_caps = array( 'manage_options' => true );
+$guest_caps = array();
+$staff_ok   = Portal_Packet_Policy::staff_can_edit( $staff_caps );
+$guest_no   = Portal_Packet_Policy::staff_can_edit( $guest_caps );
+$owner_ok   = Portal_Packet_Policy::applicant_can_touch( $hash, $packet );
+$stranger   = Portal_Packet_Policy::applicant_can_touch( Portal_Submit_Log::hash_email( 'nope@example.com' ), $packet );
+$staff_auth = Portal_Console_Rest::authorize_actor( $staff_caps, $hash, $packet, 'replace' );
+$guest_auth = Portal_Console_Rest::authorize_actor( $guest_caps, '', $packet, 'replace' );
+$owner_auth = Portal_Console_Rest::authorize_actor( $guest_caps, $hash, $packet, 'replace' );
+$stranger_auth = Portal_Console_Rest::authorize_actor(
+	$guest_caps,
+	Portal_Submit_Log::hash_email( 'nope@example.com' ),
+	$packet,
+	'replace'
+);
 
 $mine = $store->list_for_email( 'portal-1', $email );
 
@@ -83,6 +99,10 @@ echo json_encode(
 		'guestDenied'    => ! $guest_no,
 		'ownerCanTouch'  => $owner_ok,
 		'strangerDenied' => ! $stranger,
+		'staffReplace'   => $staff_auth,
+		'guestReplace'   => $guest_auth,
+		'ownerReplace'   => $owner_auth,
+		'strangerReplace'=> $stranger_auth,
 		'listCount'      => count( $mine ),
 		'listOnlyMine'   => 1 === count( $mine ) && 'app-1' === $mine[0]['applicationId'],
 		'replaced'       => is_array( $replaced ),

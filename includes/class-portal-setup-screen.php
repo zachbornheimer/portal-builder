@@ -632,6 +632,11 @@ if ( ! class_exists( 'Portal_Setup_Screen' ) ) {
 				$asset_ver( 'assets/dist/dragongate-portal.js' ),
 				true
 			);
+			$portal_id = 0;
+			if ( isset( $_GET['portal_id'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+				$portal_id = absint( $_GET['portal_id'] );
+			}
+			self::enqueue_packet_console( $plugin_file, $portal_id, $asset_ver );
 			add_filter(
 				'script_loader_tag',
 				static function ( $tag, $handle ) {
@@ -642,6 +647,36 @@ if ( ! class_exists( 'Portal_Setup_Screen' ) ) {
 				},
 				10,
 				2
+			);
+		}
+
+		/**
+		 * Packet recall/replace script (same file on public and admin).
+		 *
+		 * @param string   $plugin_file Plugin bootstrap path.
+		 * @param int      $portal_id   Portal post id.
+		 * @param callable $asset_ver   Version helper.
+		 * @return void
+		 */
+		public static function enqueue_packet_console( $plugin_file, $portal_id, $asset_ver ) {
+			wp_enqueue_script(
+				'dg-packet-console',
+				plugins_url( 'assets/packet-console.js', $plugin_file ),
+				array(),
+				is_callable( $asset_ver ) ? $asset_ver( 'assets/packet-console.js' ) : PB_VERSION,
+				true
+			);
+			$rest = '';
+			if ( $portal_id > 0 && function_exists( 'rest_url' ) ) {
+				$rest = rest_url( 'dragongate/v1/portals/' . (int) $portal_id . '/packets/' );
+			}
+			wp_localize_script(
+				'dg-packet-console',
+				'dgPacketConsole',
+				array(
+					'restBase' => $rest,
+					'nonce'    => function_exists( 'wp_create_nonce' ) ? wp_create_nonce( 'wp_rest' ) : '',
+				)
 			);
 		}
 
@@ -754,15 +789,38 @@ if ( ! class_exists( 'Portal_Setup_Screen' ) ) {
 			if ( empty( $packets ) ) {
 				return $html . '<p>No packets recorded yet.</p></section>';
 			}
-			$html .= '<table><thead><tr><th scope="col">Application</th><th scope="col">Status</th><th scope="col">Time</th></tr></thead><tbody>';
+			$html .= '<table><thead><tr><th scope="col">Application</th><th scope="col">Status</th><th scope="col">Time</th><th scope="col">Replace file</th></tr></thead><tbody>';
 			foreach ( $packets as $row ) {
-				$html .= '<tr>';
-				$html .= '<td>' . esc_html( isset( $row['applicationId'] ) ? $row['applicationId'] : '' ) . '</td>';
-				$html .= '<td>' . esc_html( isset( $row['status'] ) ? $row['status'] : '' ) . '</td>';
-				$html .= '<td>' . esc_html( isset( $row['time'] ) ? $row['time'] : '' ) . '</td>';
-				$html .= '</tr>';
+				$id     = isset( $row['applicationId'] ) ? (string) $row['applicationId'] : '';
+				$status = isset( $row['status'] ) ? (string) $row['status'] : '';
+				$html  .= '<tr>';
+				$html  .= '<td>' . esc_html( $id ) . '</td>';
+				$html  .= '<td>' . esc_html( $status ) . '</td>';
+				$html  .= '<td>' . esc_html( isset( $row['time'] ) ? $row['time'] : '' ) . '</td>';
+				$html  .= '<td>';
+				if ( class_exists( 'Portal_Packet_Policy' ) && Portal_Packet_Policy::is_current( $row ) ) {
+					$html .= self::render_replace_control( $id );
+				}
+				$html .= '</td></tr>';
 			}
 			return $html . '</tbody></table></section>';
+		}
+
+		/**
+		 * Accessible replace control for one current packet.
+		 *
+		 * @param string $app_id Application id.
+		 * @return string
+		 */
+		public static function render_replace_control( $app_id ) {
+			$id = (string) $app_id;
+			return '<div class="dg-replace">'
+				. '<label><span class="screen-reader-text">Field to replace for ' . esc_html( $id ) . '</span>'
+				. '<input type="text" name="field_id" value="" aria-label="Field to replace for ' . esc_attr( $id ) . '"></label>'
+				. '<label><span class="screen-reader-text">Replacement file for ' . esc_html( $id ) . '</span>'
+				. '<input type="file" name="file" aria-label="Replacement file for ' . esc_attr( $id ) . '"></label>'
+				. '<button type="button" class="button" data-dg-replace="' . esc_attr( $id ) . '">Replace file</button>'
+				. '</div>';
 		}
 	}
 

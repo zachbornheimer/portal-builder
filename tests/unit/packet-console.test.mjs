@@ -33,6 +33,10 @@ test('approved staff can replace a file through the dest adapter; guests cannot'
 	const data = run();
 	assert.equal(data.staffOk, true);
 	assert.equal(data.guestDenied, true);
+	assert.equal(data.staffReplace, true);
+	assert.equal(data.guestReplace, false);
+	assert.equal(data.ownerReplace, true);
+	assert.equal(data.strangerReplace, false);
 	assert.equal(data.replaced, true);
 	assert.equal(data.deniedReplace, true);
 	assert.equal(data.driveWrites.length, 1);

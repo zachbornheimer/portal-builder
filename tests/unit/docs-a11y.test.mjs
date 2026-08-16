@@ -32,5 +32,7 @@ test('new packet console and recall controls have accessible names', () => {
 	assert.match(setup, /<th scope="col">/);
 	assert.match(render, /aria-labelledby="dg-applicant-packets-title"/);
 	assert.match(render, /aria-label="Recall submission/);
+	assert.match(render, /aria-label="Replace file for submission/);
+	assert.match(setup, /aria-label="Replacement file for /);
 	assert.match(render, /aria-label="%2\$s"|aria-label="Spam check"/);
 });

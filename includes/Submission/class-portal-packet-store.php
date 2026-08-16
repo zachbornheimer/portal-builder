@@ -48,6 +48,43 @@ if ( ! class_exists( 'Portal_Packet_Store' ) ) {
 		}
 
 		/**
+		 * Operator console store with the live dest adapter for this application id.
+		 *
+		 * @param string|int        $portal_id Portal.
+		 * @param string            $app_id    Application id (Drive subfolder).
+		 * @param Portal_Files|null $files     FS.
+		 * @return self
+		 */
+		public static function for_portal( $portal_id, $app_id, $files = null ) {
+			return self::for_uploads( $files, self::dest_for_replace( $portal_id, $app_id ) );
+		}
+
+		/**
+		 * Google dest when a definition exists; otherwise a local drive facade.
+		 *
+		 * @param string|int $portal_id Portal.
+		 * @param string     $app_id    Application id.
+		 * @return object|null
+		 */
+		public static function dest_for_replace( $portal_id, $app_id ) {
+			if ( class_exists( 'Portal_Definition' ) && class_exists( 'Portal_Google_Store' ) ) {
+				$definition = Portal_Definition::load_for_post( (int) $portal_id );
+				if ( is_array( $definition ) ) {
+					$file_store = Portal_Google_Store::file_store_from_options();
+					$dest       = new Portal_Google_Store( $file_store, $definition );
+					if ( method_exists( $dest, 'set_submission_id' ) ) {
+						$dest->set_submission_id( (string) $app_id );
+					}
+					return $dest;
+				}
+			}
+			if ( class_exists( 'Portal_Drive_Store' ) && class_exists( 'Portal_Test_Mode' ) ) {
+				return new Portal_Drive_Store( Portal_Test_Mode::artifact_dir() );
+			}
+			return null;
+		}
+
+		/**
 		 * @param string|int          $portal_id Portal.
 		 * @param array<string,mixed> $packet    Packet.
 		 * @return array<string,mixed>
