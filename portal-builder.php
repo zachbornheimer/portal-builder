@@ -20,21 +20,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-if ( ! defined( 'PB_RELATIVE_TMP_UPLOADS_DIR' ) ) {
-	define( 'PB_RELATIVE_TMP_UPLOADS_DIR', '/tmp-uploads/' );
-}
-
-if ( ! defined( 'PB_RELATIVE_PERMANENT_UPLOADS_DIR' ) ) {
-	define( 'PB_RELATIVE_PERMANENT_UPLOADS_DIR', '/file-storage/' );
-}
-
-if ( ! defined( 'PB_TMP_UPLOADS_DIR' ) ) {
-	define( 'PB_TMP_UPLOADS_DIR', ABSPATH . PB_RELATIVE_TMP_UPLOADS_DIR );
-}
-
-if ( ! defined( 'PB_PERMANENT_UPLOADS_DIR' ) ) {
-	define( 'PB_PERMANENT_UPLOADS_DIR', ABSPATH . PB_RELATIVE_PERMANENT_UPLOADS_DIR );
-}
+// Upload roots resolve after Portal_Upload_Store is loaded (not ABSPATH).
 
 // Define plugin version constant
 if ( ! defined( 'PB_VERSION' ) ) {
@@ -74,6 +60,7 @@ require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-ano
 require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-anonymizer-transport.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-anonymizer.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-staged-file.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-upload-store.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-submission-pipeline.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/adapters/class-portal-google-store.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-portal-definition-rest.php';
@@ -85,24 +72,33 @@ require_once plugin_dir_path( __FILE__ ) . 'gsuite-filestore/zysys-file-store.cl
 // include composer's autoload file
 require_once plugin_dir_path( __FILE__ ) . 'vendor/autoload.php';
 
+if ( ! defined( 'PB_TMP_UPLOADS_DIR' ) ) {
+	define( 'PB_TMP_UPLOADS_DIR', Portal_Upload_Store::tmp_dir() );
+}
+
+if ( ! defined( 'PB_PERMANENT_UPLOADS_DIR' ) ) {
+	define( 'PB_PERMANENT_UPLOADS_DIR', Portal_Upload_Store::store_dir() );
+}
+
 // Function to run on plugin activation
 function portal_plugin_activate() {
 	// Flush rewrite rules to regenerate them
 	flush_rewrite_rules();
+	Portal_Upload_Store::schedule_cleanup();
+	Portal_Upload_Store::ensure_plugin_roots();
 }
 
 // Function to run on plugin deactivation
 function portal_plugin_deactivate() {
 	// Flush rewrite rules to regenerate them
 	flush_rewrite_rules();
+	Portal_Upload_Store::unschedule_cleanup();
 }
 
 // Register the activation and deactivation hooks
 register_activation_hook( __FILE__, 'portal_plugin_activate' );
 register_deactivation_hook( __FILE__, 'portal_plugin_deactivate' );
-
-
-// @TODO add some sort of cron for tmp file cleanup
+add_action( Portal_Upload_Store::CLEANUP_HOOK, array( 'Portal_Upload_Store', 'purge_expired' ) );
 
 // Initialize the plugin
 function pb_initialize_plugin() {
@@ -387,12 +383,26 @@ function handle_submissions() {
 			}
 		}
 	} catch ( Exception $e ) {
-		if ( ! WP_DEBUG ) {
-			error_log( 'Portal Submission Error: ' . $e->getMessage() );
-			wp_die( $e->getMessage() );
-		} else {
-			throw $e;
-		}
+		pb_record_public_submit_failure( $e );
+		return;
+	}
+}
+
+/**
+ * Keep a public submit exception off the page; the form re-renders.
+ *
+ * @param Exception $exception Caught failure.
+ * @return void
+ */
+function pb_record_public_submit_failure( $exception ) {
+	if ( class_exists( 'Portal_Submission_Pipeline' ) ) {
+		Portal_Submission_Pipeline::record_public_failure( $exception );
+		Portal_Submission_Pipeline::mark_public_errors();
+		return;
+	}
+	error_log( 'Portal Submission Error: ' . $exception->getMessage() );
+	if ( ! defined( 'DG_DEFINITION_SUBMIT_ERRORS' ) ) {
+		define( 'DG_DEFINITION_SUBMIT_ERRORS', true );
 	}
 }
 

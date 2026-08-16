@@ -135,5 +135,60 @@ if ( ! class_exists( 'Portal_Files' ) ) {
 		public function dirname( $path ) {
 			return dirname( $path );
 		}
+
+		/**
+		 * Whether path is a directory.
+		 *
+		 * @param string $path Path.
+		 * @return bool
+		 */
+		public function is_dir( $path ) {
+			return is_dir( $path );
+		}
+
+		/**
+		 * Whether path is a regular file.
+		 *
+		 * @param string $path Path.
+		 * @return bool
+		 */
+		public function is_file( $path ) {
+			return is_file( $path );
+		}
+
+		/**
+		 * Non-dot names in a directory.
+		 *
+		 * @param string $path Directory.
+		 * @return string[]
+		 */
+		public function list_names( $path ) {
+			if ( ! is_dir( $path ) ) {
+				return array();
+			}
+			$items = scandir( $path );
+			if ( ! is_array( $items ) ) {
+				return array();
+			}
+			$out = array();
+			foreach ( $items as $item ) {
+				if ( '.' === $item || '..' === $item ) {
+					continue;
+				}
+				$out[] = $item;
+			}
+			return $out;
+		}
+
+		/**
+		 * File modification time, or 0 when unknown.
+		 *
+		 * @param string $path Path.
+		 * @return int
+		 */
+		public function mtime( $path ) {
+			$mtime = filemtime( $path );
+			return false === $mtime ? 0 : (int) $mtime;
+		}
 	}
 }

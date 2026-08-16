@@ -72,17 +72,16 @@ if ( ! class_exists( 'Portal_Submission' ) ) {
 					$this->send_email( $data );
 				}
 			} catch ( Exception $e ) {
-				// Handle exceptions (logging, showing error messages, etc.)
-				if ( WP_DEBUG ) {
-					wp_die( $e->getMessage() );
-				} else {
-					error_log( $e->getMessage() );
-					if ( WP_DEBUG ) {
-						wp_die( $e->getMessage() );
-					} else {
-						wp_die( 'An error occurred during submission processing.' );
-					}
+				if ( function_exists( 'pb_record_public_submit_failure' ) ) {
+					pb_record_public_submit_failure( $e );
+					return;
 				}
+				if ( class_exists( 'Portal_Submission_Pipeline' ) ) {
+					Portal_Submission_Pipeline::record_public_failure( $e );
+					Portal_Submission_Pipeline::mark_public_errors();
+					return;
+				}
+				error_log( 'Portal Submission Error: ' . $e->getMessage() );
 			}
 		}
 

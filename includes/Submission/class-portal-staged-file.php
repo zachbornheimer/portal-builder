@@ -278,6 +278,9 @@ if ( ! class_exists( 'Portal_Staged_File' ) ) {
 				$root = Portal_Test_Mode::artifact_dir();
 				return rtrim( $root, "/\\" ) . DIRECTORY_SEPARATOR . self::STAGED_DIR_NAME;
 			}
+			if ( class_exists( 'Portal_Upload_Store' ) ) {
+				return Portal_Upload_Store::staged_dir();
+			}
 			if ( function_exists( 'wp_upload_dir' ) ) {
 				$upload = wp_upload_dir();
 				if ( is_array( $upload ) && ! empty( $upload['basedir'] ) ) {
