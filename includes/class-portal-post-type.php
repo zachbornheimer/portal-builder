@@ -9,6 +9,7 @@ if ( ! class_exists( 'Portal_Post_Type' ) ) {
 			add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
 			add_filter( 'post_row_actions', array( $this, 'add_duplicate_action' ), 10, 2 );
 			add_action( 'wp_ajax_duplicate_portal', array( $this, 'duplicate_portal_ajax' ) );
+			add_filter( 'use_block_editor_for_post_type', array( $this, 'disable_block_editor' ), 10, 2 );
 		}
 
 		public function create_post_type() {
@@ -43,6 +44,30 @@ if ( ! class_exists( 'Portal_Post_Type' ) ) {
 		);
 
 			register_post_type( 'portal', $args );
+		}
+
+		/**
+		 * Product UI is the setup wizard — Gutenberg is not the portal editor.
+		 *
+		 * @param bool   $enabled   Whether the block editor is used.
+		 * @param string $post_type Post type slug.
+		 * @return bool
+		 */
+		public function disable_block_editor( $enabled, $post_type ) {
+			if ( 'portal' === $post_type ) {
+				return false;
+			}
+			return $enabled;
+		}
+
+		/**
+		 * Operator destination after Duplicate (setup, not the post.php canvas).
+		 *
+		 * @param int $portal_id New portal post ID.
+		 * @return string
+		 */
+		public static function duplicate_next_url( $portal_id ) {
+			return Portal_Setup_Screen::url( (int) $portal_id );
 		}
 
 		/**
@@ -137,7 +162,7 @@ if ( ! class_exists( 'Portal_Post_Type' ) ) {
 				// Return JSON response with redirect URL
 				wp_send_json_success(
 					array(
-						'redirect_url' => admin_url( 'post.php?post=' . $duplicate_post_id . '&action=edit&duplicated=1' ),
+						'redirect_url' => self::duplicate_next_url( $duplicate_post_id ),
 						'message'      => __( 'DragonGate Portal duplicated successfully!', 'dragongate-portals' ),
 					)
 				);

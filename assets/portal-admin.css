@@ -62,8 +62,8 @@ body.post-type-portal .block-editor {
 	display: none !important;
 }
 
-body.post-type-portal #portal_options,
-body.post-type-portal #portal_record_keeping,
-body.post-type-portal #portal_file_backups {
+body.post-type-portal:not(.dg-portal-legacy) #portal_options,
+body.post-type-portal:not(.dg-portal-legacy) #portal_record_keeping,
+body.post-type-portal:not(.dg-portal-legacy) #portal_file_backups {
 	display: none !important;
 }

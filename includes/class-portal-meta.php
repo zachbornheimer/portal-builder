@@ -23,17 +23,29 @@ if ( ! class_exists( 'Portal_Meta' ) ) {
 			);
 		}
 
+		/**
+		 * Whether the Svelte wizard is a post.php surface.
+		 *
+		 * Product editing is the setup screen. post.php is Legacy fields only.
+		 *
+		 * @return bool
+		 */
+		public static function registers_wizard_on_post_editor() {
+			return false;
+		}
+
 		public function add_meta_boxes() {
-			// Wizard is the only product surface. Legacy field meta boxes stay registered
-			// for save_post compatibility but are hidden via portal-admin CSS.
-			add_meta_box(
-				'portal_setup_wizard',
-				__( 'Portal setup', 'dragongate-portals' ),
-				array( $this, 'render_wizard_mount' ),
-				'portal',
-				'normal',
-				'high'
-			);
+			// Leftover field boxes stay registered for save_post; CSS shows them only on Legacy fields.
+			if ( self::registers_wizard_on_post_editor() ) {
+				add_meta_box(
+					'portal_setup_wizard',
+					__( 'Portal setup', 'dragongate-portals' ),
+					array( $this, 'render_wizard_mount' ),
+					'portal',
+					'normal',
+					'high'
+				);
+			}
 
 			foreach ( $this->meta_boxes as $meta_box ) {
 				add_meta_box(
@@ -267,24 +279,29 @@ if ( ! class_exists( 'Portal_Meta' ) ) {
 				true
 			);
 
-			wp_enqueue_script(
-				'dragongate-portal-js',
-				plugins_url( '../assets/dist/dragongate-portal.js', __FILE__ ),
-				array(),
-				PB_VERSION,
-				true
-			);
-			add_filter(
-				'script_loader_tag',
-				static function ( $tag, $handle ) {
-					if ( 'dragongate-portal-js' === $handle ) {
-						return str_replace( '<script ', '<script type="module" ', $tag );
-					}
-					return $tag;
-				},
-				10,
-				2
-			);
+			// Shared Svelte bundle: data tables on Legacy fields only — not a wizard surface.
+			$legacy_fields = class_exists( 'Portal_Setup_Screen' )
+				&& Portal_Setup_Screen::is_legacy_fields_screen();
+			if ( $legacy_fields ) {
+				wp_enqueue_script(
+					'dragongate-portal-js',
+					plugins_url( '../assets/dist/dragongate-portal.js', __FILE__ ),
+					array(),
+					PB_VERSION,
+					true
+				);
+				add_filter(
+					'script_loader_tag',
+					static function ( $tag, $handle ) {
+						if ( 'dragongate-portal-js' === $handle ) {
+							return str_replace( '<script ', '<script type="module" ', $tag );
+						}
+						return $tag;
+					},
+					10,
+					2
+				);
+			}
 		}
 
 		public function validate_url_callback() {

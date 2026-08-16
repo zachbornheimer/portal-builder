@@ -18,6 +18,13 @@ if ( ! class_exists( 'Portal_Setup_Screen' ) ) {
 		const SUBMENU_LABEL_MAX        = 36;
 		const DEFAULT_NEW_PORTAL_TITLE = 'New portal';
 		const AUTO_DRAFT_TITLE         = 'Auto Draft';
+		const LEGACY_QUERY_KEY         = 'dg_legacy';
+		const LEGACY_QUERY_VALUE       = '1';
+		const LEGACY_FIELDS_LABEL      = 'Legacy fields';
+		const LEGACY_FIELDS_BODY_CLASS = 'dg-portal-legacy';
+		const EDIT_TARGET_SETUP        = 'setup';
+		const EDIT_TARGET_STAY         = 'stay';
+		const EDIT_TARGET_IGNORE       = 'ignore';
 
 		/**
 		 * Hook redirects, menu, and assets.
@@ -215,7 +222,20 @@ if ( ! class_exists( 'Portal_Setup_Screen' ) ) {
 			if ( self::is_setup_screen() ) {
 				$classes .= ' dg-portal-setup';
 			}
+			if ( self::is_legacy_fields_screen() ) {
+				$classes .= ' ' . self::LEGACY_FIELDS_BODY_CLASS;
+			}
 			return $classes;
+		}
+
+		/**
+		 * Whether the current admin request is the Legacy fields hatch.
+		 *
+		 * @return bool
+		 */
+		public static function is_legacy_fields_screen() {
+			global $pagenow;
+			return 'post.php' === $pagenow && self::is_legacy_fields_query( self::admin_request_query() );
 		}
 
 		/**
@@ -243,6 +263,19 @@ if ( ! class_exists( 'Portal_Setup_Screen' ) ) {
 				'edit_posts',
 				self::PAGE_SLUG,
 				array( __CLASS__, 'render' )
+			);
+
+			$query            = self::admin_request_query();
+			$legacy_portal_id = isset( $query['portal_id'] ) ? (int) $query['portal_id'] : 0;
+			if ( $legacy_portal_id < 1 && isset( $query['post'] ) ) {
+				$legacy_portal_id = (int) $query['post'];
+			}
+			add_submenu_page(
+				self::parent_menu_slug(),
+				self::legacy_fields_label(),
+				self::legacy_fields_label(),
+				'edit_posts',
+				self::legacy_fields_menu_slug( $legacy_portal_id )
 			);
 
 			// Point “Add New Portal” at our screen (replace default post-new link).
@@ -286,6 +319,120 @@ if ( ! class_exists( 'Portal_Setup_Screen' ) ) {
 		}
 
 		/**
+		 * Whether the request is the named Legacy fields escape hatch.
+		 *
+		 * @param array $query Request query args (typically $_GET).
+		 * @return bool
+		 */
+		public static function is_legacy_fields_query( $query ) {
+			if ( ! is_array( $query ) ) {
+				return false;
+			}
+			if ( ! isset( $query[ self::LEGACY_QUERY_KEY ] ) ) {
+				return false;
+			}
+			return self::LEGACY_QUERY_VALUE === (string) $query[ self::LEGACY_QUERY_KEY ];
+		}
+
+		/**
+		 * Visible Portals submenu label for the leftover meta-box screen.
+		 *
+		 * @return string
+		 */
+		public static function legacy_fields_label() {
+			return self::LEGACY_FIELDS_LABEL;
+		}
+
+		/**
+		 * Admin path for Legacy fields on a portal (stay-put post.php).
+		 *
+		 * @param int $portal_id Portal post ID.
+		 * @return string
+		 */
+		public static function legacy_fields_url( $portal_id ) {
+			$portal_id = (int) $portal_id;
+			if ( $portal_id < 1 ) {
+				return '';
+			}
+			return add_query_arg(
+				array(
+					'post'                 => $portal_id,
+					'action'               => 'edit',
+					self::LEGACY_QUERY_KEY => self::LEGACY_QUERY_VALUE,
+				),
+				admin_url( 'post.php' )
+			);
+		}
+
+		/**
+		 * Submenu slug WP links to (a post.php URL, not a page callback).
+		 *
+		 * @param int $portal_id Portal post ID when known.
+		 * @return string
+		 */
+		public static function legacy_fields_menu_slug( $portal_id = 0 ) {
+			$portal_id = (int) $portal_id;
+			if ( $portal_id < 1 ) {
+				return 'post.php?' . self::LEGACY_QUERY_KEY . '=' . self::LEGACY_QUERY_VALUE;
+			}
+			return 'post.php?post=' . $portal_id . '&action=edit&' . self::LEGACY_QUERY_KEY . '=' . self::LEGACY_QUERY_VALUE;
+		}
+
+		/**
+		 * Where a portal CPT admin screen should send the operator.
+		 *
+		 * Pure: page + query + resolved post type → setup | stay | ignore.
+		 * Every portal edit goes to setup except ?dg_legacy=1.
+		 *
+		 * @param string $pagenow   Current admin file (post.php, post-new.php, …).
+		 * @param array  $query     Request query args.
+		 * @param string $post_type Resolved post type (from query or the post).
+		 * @return array{kind:string,portal_id?:int}
+		 */
+		public static function edit_target( $pagenow, $query, $post_type ) {
+			$pagenow   = (string) $pagenow;
+			$query     = is_array( $query ) ? $query : array();
+			$post_type = (string) $post_type;
+
+			if ( 'portal' !== $post_type ) {
+				return array( 'kind' => self::EDIT_TARGET_IGNORE );
+			}
+
+			if ( 'post-new.php' === $pagenow ) {
+				return array(
+					'kind'      => self::EDIT_TARGET_SETUP,
+					'portal_id' => 0,
+				);
+			}
+
+			if ( 'post.php' !== $pagenow ) {
+				return array( 'kind' => self::EDIT_TARGET_IGNORE );
+			}
+
+			$post_id = isset( $query['post'] ) ? (int) $query['post'] : 0;
+			if ( $post_id < 1 ) {
+				return array( 'kind' => self::EDIT_TARGET_IGNORE );
+			}
+
+			if ( self::is_legacy_fields_query( $query ) ) {
+				return array(
+					'kind'      => self::EDIT_TARGET_STAY,
+					'portal_id' => $post_id,
+				);
+			}
+
+			$action = isset( $query['action'] ) ? (string) $query['action'] : '';
+			if ( '' !== $action && 'edit' !== $action ) {
+				return array( 'kind' => self::EDIT_TARGET_IGNORE );
+			}
+
+			return array(
+				'kind'      => self::EDIT_TARGET_SETUP,
+				'portal_id' => $post_id,
+			);
+		}
+
+		/**
 		 * Send CPT edit / new screens to the product setup page.
 		 */
 		public static function redirect_post_screens() {
@@ -295,24 +442,61 @@ if ( ! class_exists( 'Portal_Setup_Screen' ) ) {
 				return;
 			}
 
+			$query     = self::admin_request_query();
+			$post_type = self::admin_request_post_type( (string) $pagenow, $query );
+			$decision  = self::edit_target( (string) $pagenow, $query, $post_type );
+			if ( self::EDIT_TARGET_SETUP !== $decision['kind'] ) {
+				return;
+			}
+
+			$portal_id = isset( $decision['portal_id'] ) ? (int) $decision['portal_id'] : 0;
+			wp_safe_redirect( self::url( $portal_id ) );
+			exit;
+		}
+
+		/**
+		 * Sanitized admin query used by the edit-target decision.
+		 *
+		 * @return array
+		 */
+		private static function admin_request_query() {
+			$query = array();
 			// phpcs:ignore WordPress.Security.NonceVerification.Recommended
-			$post_type = isset( $_GET['post_type'] ) ? sanitize_key( wp_unslash( $_GET['post_type'] ) ) : '';
-
-			if ( 'post-new.php' === $pagenow && 'portal' === $post_type ) {
-				wp_safe_redirect( self::url( 0 ) );
-				exit;
+			if ( isset( $_GET['post'] ) ) {
+				$query['post'] = (int) $_GET['post'];
 			}
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			if ( isset( $_GET['action'] ) ) {
+				$query['action'] = sanitize_key( wp_unslash( $_GET['action'] ) );
+			}
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			if ( isset( $_GET['post_type'] ) ) {
+				$query['post_type'] = sanitize_key( wp_unslash( $_GET['post_type'] ) );
+			}
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			if ( isset( $_GET[ self::LEGACY_QUERY_KEY ] ) ) {
+				$query[ self::LEGACY_QUERY_KEY ] = sanitize_key( wp_unslash( $_GET[ self::LEGACY_QUERY_KEY ] ) );
+			}
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			if ( isset( $_GET['portal_id'] ) ) {
+				$query['portal_id'] = (int) $_GET['portal_id'];
+			}
+			return $query;
+		}
 
+		/**
+		 * Post type for the current admin file.
+		 *
+		 * @param string $pagenow Current admin file.
+		 * @param array  $query   Sanitized query.
+		 * @return string
+		 */
+		private static function admin_request_post_type( $pagenow, $query ) {
 			if ( 'post.php' === $pagenow ) {
-				// phpcs:ignore WordPress.Security.NonceVerification.Recommended
-				$post_id = isset( $_GET['post'] ) ? (int) $_GET['post'] : 0;
-				// phpcs:ignore WordPress.Security.NonceVerification.Recommended
-				$action = isset( $_GET['action'] ) ? sanitize_key( wp_unslash( $_GET['action'] ) ) : '';
-				if ( $post_id > 0 && 'edit' === $action && 'portal' === get_post_type( $post_id ) ) {
-					wp_safe_redirect( self::url( $post_id ) );
-					exit;
-				}
+				$post_id = isset( $query['post'] ) ? (int) $query['post'] : 0;
+				return $post_id > 0 ? (string) get_post_type( $post_id ) : '';
 			}
+			return isset( $query['post_type'] ) ? (string) $query['post_type'] : '';
 		}
 
 		/**
