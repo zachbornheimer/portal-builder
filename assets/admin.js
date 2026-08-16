@@ -81,6 +81,34 @@ jQuery(document).ready(function ($) {
         $(this).closest('tr').remove();
     });
 
+    $(document).on('click', '#dg-google-probe-submit', function (e) {
+        e.preventDefault();
+        var $btn = $(this);
+        var $result = $('#dg-google-probe-result');
+        var cfg = window.portalBuilderGoogleProbe || {};
+        $btn.prop('disabled', true);
+        $result
+            .removeAttr('hidden')
+            .removeClass('notice-success notice-error')
+            .addClass('notice inline')
+            .text(cfg.working || 'Testing Google connection…');
+        $.post(cfg.ajaxUrl || window.ajaxurl, {
+            action: cfg.action || 'dg_google_probe',
+            dg_google_probe_nonce: cfg.nonce || '',
+            dg_google_probe_folder_id: $('#dg-google-probe-folder-id').val(),
+            dg_google_probe_sheet_id: $('#dg-google-probe-sheet-id').val()
+        }).done(function (res) {
+            var payload = res && res.data ? res.data : res;
+            var ok = !!(payload && payload.ok);
+            var msg = (payload && payload.message) || (ok ? 'Passed.' : 'Failed.');
+            $result.toggleClass('notice-success', ok).toggleClass('notice-error', !ok).text(msg);
+        }).fail(function () {
+            $result.addClass('notice-error').text('The test could not run. Reload the page and try again.');
+        }).always(function () {
+            $btn.prop('disabled', false);
+        });
+    });
+
     // Handle duplicate portal action
     $(document).on('click', '.duplicate-portal', function (e) {
         e.preventDefault();
