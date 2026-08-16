@@ -10,6 +10,7 @@ if (! class_exists('Portal_Settings')) {
             add_action('admin_init', array( $this, 'register_settings' ));
             add_action('admin_enqueue_scripts', array( $this, 'enqueue_admin_scripts' ));
             add_action('wp_ajax_validate_url', array( $this, 'validate_url_callback' )); // AJAX callback for URL validation
+            add_action( 'wp_ajax_dg_google_probe', array( $this, 'google_probe_callback' ) );
         }
 
         public function add_menu_pages()
@@ -115,6 +116,13 @@ if (! class_exists('Portal_Settings')) {
                 'pb_google_access_key',
                 __('Google Access Key', 'portal-builder'),
                 array( $this, 'render_google_access_key_field' ),
+                'portal-default-settings',
+                'pb_google_api_section'
+            );
+            add_settings_field(
+                'pb_google_probe',
+                __( 'Google connection test', 'portal-builder' ),
+                array( $this, 'render_google_probe_field' ),
                 'portal-default-settings',
                 'pb_google_api_section'
             );
@@ -691,6 +699,67 @@ if (! class_exists('Portal_Settings')) {
             echo '<p class="description">' . esc_html__( 'OAuth access token for the Google identity that completed consent. FileStore refreshes this token.', 'portal-builder' ) . '</p>';
         }
 
+        /**
+         * Folder ID, Sheet ID, probe button, and pass/fail slot.
+         *
+         * @return void
+         */
+        public function render_google_probe_field()
+        {
+            if ( class_exists( 'Portal_Google_Probe' ) ) {
+                Portal_Google_Probe::render_admin();
+            }
+        }
+
+        /**
+         * AJAX entry. Capability and nonce are checked in handle_google_probe.
+         *
+         * @return void
+         */
+        public function google_probe_callback()
+        {
+            $request = isset( $_POST ) && is_array( $_POST ) ? wp_unslash( $_POST ) : array();
+            $result  = $this->handle_google_probe( $request );
+            if ( function_exists( 'wp_send_json' ) ) {
+                wp_send_json( $result );
+                return;
+            }
+            echo wp_json_encode( $result );
+        }
+
+        /**
+         * Run the Google probe. Never wp_die — returns a named pass/fail payload.
+         *
+         * @param array                        $request Posted fields.
+         * @param Portal_Google_Probe|null     $probe   Injected probe (tests).
+         * @return array{ok:bool,message:string}
+         */
+        public function handle_google_probe( $request, $probe = null )
+        {
+            if ( ! function_exists( 'current_user_can' ) || ! current_user_can( 'manage_options' ) ) {
+                return array(
+                    'ok'      => false,
+                    'message' => Portal_Google_Probe::explain( Portal_Google_Probe_Failure::CAPABILITY ),
+                );
+            }
+            $request = is_array( $request ) ? $request : array();
+            $nonce   = isset( $request[ Portal_Google_Probe::NONCE_FIELD ] )
+                ? (string) $request[ Portal_Google_Probe::NONCE_FIELD ]
+                : '';
+            if ( ! function_exists( 'wp_verify_nonce' ) || ! wp_verify_nonce( $nonce, Portal_Google_Probe::NONCE_ACTION ) ) {
+                return array(
+                    'ok'      => false,
+                    'message' => Portal_Google_Probe::explain( Portal_Google_Probe_Failure::NONCE ),
+                );
+            }
+            if ( ! $probe instanceof Portal_Google_Probe ) {
+                $probe = new Portal_Google_Probe();
+            }
+            $folder = isset( $request[ Portal_Google_Probe::FOLDER_FIELD ] ) ? $request[ Portal_Google_Probe::FOLDER_FIELD ] : '';
+            $sheet  = isset( $request[ Portal_Google_Probe::SHEET_FIELD ] ) ? $request[ Portal_Google_Probe::SHEET_FIELD ] : '';
+            return $probe->run( $folder, $sheet );
+        }
+
         public function render_county_region_script_field()
         {
             $value = get_option('pb_county_region_script', '');
@@ -881,6 +950,18 @@ if (! class_exists('Portal_Settings')) {
                     'addText'    => __('Add Disclaimer', 'portal-builder'),
                 )
             );
+            if ( class_exists( 'Portal_Google_Probe' ) ) {
+                wp_localize_script(
+                    'pb-admin-js',
+                    'portalBuilderGoogleProbe',
+                    array(
+                        'ajaxUrl' => admin_url( 'admin-ajax.php' ),
+                        'action'  => Portal_Google_Probe::AJAX_ACTION,
+                        'nonce'   => wp_create_nonce( Portal_Google_Probe::NONCE_ACTION ),
+                        'working' => __( 'Testing Google connection…', 'portal-builder' ),
+                    )
+                );
+            }
         }
 
         public function validate_url_callback()

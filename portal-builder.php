@@ -65,6 +65,9 @@ require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-sta
 require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-upload-store.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-submission-pipeline.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/adapters/class-portal-google-store.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/adapters/class-portal-google-probe-failure.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/adapters/class-portal-google-probe-store.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/adapters/class-portal-google-probe.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-portal-definition-rest.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-portal-staged-file-rest.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-portal-setup-screen.php';
