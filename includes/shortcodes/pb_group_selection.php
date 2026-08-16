@@ -8,7 +8,7 @@ function pb_group_selection_shortcode( $atts, $content = null ) {
 	if ( defined( 'PB_APPLICATION_SUBMITTED' ) && PB_APPLICATION_SUBMITTED ) {
 		return do_shortcode( $content );
 	}
-	if ( defined( 'PB_APPLICATION_DEADLINE_PASSED' ) && PB_APPLICATION_DEADLINE_PASSED ) {
+	if ( class_exists( 'Portal_Public_Render' ) && Portal_Public_Render::form_chrome_hidden() ) {
 		return do_shortcode( $content );
 	}
 

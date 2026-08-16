@@ -134,7 +134,7 @@ function render_portal_application_formstart_block($attributes, $content)
     if (defined('PB_APPLICATION_SUBMITTED') && PB_APPLICATION_SUBMITTED) {
         return;
     }
-    if (defined('PB_APPLICATION_DEADLINE_PASSED') && PB_APPLICATION_DEADLINE_PASSED) {
+    if (class_exists('Portal_Public_Render') && Portal_Public_Render::form_chrome_hidden()) {
         return;
     }
     // Get the guidelines URL from the post meta
@@ -202,7 +202,7 @@ function render_portal_application_formend_block($attributes, $content)
     if (defined('PB_APPLICATION_SUBMITTED') && PB_APPLICATION_SUBMITTED) {
         return;
     }
-    if (defined('PB_APPLICATION_DEADLINE_PASSED') && PB_APPLICATION_DEADLINE_PASSED) {
+    if (class_exists('Portal_Public_Render') && Portal_Public_Render::form_chrome_hidden()) {
         return;
     }
     // Get the guidelines URL from the post meta
@@ -369,7 +369,7 @@ function render_portal_application_upload_notes_block($attributes, $content)
     if (defined('PB_APPLICATION_SUBMITTED') && PB_APPLICATION_SUBMITTED) {
         return;
     }
-    if (defined('PB_APPLICATION_DEADLINE_PASSED') && PB_APPLICATION_DEADLINE_PASSED) {
+    if (class_exists('Portal_Public_Render') && Portal_Public_Render::leftover_shortcode_is_silent()) {
         return;
     }
 
@@ -445,7 +445,7 @@ function render_portal_application_agreements_block($attributes, $content)
     if (defined('PB_APPLICATION_SUBMITTED') && PB_APPLICATION_SUBMITTED) {
         return;
     }
-    if (defined('PB_APPLICATION_DEADLINE_PASSED') && PB_APPLICATION_DEADLINE_PASSED) {
+    if (class_exists('Portal_Public_Render') && Portal_Public_Render::leftover_shortcode_is_silent()) {
         return;
     }
 

@@ -192,3 +192,53 @@ test('anonymize false does not inject anonymize_ack checkbox', () => {
 	assert.equal(data.html.includes('sub_anonymize_ack'), false);
 	assert.equal(data.html.includes('anonymize_ack'), false);
 });
+
+const closedHarness = path.join(root, 'tests/support/php-render-closed.php');
+const closedArtifactDir = path.join(root, 'tests/.artifacts/closed-public-copy');
+const DEADLINE_SENTENCE = 'The application deadline has passed.';
+const CLOSED_SENTENCE = 'This portal is closed.';
+
+function runClosed(mode) {
+	fs.mkdirSync(closedArtifactDir, { recursive: true });
+	const file = path.join(closedArtifactDir, `${mode}.json`);
+	fs.writeFileSync(file, JSON.stringify({ mode }));
+	const r = spawnSync('php', [closedHarness, file], { encoding: 'utf8' });
+	const out = `${r.stdout || ''}${r.stderr || ''}`;
+	return { code: r.status, out };
+}
+
+test('deadline-closed public HTML has the deadline sentence exactly once', () => {
+	const { code, out } = runClosed('deadline');
+	assert.equal(code, 0, out);
+	const data = JSON.parse(out.trim());
+	const matches = data.html.split(DEADLINE_SENTENCE).length - 1;
+	assert.equal(matches, 1, `deadline sentence count=${matches}\n${data.html}`);
+	assert.equal(data.agreements, '', 'agreements leftover must stay silent');
+	assert.equal(data.notes, '', 'upload-notes leftover must stay silent');
+	assert.equal(data.formstart, '', 'form chrome stays hidden');
+	assert.equal(data.formend, '', 'form chrome stays hidden');
+});
+
+test('force-closed public HTML does not claim the deadline passed', () => {
+	const { code, out } = runClosed('force');
+	assert.equal(code, 0, out);
+	const data = JSON.parse(out.trim());
+	assert.match(data.html, new RegExp(CLOSED_SENTENCE.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+	assert.equal(data.html.includes(DEADLINE_SENTENCE), false, data.html);
+	assert.equal(data.agreements, '', 'agreements leftover must stay silent');
+	assert.equal(data.notes, '', 'upload-notes leftover must stay silent');
+	assert.equal(data.formstart, '', 'form chrome stays hidden when force-closed');
+	assert.equal(data.formend, '', 'form chrome stays hidden when force-closed');
+});
+
+test('editor preview of a closed portal still shows the form', () => {
+	const { code, out } = runClosed('preview');
+	assert.equal(code, 0, out);
+	const data = JSON.parse(out.trim());
+	assert.equal(data.show_form, true, out);
+	assert.equal(data.has_preview, true, 'preview banner');
+	assert.equal(data.has_form, true, 'definition form markup');
+	assert.match(data.html, /Piece Name/);
+	assert.equal(data.html.includes('data-dg-portal-state="closed"'), false, data.html);
+	assert.equal(data.html.includes(CLOSED_SENTENCE), false);
+});
