@@ -7,6 +7,7 @@
  *
  * scenario.entry:
  *   inspect | public_failure | purge | upload_roots | schedule
+ *   | legacy_submit_failure | ready_to_submit_no_definition
  */
 
 // phpcs:disable
@@ -166,6 +167,11 @@ if ( 'legacy_submit_failure' === $entry ) {
 	exit( 0 );
 }
 
+if ( 'ready_to_submit_no_definition' === $entry ) {
+	echo json_encode( run_ready_to_submit_no_definition( $scenario, $repo_root ) ) . "\n";
+	exit( 0 );
+}
+
 fwrite( STDERR, "unknown entry: $entry\n" );
 exit( 2 );
 
@@ -203,6 +209,11 @@ function inspect_public_submit_sources( $repo_root ) {
 		'/process_submission\s*\([^;]+\)\s*;\s*define\s*\(\s*[\'"]PB_RECEIPT_LINK/',
 		$plugin
 	);
+	$handler_src       = extract_php_function( $plugin, 'handle_submissions' );
+	$try_src           = extract_php_function( $plugin, 'pb_try_definition_submission' );
+	$public_src        = $handler_src . "\n" . $try_src;
+	$source_constructs = (bool) preg_match( '/new\s+Portal_Submission\s*\(/', $public_src );
+	$source_processes  = (bool) preg_match( '/->\s*process_submission\s*\(/', $public_src );
 
 	return array(
 		'ok'                      => true,
@@ -222,7 +233,40 @@ function inspect_public_submit_sources( $repo_root ) {
 		'unconditionalLegacySuccess' => $unconditional,
 		'hasFinishPublicSubmit'      => class_exists( 'Portal_Submission_Pipeline' )
 			&& method_exists( 'Portal_Submission_Pipeline', 'finish_public_submit' ),
+		'sourceConstructsLegacy'     => $source_constructs,
+		'sourceProcessesLegacy'      => $source_processes,
 	);
+}
+
+/**
+ * Extract a top-level function body from PHP source by brace matching.
+ *
+ * @param string $source File contents.
+ * @param string $name   Function name.
+ * @return string
+ */
+function extract_php_function( $source, $name ) {
+	if ( ! preg_match( '/function\s+' . preg_quote( $name, '/' ) . '\s*\(/', $source, $m, PREG_OFFSET_CAPTURE ) ) {
+		return '';
+	}
+	$from  = (int) $m[0][1];
+	$brace = strpos( $source, '{', $from );
+	if ( false === $brace ) {
+		return '';
+	}
+	$depth = 0;
+	$len   = strlen( $source );
+	for ( $i = $brace; $i < $len; $i++ ) {
+		if ( '{' === $source[ $i ] ) {
+			++$depth;
+		} elseif ( '}' === $source[ $i ] ) {
+			--$depth;
+			if ( 0 === $depth ) {
+				return substr( $source, $from, $i - $from + 1 );
+			}
+		}
+	}
+	return '';
 }
 
 /**
@@ -461,6 +505,161 @@ function run_legacy_submit_failure( array $scenario, $repo_root ) {
 		'unconditionalLegacySuccess' => $inspect['unconditionalLegacySuccess'],
 		'hasFinishPublicSubmit'      => $inspect['hasFinishPublicSubmit'],
 	);
+}
+
+/**
+ * Drive the shipped handle_submissions on a ready_to_submit POST with no
+ * definition. Public POST must not construct Portal_Submission.
+ *
+ * @param array  $scenario  Scenario.
+ * @param string $repo_root Plugin root.
+ * @return array<string,mixed>
+ */
+function run_ready_to_submit_no_definition( array $scenario, $repo_root ) {
+	unset( $scenario );
+	$inspect = inspect_public_submit_sources( $repo_root );
+	$plugin  = (string) file_get_contents( $repo_root . '/portal-builder.php' );
+
+	$needed = array(
+		'handle_submissions',
+		'pb_try_definition_submission',
+		'pb_record_public_submit_failure',
+	);
+	foreach ( $needed as $name ) {
+		$src = extract_php_function( $plugin, $name );
+		if ( '' === $src ) {
+			return array(
+				'ok'                     => false,
+				'code'                   => 'missing_' . $name,
+				'sourceConstructsLegacy' => $inspect['sourceConstructsLegacy'],
+				'sourceProcessesLegacy'  => $inspect['sourceProcessesLegacy'],
+			);
+		}
+		if ( ! function_exists( $name ) ) {
+			eval( $src ); // phpcs:ignore Squiz.PHP.Eval.Discouraged -- shipped function under test.
+		}
+	}
+
+	stub_ready_to_submit_runtime( $repo_root );
+
+	$handler_path = $repo_root . '/includes/class-portal-file-handler.php';
+	if ( is_readable( $handler_path ) ) {
+		require_once $handler_path;
+	}
+
+	if ( ! defined( 'PB_TMP_UPLOADS_DIR' ) ) {
+		define( 'PB_TMP_UPLOADS_DIR', sys_get_temp_dir() . '/dg-zys631-tmp' );
+	}
+	if ( ! defined( 'PB_PERMANENT_UPLOADS_DIR' ) ) {
+		define( 'PB_PERMANENT_UPLOADS_DIR', sys_get_temp_dir() . '/dg-zys631-store' );
+	}
+
+	$_SERVER['REQUEST_METHOD'] = 'POST';
+	$_POST                     = array(
+		'ready_to_submit_nonce' => 'zys-631-nonce',
+		'post_id'               => 42,
+		'eappId'                => 'APPID_zys631',
+		'efiles'                => '[]',
+	);
+	$_FILES                    = array();
+
+	$died        = false;
+	$die_message = '';
+	try {
+		handle_submissions();
+	} catch ( Exception $e ) {
+		if ( 0 === strpos( $e->getMessage(), 'wp_die:' ) ) {
+			$died        = true;
+			$die_message = substr( $e->getMessage(), 7 );
+		} else {
+			throw $e;
+		}
+	}
+
+	$errors = class_exists( 'Portal_Submission_Pipeline' )
+		? Portal_Submission_Pipeline::last_errors()
+		: null;
+	$human  = '';
+	if ( is_array( $errors ) && isset( $errors[0]['message'] ) ) {
+		$human = (string) $errors[0]['message'];
+	}
+	$rendered = is_array( $errors )
+		? Portal_Submission_Pipeline::render_errors( $errors )
+		: '';
+
+	return array(
+		'ok'                     => true,
+		'constructedLegacy'      => ! empty( $GLOBALS['legacy_constructed'] ),
+		'processedLegacy'        => ! empty( $GLOBALS['legacy_processed'] ),
+		'sourceConstructsLegacy' => $inspect['sourceConstructsLegacy'],
+		'sourceProcessesLegacy'  => $inspect['sourceProcessesLegacy'],
+		'died'                   => $died || ! empty( $GLOBALS['wp_died'] ),
+		'dieMessage'             => $die_message,
+		'definedErrors'          => defined( 'DG_DEFINITION_SUBMIT_ERRORS' ) && DG_DEFINITION_SUBMIT_ERRORS,
+		'humanMessage'           => $human,
+		'rendered'               => $rendered,
+		'lastErrors'             => $errors,
+		'receiptDefined'         => defined( 'PB_RECEIPT_LINK' ),
+	);
+}
+
+/**
+ * Stubs so the shipped handle_submissions can run without WordPress.
+ *
+ * @param string $repo_root Plugin root.
+ * @return void
+ */
+function stub_ready_to_submit_runtime( $repo_root ) {
+	unset( $repo_root );
+	if ( ! function_exists( 'wp_verify_nonce' ) ) {
+		function wp_verify_nonce() {
+			return true;
+		}
+	}
+	if ( ! function_exists( 'wp_unslash' ) ) {
+		function wp_unslash( $value ) {
+			return $value;
+		}
+	}
+	if ( ! function_exists( 'pb_decrypt_str' ) ) {
+		function pb_decrypt_str( $string ) {
+			return $string;
+		}
+	}
+	if ( ! function_exists( 'get_label_for_pb_file_name' ) ) {
+		function get_label_for_pb_file_name() {
+			return '';
+		}
+	}
+	if ( ! function_exists( 'get_post' ) ) {
+		function get_post() {
+			return (object) array(
+				'post_name'    => 'zys-631-portal',
+				'post_content' => '',
+			);
+		}
+	}
+	if ( ! function_exists( 'get_post_meta' ) ) {
+		function get_post_meta() {
+			return '';
+		}
+	}
+	if ( ! class_exists( 'Portal_Submission' ) ) {
+		class Portal_Submission {
+			public function __construct( $nonce, $file_handler ) {
+				unset( $nonce, $file_handler );
+				$GLOBALS['legacy_constructed'] = true;
+			}
+			public function process_submission( $data ) {
+				unset( $data );
+				$GLOBALS['legacy_processed'] = true;
+				return false;
+			}
+			public function get_receipt_link() {
+				return '';
+			}
+		}
+	}
 }
 
 /**
