@@ -109,7 +109,7 @@ test('submit paths do not call collect_payment or should_collect_payment', () =>
 
 test('Publish step fee copy is label-only and does not imply checkout', () => {
 	const svelte = fs.readFileSync(PUBLISH_STEP, 'utf8');
-	const feeAt = svelte.indexOf('for="dg-fee"');
+	const feeAt = svelte.indexOf('id="dg-fee"');
 	assert.ok(feeAt >= 0, 'Publish step is missing the application fee field');
 	const feeBlock = svelte.slice(feeAt, feeAt + 900);
 	assert.match(feeBlock, INFORMATIONAL_FEE_COPY);

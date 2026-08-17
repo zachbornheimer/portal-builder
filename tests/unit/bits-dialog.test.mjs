@@ -79,14 +79,13 @@ test('definition-form opens DGPreview only after proveReadable; missing island i
 	const js = read('assets/definition-form.js');
 	assert.match(js, /proveReadable/);
 	assert.match(js, /globalThis\.DGPreview\.open/);
+	assert.match(js, /function previewReady\s*\(/);
 	assert.match(
 		js,
 		/proveReadable\s*\([\s\S]*?\)\s*\.then\s*\(\s*function\s*\(\)\s*\{[\s\S]*?globalThis\.DGPreview\.open/,
 	);
-	assert.match(
-		js,
-		/if\s*\(\s*!globalThis\.DGPreview\s*\|\|\s*typeof globalThis\.DGPreview\.open !== ['"]function['"]\s*\)\s*\{\s*onError\(\)/,
-	);
+	assert.match(js, /if\s*\(\s*!previewReady\(\)\s*\)/);
+	assert.match(js, /onError\(\)/);
 	assert.doesNotMatch(js, /PREVIEW_DIALOG_ID/);
 	assert.doesNotMatch(js, /ensurePreviewDialog/);
 	assert.doesNotMatch(js, /trapPreviewFocus/);

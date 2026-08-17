@@ -10,6 +10,18 @@ Learn more at [allintersections.com](https://allintersections.com) or [zysys.org
 - **Requires PHP:** 8.0 or higher
 - **Requires WordPress:** 6.4 or higher (Requires at least: 6.4)
 
+## Development
+
+`mise` is the task entrypoint. Node installs go through [aube](https://aube.jdx.dev). PHP deps go through Composer.
+
+```sh
+mise run setup
+mise run test
+mise run ci
+mise run cut-release          # tag current (or next) semver + zip
+CUT_RELEASE_PUSH=1 mise run cut-release
+```
+
 ## First hour: ZIP install to a first test submit
 
 Every control named below is a label that exists in this plugin.

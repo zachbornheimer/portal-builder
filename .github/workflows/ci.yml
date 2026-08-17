@@ -22,14 +22,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: npm
+      - name: mise
+        uses: jdx/mise-action@v2
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Setup
+        run: mise run setup
 
-      - name: Offline CI (mocks + unit)
-        run: npm run ci:offline
+      - name: CI
+        run: mise run ci

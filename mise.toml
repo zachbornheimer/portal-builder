@@ -1,0 +1,84 @@
+[tools]
+node = "22"
+aube = "1.41.0"
+lefthook = "2.1.9"
+
+[tasks.setup]
+description = "Install Node (aube, npm lockfile fallback), PHP (Composer), and Lefthook hooks"
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+if ! aube install; then
+  echo 'aube install failed; falling back to npm ci'
+  npm ci
+fi
+composer install
+lefthook install
+node --version
+php -v
+test -f vendor/autoload.php
+"""
+
+[tasks.build]
+description = "Vite assets, production Composer, release zip"
+run = [
+  "npm run build",
+  "composer install --no-dev --optimize-autoloader",
+  "bash scripts/make-release-zip.sh",
+]
+
+[tasks.lint]
+description = "PHPCS when present, else PHP syntax"
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+if [[ -x vendor/bin/phpcs ]]; then
+  composer exec phpcs --
+else
+  php -l portal-builder.php
+  find includes -name '*.php' -print0 | xargs -0 -n1 php -l >/dev/null
+  echo 'php -l ok (phpcs not installed)'
+fi
+"""
+
+[tasks.test]
+description = "Unit tests (no LocalWP)"
+run = "node --test 'tests/unit/**/*.test.mjs'"
+
+[tasks.scan]
+description = "Secrets scan when gitleaks is available"
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+if command -v gitleaks >/dev/null 2>&1; then
+  gitleaks detect --no-git --source . --redact
+else
+  echo 'gitleaks not installed; skip'
+fi
+"""
+
+[tasks.doctor]
+description = "Verify the mise task contract and release scripts"
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+for f in mise.toml lefthook.yml composer.json package.json scripts/cut-release.sh scripts/make-release-zip.sh portal-builder.php; do
+  test -f "${f}" || { echo "doctor: missing ${f}" >&2; exit 1; }
+done
+mise tasks | grep -q '^setup ' || { echo 'doctor: setup task missing' >&2; exit 1; }
+mise tasks | grep -q '^build ' || { echo 'doctor: build task missing' >&2; exit 1; }
+mise tasks | grep -q '^lint ' || { echo 'doctor: lint task missing' >&2; exit 1; }
+mise tasks | grep -q '^test ' || { echo 'doctor: test task missing' >&2; exit 1; }
+mise tasks | grep -q '^scan ' || { echo 'doctor: scan task missing' >&2; exit 1; }
+mise tasks | grep -q '^ci ' || { echo 'doctor: ci task missing' >&2; exit 1; }
+mise tasks | grep -q '^cut-release ' || { echo 'doctor: cut-release task missing' >&2; exit 1; }
+echo 'doctor ok'
+"""
+
+[tasks.ci]
+description = "lint + test + scan"
+depends = ["lint", "test", "scan"]
+
+[tasks.cut-release]
+description = "Tag current (or next) semver, build zip, optional GitHub Release"
+run = "bash scripts/cut-release.sh"
