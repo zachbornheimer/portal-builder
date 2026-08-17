@@ -33,6 +33,11 @@ if [[ -d assets/dist ]]; then
   mkdir -p "${TMP}/${PREFIX}/assets/dist"
   cp -R assets/dist/. "${TMP}/${PREFIX}/assets/dist/"
 fi
+# git archive honors export-ignore; the plugin still needs the notes for
+# the Updates “View details” changelog when GitHub’s API is blocked.
+if [[ -f CHANGELOG.md ]]; then
+  cp CHANGELOG.md "${TMP}/${PREFIX}/CHANGELOG.md"
+fi
 
 rm -f "${OUT}"
 (
