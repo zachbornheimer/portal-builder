@@ -258,8 +258,8 @@ if ( $show_form ) {
 	$body = Portal_Public_Render::render_closed_message( $post_id );
 }
 
-$agreements = (string) pb_application_agreements_shortcode();
-$notes      = (string) pb_application_upload_notes_shortcode();
+$agreements = (string) dg_application_agreements_shortcode();
+$notes      = (string) dg_application_upload_notes_shortcode();
 $formstart  = (string) portal_application_formstart_shortcode();
 $formend    = (string) portal_application_formend_shortcode();
 
@@ -286,8 +286,8 @@ echo json_encode(
 		'has_form'       => false !== strpos( $html, 'data-dg-render="definition"' ),
 		'has_preview'    => false !== strpos( $html, 'data-dg-preview="true"' ),
 		'flags'          => array(
-			'deadline_passed' => defined( 'PB_APPLICATION_DEADLINE_PASSED' ) && PB_APPLICATION_DEADLINE_PASSED,
-			'closed'          => defined( 'PB_APPLICATION_CLOSED' ) && PB_APPLICATION_CLOSED,
+			'deadline_passed' => defined( 'DG_APPLICATION_DEADLINE_PASSED' ) && DG_APPLICATION_DEADLINE_PASSED,
+			'closed'          => defined( 'DG_APPLICATION_CLOSED' ) && DG_APPLICATION_CLOSED,
 		),
 	),
 	JSON_UNESCAPED_SLASHES

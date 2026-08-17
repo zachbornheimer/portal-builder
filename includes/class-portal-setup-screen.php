@@ -604,7 +604,7 @@ if ( ! class_exists( 'Portal_Setup_Screen' ) ) {
 
 			$asset_ver = static function ( $rel ) use ( $plugin_file ) {
 				$path = dirname( $plugin_file ) . '/' . $rel;
-				return is_readable( $path ) ? (string) filemtime( $path ) : PB_VERSION;
+				return is_readable( $path ) ? (string) filemtime( $path ) : DG_VERSION;
 			};
 
 			wp_enqueue_style(
@@ -663,7 +663,7 @@ if ( ! class_exists( 'Portal_Setup_Screen' ) ) {
 				'dg-packet-console',
 				plugins_url( 'assets/packet-console.js', $plugin_file ),
 				array(),
-				is_callable( $asset_ver ) ? $asset_ver( 'assets/packet-console.js' ) : PB_VERSION,
+				is_callable( $asset_ver ) ? $asset_ver( 'assets/packet-console.js' ) : DG_VERSION,
 				true
 			);
 			$rest = '';
@@ -721,7 +721,7 @@ if ( ! class_exists( 'Portal_Setup_Screen' ) ) {
 			$list_url    = admin_url( 'edit.php?post_type=portal' );
 			$plugin_file = dirname( __DIR__ ) . '/portal-builder.php';
 			$logo_file   = dirname( $plugin_file ) . '/assets/icon.svg';
-			$logo_ver    = is_readable( $logo_file ) ? (string) filemtime( $logo_file ) : PB_VERSION;
+			$logo_ver    = is_readable( $logo_file ) ? (string) filemtime( $logo_file ) : DG_VERSION;
 			$logo_url    = esc_url_raw(
 				add_query_arg( 'ver', $logo_ver, plugins_url( 'assets/icon.svg', $plugin_file ) )
 			);

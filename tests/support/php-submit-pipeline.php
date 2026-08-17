@@ -47,6 +47,7 @@ function wp_json_encode( $d ) {
 
 $repo_root = dirname( __DIR__, 2 );
 
+require_once $repo_root . '/includes/class-portal-options.php';
 require_once $repo_root . '/includes/Definition/class-portal-definition.php';
 require_once $repo_root . '/includes/Definition/class-portal-site-defaults.php';
 require_once $repo_root . '/includes/Submission/class-portal-files.php';

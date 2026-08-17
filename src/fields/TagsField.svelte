@@ -1,6 +1,7 @@
 <script>
 
   import { createEventDispatcher, onMount } from 'svelte';
+  import { Label } from 'bits-ui';
   import Combobox from '../Combobox.svelte';
   import { ContentParser } from '../services/ContentParser.js';
   import { WordPressContentProvider } from '../services/ContentProvider.js';
@@ -305,7 +306,7 @@
 </script>
 
 <div class="form-group">
-  <label class="block text-sm font-medium text-gray-700 mb-2">{field.label}</label>
+  <Label.Root class="mb-2 block text-sm font-medium text-gray-700">{field.label}</Label.Root>
 
   <!-- Tags list with divs -->
   <div class="border border-gray-300 rounded-md">

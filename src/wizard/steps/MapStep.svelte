@@ -1,4 +1,6 @@
 <script>
+	import Field from '../../ui/Field.svelte';
+	import CheckField from '../../ui/CheckField.svelte';
 	import {
 		acceptFolderInput,
 		acceptSpreadsheetInput,
@@ -176,19 +178,15 @@
 		{@const sheetId = parseSpreadsheetId(sheet.spreadsheetId)}
 		<div class="dg-dest-card cardish">
 			<p class="dg-dest-card-kicker">{sheetKicker(sheet, i)}</p>
-			<label class="dg-field-label" for={`dg-dest-sheet-name-${i}`}>Name</label>
-			<input
+			<Field
 				id={`dg-dest-sheet-name-${i}`}
-				type="text"
-				class="dg-input"
+				label="Name"
 				value={sheet.name}
 				oninput={(e) => updateSheet(i, { name: e.currentTarget.value })}
 			/>
-			<label class="dg-field-label" for={`dg-dest-sheet-id-${i}`}>Spreadsheet</label>
-			<input
+			<Field
 				id={`dg-dest-sheet-id-${i}`}
-				type="text"
-				class="dg-input"
+				label="Spreadsheet"
 				placeholder="Paste a Google Sheets URL or id"
 				value={sheet.spreadsheetId}
 				oninput={(e) =>
@@ -225,19 +223,15 @@
 		{@const folderId = parseFolderId(destDrive.folderId)}
 		<div class="dg-dest-card cardish">
 			<p class="dg-dest-card-kicker">Drive folder</p>
-			<label class="dg-field-label" for="dg-dest-drive-name">Name</label>
-			<input
+			<Field
 				id="dg-dest-drive-name"
-				type="text"
-				class="dg-input"
+				label="Name"
 				value={destDrive.name}
 				oninput={(e) => updateDrive({ name: e.currentTarget.value })}
 			/>
-			<label class="dg-field-label" for="dg-dest-drive-id">Folder</label>
-			<input
+			<Field
 				id="dg-dest-drive-id"
-				type="text"
-				class="dg-input"
+				label="Folder"
 				placeholder="Paste a Drive folder URL or id"
 				value={destDrive.folderId}
 				oninput={(e) =>
@@ -288,26 +282,22 @@
 				<div class="dg-map-arrow" aria-hidden="true">→</div>
 				<div class="dg-map-dests">
 					{#each destSheets as sheet (sheet.id)}
-						<label class="dg-check-row">
-							<input
-								type="checkbox"
-								checked={parseDestParts(currentDest(f)).sheets.some(
-									(s) => s.name === sheet.name,
-								)}
-								onchange={() => onToggleSheet(f, sheet.name)}
-							/>
-							<span>{sheet.name}</span>
-						</label>
+						<CheckField
+							id={`dg-map-${f.id}-sheet-${sheet.id}`}
+							label={sheet.name}
+							checked={parseDestParts(currentDest(f)).sheets.some(
+								(s) => s.name === sheet.name,
+							)}
+							onchange={() => onToggleSheet(f, sheet.name)}
+						/>
 					{/each}
 					{#if isFileField(f) && destDrive}
-						<label class="dg-check-row">
-							<input
-								type="checkbox"
-								checked={parseDestParts(currentDest(f)).drive === destDrive.name}
-								onchange={() => onToggleDrive(f, destDrive.name)}
-							/>
-							<span>{destDrive.name} (Drive)</span>
-						</label>
+						<CheckField
+							id={`dg-map-${f.id}-drive`}
+							label={`${destDrive.name} (Drive)`}
+							checked={parseDestParts(currentDest(f)).drive === destDrive.name}
+							onchange={() => onToggleDrive(f, destDrive.name)}
+						/>
 					{/if}
 					{#if f.type === 'branch' && (f.options || []).length > 0}
 						<button

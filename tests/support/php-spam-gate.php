@@ -31,6 +31,7 @@ function get_option( $name, $default = false ) {
 }
 
 $repo = dirname( __DIR__, 2 );
+require_once $repo . '/includes/class-portal-options.php';
 require_once $repo . '/includes/Submission/class-portal-spam-gate.php';
 
 $in = json_decode( isset( $argv[1] ) ? $argv[1] : '{}', true );

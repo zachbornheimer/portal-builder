@@ -15,7 +15,7 @@ class GlobalStore {
         this.metaKeys = {
             recordKeeping: '_portal_record_keeping',
             fileBackups: '_portal_file_backups',
-            legalDisclaimers: 'pb_legal_disclaimers'
+            legalDisclaimers: 'dg_legal_disclaimers'
         };
 
         // Initialize from WordPress data

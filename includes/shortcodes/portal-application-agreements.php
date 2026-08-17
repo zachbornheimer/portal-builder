@@ -1,7 +1,7 @@
 <?php
 
-function pb_application_agreements_shortcode() {
-	if ( defined( 'PB_APPLICATION_SUBMITTED' ) && PB_APPLICATION_SUBMITTED ) {
+function dg_application_agreements_shortcode() {
+	if ( defined( 'DG_APPLICATION_SUBMITTED' ) && DG_APPLICATION_SUBMITTED ) {
 		return '';
 	}
 	if ( class_exists( 'Portal_Public_Render' ) && Portal_Public_Render::leftover_shortcode_is_silent() ) {
@@ -11,7 +11,7 @@ function pb_application_agreements_shortcode() {
 	$post_id           = (int) get_the_ID();
 	$definition_portal = class_exists( 'Portal_Definition' ) && is_array( Portal_Definition::load_for_post( $post_id ) );
 
-	$disclaimers = json_decode( get_option( 'pb_legal_disclaimers', json_encode( array() ) ), true );
+	$disclaimers = json_decode( Portal_Options::get( 'dg_legal_disclaimers', json_encode( array() ) ), true );
 
 	// Decode the disclaimers until it's an array
 	while ( ! is_array( $disclaimers ) ) {
@@ -63,4 +63,4 @@ function pb_application_agreements_shortcode() {
 
 	return do_shortcode( ob_get_clean() );
 }
-	add_shortcode( 'portal-application-agreements', 'pb_application_agreements_shortcode' );
+	add_shortcode( 'portal-application-agreements', 'dg_application_agreements_shortcode' );

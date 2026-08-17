@@ -29,15 +29,15 @@ if ( ! class_exists( 'Portal_Submission' ) ) {
 
 			// Retrieve Google Sheets, Google Drive, and client secret keys from WordPress options
 			$credentials = array(
-				'access_key'    => get_option( 'pb_google_access_key' ),
-				'client_secret' => get_option( 'pb_google_secret_key' ),
+				'access_key'    => Portal_Options::get( 'dg_google_access_key' ),
+				'client_secret' => Portal_Options::get( 'dg_google_secret_key' ),
 			);
 
 			// Initialize the Zysys_FileStore object with the retrieved credentials
 			$this->file_store = new Zysys_FileStore( $credentials );
 
 			if ( $this->file_store->__get( 'update_access_token' ) ) {
-				update_option( 'pb_google_access_key', $this->file_store->__get( 'update_access_token' ) );
+				Portal_Options::set( 'dg_google_access_key', $this->file_store->__get( 'update_access_token' ) );
 			}
 		}
 
@@ -74,8 +74,8 @@ if ( ! class_exists( 'Portal_Submission' ) ) {
 					$this->send_email( $data );
 				}
 			} catch ( \Exception $e ) {
-				if ( function_exists( 'pb_record_public_submit_failure' ) ) {
-					pb_record_public_submit_failure( $e );
+				if ( function_exists( 'dg_record_public_submit_failure' ) ) {
+					dg_record_public_submit_failure( $e );
 					return false;
 				}
 				if ( class_exists( 'Portal_Submission_Pipeline' ) ) {
@@ -131,11 +131,11 @@ if ( ! class_exists( 'Portal_Submission' ) ) {
 
 			$link = $this->generate_receipt_link();
 
-			$fromEmail      = get_option( 'pb_receipt_from_email', '' );
-			$fromName       = get_option( 'pb_receipt_from_name', '' );
-			$receiptSubject = get_option( 'pb_receipt_subject', '' );
-			$receiptBody    = get_option( 'pb_receipt_body', '' );
-			$receiptAltBody = get_option( 'pb_receipt_alt_body', '' );
+			$fromEmail      = Portal_Options::get( 'dg_receipt_from_email', '' );
+			$fromName       = Portal_Options::get( 'dg_receipt_from_name', '' );
+			$receiptSubject = Portal_Options::get( 'dg_receipt_subject', '' );
+			$receiptBody    = Portal_Options::get( 'dg_receipt_body', '' );
+			$receiptAltBody = Portal_Options::get( 'dg_receipt_alt_body', '' );
 
 			$mail = new PHPMailer( true );
 
@@ -353,7 +353,7 @@ if ( ! class_exists( 'Portal_Submission' ) ) {
 			$args_for_url                   = array();
 			$args_for_url['app-id']         = $this->file_handler->get_appId();
 			$args_for_url['date-submitted'] = date( 'M d, Y' );
-			$args_for_url['epost-id']       = pb_encrypt_str( $this->raw_file_data['post_id'] );
+			$args_for_url['epost-id']       = dg_encrypt_str( $this->raw_file_data['post_id'] );
 			$args_for_url['portal-name']    = get_the_title( $this->raw_file_data['post_id'] );
 
 			// merge the raw file data into the args for the url
@@ -367,14 +367,14 @@ if ( ! class_exists( 'Portal_Submission' ) ) {
 			}
 
 			$args_for_url['files'] = json_encode( $this->file_handler->stored_file_paths );
-			if ( defined( 'PB_FILE_LABELS' ) ) {
-				$args_for_url['file_labels'] = json_encode( PB_FILE_LABELS );
+			if ( defined( 'DG_FILE_LABELS' ) ) {
+				$args_for_url['file_labels'] = json_encode( DG_FILE_LABELS );
 			}
 
 			// remove null values
 			$args_for_url = array_filter( $args_for_url );
 
-			$receipt_generator = get_option( 'pb_receipt_generator', '' );
+			$receipt_generator = Portal_Options::get( 'dg_receipt_generator', '' );
 			$link              = $receipt_generator . '?' . http_build_query( $args_for_url, '', '&', PHP_QUERY_RFC3986 );
 
 			if ( $receipt_generator ) {

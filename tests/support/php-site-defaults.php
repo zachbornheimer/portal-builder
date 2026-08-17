@@ -47,6 +47,7 @@ function home_url( $path = '/' ) {
 }
 
 $repo_root = dirname( __DIR__, 2 );
+require_once $repo_root . '/includes/class-portal-options.php';
 require_once $repo_root . '/includes/Definition/class-portal-definition.php';
 require_once $repo_root . '/includes/Definition/class-portal-site-defaults.php';
 

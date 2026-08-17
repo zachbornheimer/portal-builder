@@ -1,11 +1,11 @@
 <?php
-function pb_group_selection_shortcode( $atts, $content = null ) {
+function dg_group_selection_shortcode( $atts, $content = null ) {
 
 	# if $_POST review_nonce is set, return $content
 	if ( isset( $_POST['review_nonce'] ) ) {
 		return do_shortcode( $content );
 	}
-	if ( defined( 'PB_APPLICATION_SUBMITTED' ) && PB_APPLICATION_SUBMITTED ) {
+	if ( defined( 'DG_APPLICATION_SUBMITTED' ) && DG_APPLICATION_SUBMITTED ) {
 		return do_shortcode( $content );
 	}
 	if ( class_exists( 'Portal_Public_Render' ) && Portal_Public_Render::form_chrome_hidden() ) {
@@ -131,9 +131,9 @@ function pb_group_selection_shortcode( $atts, $content = null ) {
 	return $output;
 }
 
-add_shortcode( 'pb_group_selection', 'pb_group_selection_shortcode' );
-add_shortcode( 'pb_group_selection_wrap1', 'pb_group_selection_shortcode' );
-add_shortcode( 'pb_group_selection_wrap2', 'pb_group_selection_shortcode' );
-add_shortcode( 'pb_group_selection_wrap3', 'pb_group_selection_shortcode' );
-add_shortcode( 'pb_group_selection_wrap4', 'pb_group_selection_shortcode' );
-add_shortcode( 'pb_group_selection_wrap5', 'pb_group_selection_shortcode' );
+add_shortcode( 'pb_group_selection', 'dg_group_selection_shortcode' );
+add_shortcode( 'pb_group_selection_wrap1', 'dg_group_selection_shortcode' );
+add_shortcode( 'pb_group_selection_wrap2', 'dg_group_selection_shortcode' );
+add_shortcode( 'pb_group_selection_wrap3', 'dg_group_selection_shortcode' );
+add_shortcode( 'pb_group_selection_wrap4', 'dg_group_selection_shortcode' );
+add_shortcode( 'pb_group_selection_wrap5', 'dg_group_selection_shortcode' );

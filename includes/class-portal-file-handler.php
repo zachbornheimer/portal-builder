@@ -210,7 +210,7 @@ if ( ! class_exists( 'Portal_File_Handler' ) ) {
 
 		private function binary_tool( $tool ) {
 
-			$path = get_option( 'pb_' . $tool . '_path', '/usr/local/bin/' . $tool );
+			$path = Portal_Options::get( 'dg_' . $tool . '_path', '/usr/local/bin/' . $tool );
 			$path = escapeshellarg( $path );
 
 			// remove surrounding quotes

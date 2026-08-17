@@ -1,6 +1,6 @@
 <?php
 // Shortcode for file input
-function pb_file_shortcode( $atts ) {
+function dg_file_shortcode( $atts ) {
 	$atts = shortcode_atts(
 		array(
 			'label'    => '',
@@ -38,4 +38,4 @@ function pb_file_shortcode( $atts ) {
 
 	return $output;
 }
-add_shortcode( 'pb_file', 'pb_file_shortcode' );
+add_shortcode( 'pb_file', 'dg_file_shortcode' );

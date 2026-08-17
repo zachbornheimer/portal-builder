@@ -3,7 +3,7 @@
  *
  * After a file is chosen: stage bytes (XHR progress → anonymize spinner →
  * retained server name). Confirm proves the file bytes are readable, then
- * paints the file in a page dialog. Opened means proveReadable succeeded.
+ * opens the Bits preview island. Opened means proveReadable succeeded.
  *
  * Branch radios show only the selected path’s `.dg-branch-children` and disable
  * hidden controls so HTML5 `required` cannot block submit.
@@ -18,9 +18,6 @@
   var STAGE_FAIL = 'Upload failed. Remove the upload and try again.'
   var FILE_OPEN_FAIL = 'This file didn’t open. Remove the upload and try another.'
   var PREVIEW_TITLE = 'Confirm this file'
-  var PREVIEW_CLOSE = 'Close'
-  var PREVIEW_DIALOG_ID = 'dg-file-preview'
-  var PREVIEW_TITLE_ID = 'dg-file-preview-title'
   var previewReturnFocus = null
 
   /**
@@ -94,157 +91,54 @@
     return 'iframe'
   }
 
-  function previewFocusable(dialog) {
-    return dialog.querySelectorAll(
-      'button:not([disabled]), [href], input, select, textarea, iframe, audio, [tabindex]:not([tabindex="-1"])',
+  function previewReady() {
+    var preview = globalThis.FilePreview
+    return (
+      preview &&
+      typeof preview.proveReadable === 'function' &&
+      globalThis.DGPreview &&
+      typeof globalThis.DGPreview.open === 'function'
     )
   }
 
-  function closePreviewDialog() {
-    var dialog = document.getElementById(PREVIEW_DIALOG_ID)
-    if (!dialog) {
-      return
-    }
-    var body = dialog.querySelector('[data-dg-preview-body]')
-    if (body) {
-      body.textContent = ''
-    }
-    dialog.hidden = true
-    dialog.setAttribute('hidden', '')
-    if (previewReturnFocus && typeof previewReturnFocus.focus === 'function') {
-      previewReturnFocus.focus()
-    }
-    previewReturnFocus = null
-  }
-
-  function trapPreviewFocus(dialog, event) {
-    if (event.key === 'Escape') {
-      event.preventDefault()
-      closePreviewDialog()
-      return
-    }
-    if (event.key !== 'Tab') {
-      return
-    }
-    var nodes = previewFocusable(dialog)
-    if (!nodes.length) {
-      event.preventDefault()
-      return
-    }
-    var first = nodes[0]
-    var last = nodes[nodes.length - 1]
-    if (event.shiftKey && document.activeElement === first) {
-      event.preventDefault()
-      last.focus()
-    } else if (!event.shiftKey && document.activeElement === last) {
-      event.preventDefault()
-      first.focus()
-    }
-  }
-
-  function ensurePreviewDialog() {
-    var existing = document.getElementById(PREVIEW_DIALOG_ID)
-    if (existing) {
-      return existing
-    }
-    var dialog = document.createElement('div')
-    dialog.id = PREVIEW_DIALOG_ID
-    dialog.className = 'dg-file-preview'
-    dialog.setAttribute('role', 'dialog')
-    dialog.setAttribute('aria-modal', 'true')
-    // role="dialog" — in-page confirm; a tab cannot callback.
-    dialog.setAttribute('aria-labelledby', PREVIEW_TITLE_ID)
-    dialog.hidden = true
-    dialog.setAttribute('hidden', '')
-
-    var backdrop = document.createElement('div')
-    backdrop.className = 'dg-file-preview-backdrop'
-    backdrop.setAttribute('data-dg-preview-dismiss', '')
-
-    var panel = document.createElement('div')
-    panel.className = 'dg-file-preview-panel'
-
-    var bar = document.createElement('div')
-    bar.className = 'dg-file-preview-bar'
-
-    var title = document.createElement('h2')
-    title.id = PREVIEW_TITLE_ID
-    title.className = 'dg-file-preview-title'
-    title.textContent = PREVIEW_TITLE
-
-    var closeBtn = document.createElement('button')
-    closeBtn.type = 'button'
-    closeBtn.className = 'dg-file-preview-close'
-    closeBtn.setAttribute('data-dg-preview-dismiss', '')
-    closeBtn.textContent = PREVIEW_CLOSE
-
-    var body = document.createElement('div')
-    body.className = 'dg-file-preview-body'
-    body.setAttribute('data-dg-preview-body', '')
-
-    bar.appendChild(title)
-    bar.appendChild(closeBtn)
-    panel.appendChild(bar)
-    panel.appendChild(body)
-    dialog.appendChild(backdrop)
-    dialog.appendChild(panel)
-    document.body.appendChild(dialog)
-
-    dialog.addEventListener('click', function (event) {
-      if (
-        event.target &&
-        event.target.getAttribute &&
-        event.target.hasAttribute('data-dg-preview-dismiss')
-      ) {
-        closePreviewDialog()
-      }
-    })
-    dialog.addEventListener('keydown', function (event) {
-      trapPreviewFocus(dialog, event)
-    })
-    return dialog
-  }
-
-  function paintPreview(card, url) {
-    var dialog = ensurePreviewDialog()
-    var body = dialog.querySelector('[data-dg-preview-body]')
-    body.textContent = ''
-    var kind = previewKind(card, url)
-    var media
-    if (kind === 'audio') {
-      media = document.createElement('audio')
-      media.controls = true
-    } else if (kind === 'image') {
-      media = document.createElement('img')
-      media.alt = PREVIEW_TITLE
-    } else {
-      media = document.createElement('iframe')
-      media.title = PREVIEW_TITLE
-    }
-    media.className = 'dg-file-preview-media'
-    media.src = url
-    body.appendChild(media)
-    dialog.hidden = false
-    dialog.removeAttribute('hidden')
-    var closeBtn = dialog.querySelector('.dg-file-preview-close')
-    if (closeBtn) {
-      closeBtn.focus()
-    }
-  }
-
   function openConfirmedPreview(card, url, onReady, onError) {
-    var preview = globalThis.FilePreview
-    if (!preview || typeof preview.proveReadable !== 'function') {
-      onError()
+    if (!previewReady()) {
+      var tries = 0
+      var wait = setInterval(function () {
+        tries += 1
+        if (previewReady()) {
+          clearInterval(wait)
+          openConfirmedPreview(card, url, onReady, onError)
+          return
+        }
+        if (tries >= 20) {
+          clearInterval(wait)
+          onError()
+        }
+      }, 50)
       return
     }
+    var preview = globalThis.FilePreview
     preview
       .proveReadable({
         url: url,
         kind: previewKind(card, url),
       })
       .then(function () {
-        paintPreview(card, url)
+        try {
+          globalThis.DGPreview.open({
+            url: url,
+            kind: previewKind(card, url),
+            title: PREVIEW_TITLE,
+            returnFocus: previewReturnFocus,
+            onClose: function () {
+              previewReturnFocus = null
+            },
+          })
+        } catch (err) {
+          onError()
+          return
+        }
         onReady()
       }, onError)
   }

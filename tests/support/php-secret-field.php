@@ -27,6 +27,6 @@ echo json_encode(
 		'set'      => Portal_Secret_Field::is_set( $stored ),
 		'lastFour' => Portal_Secret_Field::last_four( $stored ),
 		'kept'     => Portal_Secret_Field::keep_if_blank( $incoming, $stored ),
-		'html'     => Portal_Secret_Field::render_textarea( 'pb_google_secret_key', $stored, 'OAuth client JSON' ),
+		'html'     => Portal_Secret_Field::render_textarea( 'dg_google_secret_key', $stored, 'OAuth client JSON' ),
 	)
 ) . "\n";

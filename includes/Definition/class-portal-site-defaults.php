@@ -5,6 +5,10 @@
  * @package DragonGate
  */
 
+if ( ! class_exists( 'Portal_Options' ) ) {
+	require_once dirname( __DIR__ ) . '/class-portal-options.php';
+}
+
 if ( ! class_exists( 'Portal_Site_Defaults' ) ) {
 
 	/**
@@ -12,18 +16,18 @@ if ( ! class_exists( 'Portal_Site_Defaults' ) ) {
 	 */
 	class Portal_Site_Defaults {
 
-		const OPTION_ANONYMIZE             = 'pb_default_anonymize';
-		const OPTION_ANONYMIZE_ENDPOINT    = 'pb_default_anonymize_endpoint';
-		const OPTION_ANONYMIZE_API_KEY     = 'pb_default_anonymize_api_key';
-		const OPTION_ANONYMIZE_ACK         = 'pb_default_anonymize_ack';
-		const OPTION_ANONYMIZE_FAIL_CLOSED = 'pb_default_anonymize_fail_closed';
-		const OPTION_GUIDELINES_URL        = 'pb_default_guidelines_url';
-		const OPTION_GUIDELINES_LINK_LABEL = 'pb_default_guidelines_link_label';
-		const OPTION_FREE_FOR_MEMBERS      = 'pb_default_free_for_members';
-		const OPTION_TIMEZONE              = 'pb_default_timezone';
-		const OPTION_BRAND                 = 'pb_default_brand';
-		const OPTION_LOGIN_URL             = 'pb_login_url';
-		const OPTION_JOIN_URL              = 'pb_join_url';
+		const OPTION_ANONYMIZE             = 'dg_default_anonymize';
+		const OPTION_ANONYMIZE_ENDPOINT    = 'dg_default_anonymize_endpoint';
+		const OPTION_ANONYMIZE_API_KEY     = 'dg_default_anonymize_api_key';
+		const OPTION_ANONYMIZE_ACK         = 'dg_default_anonymize_ack';
+		const OPTION_ANONYMIZE_FAIL_CLOSED = 'dg_default_anonymize_fail_closed';
+		const OPTION_GUIDELINES_URL        = 'dg_default_guidelines_url';
+		const OPTION_GUIDELINES_LINK_LABEL = 'dg_default_guidelines_link_label';
+		const OPTION_FREE_FOR_MEMBERS      = 'dg_default_free_for_members';
+		const OPTION_TIMEZONE              = 'dg_default_timezone';
+		const OPTION_BRAND                 = 'dg_default_brand';
+		const OPTION_LOGIN_URL             = 'dg_login_url';
+		const OPTION_JOIN_URL              = 'dg_join_url';
 
 		const BUILTIN_ANONYMIZE_ENDPOINT    = 'https://api.allintersections.com';
 		const BUILTIN_ANONYMIZE_ACK         = 'I certify that my scores and recordings exclude any information that might identify the composer but do include title of work, instrumentation, and duration.';
@@ -89,15 +93,15 @@ if ( ! class_exists( 'Portal_Site_Defaults' ) ) {
 				return array();
 			}
 			return array(
-				'anonymize'           => ! empty( get_option( self::OPTION_ANONYMIZE, false ) ),
-				'anonymizeFailClosed' => ! empty( get_option( self::OPTION_ANONYMIZE_FAIL_CLOSED, false ) ),
-				'anonymizeEndpoint'   => self::trim_or_null( get_option( self::OPTION_ANONYMIZE_ENDPOINT, '' ) ),
-				'anonymizeApiKey'     => self::trim_or_null( get_option( self::OPTION_ANONYMIZE_API_KEY, '' ) ),
-				'anonymizeAck'        => self::trim_or_null( get_option( self::OPTION_ANONYMIZE_ACK, '' ) ),
-				'guidelinesUrl'       => self::trim_or_null( get_option( self::OPTION_GUIDELINES_URL, '' ) ),
-				'guidelinesLinkLabel' => self::trim_or_null( get_option( self::OPTION_GUIDELINES_LINK_LABEL, '' ) ),
-				'freeForMembers'      => ! empty( get_option( self::OPTION_FREE_FOR_MEMBERS, false ) ),
-				'timezone'            => self::trim_or_null( get_option( self::OPTION_TIMEZONE, '' ) ),
+				'anonymize'           => ! empty( Portal_Options::get( self::OPTION_ANONYMIZE, false ) ),
+				'anonymizeFailClosed' => ! empty( Portal_Options::get( self::OPTION_ANONYMIZE_FAIL_CLOSED, false ) ),
+				'anonymizeEndpoint'   => self::trim_or_null( Portal_Options::get( self::OPTION_ANONYMIZE_ENDPOINT, '' ) ),
+				'anonymizeApiKey'     => self::trim_or_null( Portal_Options::get( self::OPTION_ANONYMIZE_API_KEY, '' ) ),
+				'anonymizeAck'        => self::trim_or_null( Portal_Options::get( self::OPTION_ANONYMIZE_ACK, '' ) ),
+				'guidelinesUrl'       => self::trim_or_null( Portal_Options::get( self::OPTION_GUIDELINES_URL, '' ) ),
+				'guidelinesLinkLabel' => self::trim_or_null( Portal_Options::get( self::OPTION_GUIDELINES_LINK_LABEL, '' ) ),
+				'freeForMembers'      => ! empty( Portal_Options::get( self::OPTION_FREE_FOR_MEMBERS, false ) ),
+				'timezone'            => self::trim_or_null( Portal_Options::get( self::OPTION_TIMEZONE, '' ) ),
 				'brand'               => self::read_brand_option(),
 			);
 		}
@@ -143,11 +147,9 @@ if ( ! class_exists( 'Portal_Site_Defaults' ) ) {
 		 * @return string
 		 */
 		private static function stored_or_builtin( $option, $fallback ) {
-			if ( function_exists( 'get_option' ) ) {
-				$stored = self::trim_or_null( get_option( $option, '' ) );
-				if ( null !== $stored ) {
-					return $stored;
-				}
+			$stored = self::trim_or_null( Portal_Options::get( $option, '' ) );
+			if ( null !== $stored ) {
+				return $stored;
 			}
 			return $fallback;
 		}
@@ -240,7 +242,7 @@ if ( ! class_exists( 'Portal_Site_Defaults' ) ) {
 		 * @return array|null
 		 */
 		private static function read_brand_option() {
-			$raw = get_option( self::OPTION_BRAND, null );
+			$raw = Portal_Options::get( self::OPTION_BRAND, null );
 			return self::brand_or_null( $raw );
 		}
 

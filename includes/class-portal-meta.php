@@ -253,14 +253,14 @@ if ( ! class_exists( 'Portal_Meta' ) ) {
 				'dragongate-portal-css',
 				plugins_url( '../assets/dist/dragongate-portal.css', __FILE__ ),
 				array(),
-				PB_VERSION
+				DG_VERSION
 			);
 
 			wp_enqueue_style(
 				'dg-portal-admin',
 				plugins_url( '../assets/portal-admin.css', __FILE__ ),
 				array( 'dragongate-portal-css' ),
-				PB_VERSION
+				DG_VERSION
 			);
 
 			wp_enqueue_style( 'dashicons' );
@@ -269,20 +269,20 @@ if ( ! class_exists( 'Portal_Meta' ) ) {
 				'portal-meta-box-styles',
 				plugins_url( '../assets/portal-meta-box.css', __FILE__ ),
 				array( 'dragongate-portal-css' ),
-				PB_VERSION
+				DG_VERSION
 			);
 			wp_enqueue_script(
 				'portal-meta-box-script',
 				plugins_url( '../assets/portal-meta-box.js', __FILE__ ),
 				array( 'jquery' ),
-				PB_VERSION,
+				DG_VERSION,
 				true
 			);
 			wp_enqueue_script(
-				'pb-url-validation',
+				'dg-url-validation-js',
 				plugins_url( '../assets/url-validation.js', __FILE__ ),
 				array( 'jquery' ),
-				PB_VERSION,
+				DG_VERSION,
 				true
 			);
 
@@ -294,7 +294,7 @@ if ( ! class_exists( 'Portal_Meta' ) ) {
 					'dragongate-portal-js',
 					plugins_url( '../assets/dist/dragongate-portal.js', __FILE__ ),
 					array(),
-					PB_VERSION,
+					DG_VERSION,
 					true
 				);
 				add_filter(

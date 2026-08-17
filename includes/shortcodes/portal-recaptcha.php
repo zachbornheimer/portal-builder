@@ -1,6 +1,6 @@
 <?php
 function portal_recaptcha_shortcode() {
-	$sitekey = get_option( 'pb_recaptcha_sitekey', '' );
+	$sitekey = Portal_Options::get( 'dg_recaptcha_sitekey', '' );
 
 	if ( empty( $sitekey ) ) {
 		return '';

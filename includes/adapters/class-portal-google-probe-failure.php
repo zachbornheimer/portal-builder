@@ -31,23 +31,23 @@ if ( ! class_exists( 'Portal_Google_Probe_Failure' ) ) {
 		public static function sentence( $code ) {
 			switch ( (string) $code ) {
 				case self::MISSING_SECRET:
-					return __( 'The Google Secret Key is missing. Paste the OAuth client JSON on Default Settings.', 'portal-builder' );
+					return __( 'The Google Secret Key is missing. Paste the OAuth client JSON on Default Settings.', 'dragongate-portals' );
 				case self::MISSING_TOKEN:
-					return __( 'The Google Access Key is missing. Paste the OAuth access token on Default Settings.', 'portal-builder' );
+					return __( 'The Google Access Key is missing. Paste the OAuth access token on Default Settings.', 'dragongate-portals' );
 				case self::FORBIDDEN:
-					return __( 'Google denied access (403). Share the folder and Sheet with the Google identity that completed OAuth.', 'portal-builder' );
+					return __( 'Google denied access (403). Share the folder and Sheet with the Google identity that completed OAuth.', 'dragongate-portals' );
 				case self::SHARED_DRIVE:
-					return __( 'Google treated this as a Shared Drive and denied the list. Confirm that identity can open the Shared Drive, not only My Drive.', 'portal-builder' );
+					return __( 'Google treated this as a Shared Drive and denied the list. Confirm that identity can open the Shared Drive, not only My Drive.', 'dragongate-portals' );
 				case self::BAD_ID:
-					return __( 'That folder or Sheet ID is not valid. Check you pasted the ID, not a broken link.', 'portal-builder' );
+					return __( 'That folder or Sheet ID is not valid. Check you pasted the ID, not a broken link.', 'dragongate-portals' );
 				case self::MISSING_SHEET:
-					return __( 'A Sheet ID is required to append the test row.', 'portal-builder' );
+					return __( 'A Sheet ID is required to append the test row.', 'dragongate-portals' );
 				case self::CAPABILITY:
-					return __( 'You need administrator access to test the Google connection.', 'portal-builder' );
+					return __( 'You need administrator access to test the Google connection.', 'dragongate-portals' );
 				case self::NONCE:
-					return __( 'This test form expired. Reload Default Settings and try again.', 'portal-builder' );
+					return __( 'This test form expired. Reload Default Settings and try again.', 'dragongate-portals' );
 				default:
-					return __( 'The Google test failed. Check the Secret Key, Access Key, folder ID, and Sheet ID.', 'portal-builder' );
+					return __( 'The Google test failed. Check the Secret Key, Access Key, folder ID, and Sheet ID.', 'dragongate-portals' );
 			}
 		}
 

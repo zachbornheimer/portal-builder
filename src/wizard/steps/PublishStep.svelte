@@ -1,4 +1,8 @@
 <script>
+	import { Label } from 'bits-ui';
+	import Field from '../../ui/Field.svelte';
+	import CheckField from '../../ui/CheckField.svelte';
+	import SelectField from '../../ui/SelectField.svelte';
 	import {
 		BUILTIN_ANONYMIZE_ACK,
 		BUILTIN_ANONYMIZE_ENDPOINT,
@@ -299,49 +303,43 @@
 
 <div class="dg-publish-card cardish">
 	<div class="dg-publish-block" style="margin-top: 0;">
-		<label class="dg-check-row">
-			<input
-				type="checkbox"
-				checked={Boolean(publish.testMode)}
-				onchange={(e) => setPublish('testMode', e.currentTarget.checked)}
-			/>
-			<span>Test mode</span>
-		</label>
+		<CheckField
+			id="dg-test-mode"
+			label="Test mode"
+			checked={Boolean(publish.testMode)}
+			onchange={(e) => setPublish('testMode', e.currentTarget.checked)}
+		/>
 		<p class="dg-field-help">
 			Applicants see “Test — not a real application.” Submissions are logged as test and do
 			not write the mapped Sheet or Drive folder.
 		</p>
 	</div>
 	<div class="dg-publish-block">
-		<label class="dg-field-label" for="dg-portal-name">Portal name</label>
-		<input
+		<Field
 			id="dg-portal-name"
-			type="text"
-			class="dg-input"
+			label="Portal name"
 			value={definition?.title || ''}
-			oninput={(e) => setTitle(e.currentTarget.value)}
 			placeholder="e.g. Herbolzheimer Prize 2026"
+			oninput={(e) => setTitle(e.currentTarget.value)}
 		/>
 		<p class="dg-field-help">Shown to applicants and in the portal list.</p>
 	</div>
 	<div class="dg-publish-grid">
 		<div>
-			<label class="dg-field-label" for="dg-launch">Launch date</label>
-			<input
+			<Field
 				id="dg-launch"
+				label="Launch date"
 				type="datetime-local"
-				class="dg-input"
 				value={launchLocalValue()}
 				oninput={onLaunch}
 			/>
 			<p class="dg-field-help">When applicants can start. Blank becomes today when you save.</p>
 		</div>
 		<div>
-			<label class="dg-field-label" for="dg-deadline">Deadline</label>
-			<input
+			<Field
 				id="dg-deadline"
+				label="Deadline"
 				type="datetime-local"
-				class="dg-input"
 				value={deadlineLocalValue()}
 				oninput={onDeadline}
 			/>
@@ -349,11 +347,9 @@
 		</div>
 	</div>
 	<div class="dg-publish-block">
-		<label class="dg-field-label" for="dg-tz">Timezone</label>
-		<input
+		<Field
 			id="dg-tz"
-			type="text"
-			class="dg-input"
+			label="Timezone"
 			value={publish.timezone || ''}
 			placeholder={timezonePlaceholder}
 			oninput={(e) => setPublish('timezone', emptyToNull(e.currentTarget.value))}
@@ -363,11 +359,9 @@
 		{/if}
 	</div>
 	<div class="dg-publish-block">
-		<label class="dg-field-label" for="dg-fee">Application fee</label>
-		<input
+		<Field
 			id="dg-fee"
-			type="text"
-			class="dg-input"
+			label="Application fee"
 			placeholder="Leave blank if free"
 			value={publish.applicationFee ?? ''}
 			oninput={(e) => {
@@ -379,14 +373,12 @@
 			Shown as a label on the public form. Not charged in this form. Hosts may
 			collect this outside DragonGate.
 		</p>
-		<label class="dg-check-row">
-			<input
-				type="checkbox"
-				checked={freeForMembersOn}
-				onchange={(e) => setOption('freeForMembers', e.currentTarget.checked)}
-			/>
-			<span>Free for members</span>
-		</label>
+		<CheckField
+			id="dg-free-members"
+			label="Free for members"
+			checked={freeForMembersOn}
+			onchange={(e) => setOption('freeForMembers', e.currentTarget.checked)}
+		/>
 		{#if inheritCaption(options.freeForMembers, Boolean(siteDefaults.freeForMembers))}
 			<p class="dg-field-help">{inheritCaption(options.freeForMembers, Boolean(siteDefaults.freeForMembers))}</p>
 		{:else}
@@ -402,27 +394,23 @@
 			<p class="dg-field-help">Leave every plan unchecked to waive the fee for any active membership.</p>
 			<div class="dg-plan-list">
 				{#each membershipPlans as plan (plan.id)}
-					<label class="dg-check-row">
-						<input
-							type="checkbox"
-							checked={ (options.freeMembershipPlanIds || []).map(String).includes(String(plan.id)) }
-							onchange={(e) => togglePlan(String(plan.id), e.currentTarget.checked, 'fee')}
-						/>
-						<span>{plan.name}</span>
-					</label>
+					<CheckField
+						id={`dg-fee-plan-${plan.id}`}
+						label={plan.name}
+						checked={(options.freeMembershipPlanIds || []).map(String).includes(String(plan.id))}
+						onchange={(e) => togglePlan(String(plan.id), e.currentTarget.checked, 'fee')}
+					/>
 				{/each}
 			</div>
 		{/if}
 	</div>
 	<div class="dg-publish-block">
-		<label class="dg-check-row">
-			<input
-				type="checkbox"
-				checked={anonymizeOn}
-				onchange={(e) => setOption('anonymize', e.currentTarget.checked)}
-			/>
-			<span>Anonymize files for adjudicators</span>
-		</label>
+		<CheckField
+			id="dg-anonymize"
+			label="Anonymize files for adjudicators"
+			checked={anonymizeOn}
+			onchange={(e) => setOption('anonymize', e.currentTarget.checked)}
+		/>
 		{#if inheritCaption(options.anonymize, Boolean(siteDefaults.anonymize))}
 			<p class="dg-field-help">{inheritCaption(options.anonymize, Boolean(siteDefaults.anonymize))}</p>
 		{:else}
@@ -437,22 +425,20 @@
 		{#if anonymizeOn}
 			<div class="dg-publish-grid">
 				<div>
-					<label class="dg-field-label" for="dg-anonymize-endpoint">Anonymize API URL</label>
-					<input
+					<Field
 						id="dg-anonymize-endpoint"
+						label="Anonymize API URL"
 						type="url"
-						class="dg-input"
 						placeholder={endpointPlaceholder}
 						value={options.anonymizeEndpoint || ''}
 						oninput={(e) => setOption('anonymizeEndpoint', emptyToNull(e.currentTarget.value))}
 					/>
 				</div>
 				<div>
-					<label class="dg-field-label" for="dg-anonymize-key">API key</label>
-					<input
+					<Field
 						id="dg-anonymize-key"
+						label="API key"
 						type="password"
-						class="dg-input"
 						autocomplete="off"
 						placeholder={keyPlaceholder}
 						value={options.anonymizeApiKey || ''}
@@ -460,14 +446,12 @@
 					/>
 				</div>
 			</div>
-			<label class="dg-check-row">
-				<input
-					type="checkbox"
-					checked={failClosedOn}
-					onchange={(e) => setOption('anonymizeFailClosed', e.currentTarget.checked)}
-				/>
-				<span>Do not store the original if anonymize fails</span>
-			</label>
+			<CheckField
+				id="dg-anonymize-fail-closed"
+				label="Do not store the original if anonymize fails"
+				checked={failClosedOn}
+				onchange={(e) => setOption('anonymizeFailClosed', e.currentTarget.checked)}
+			/>
 			{#if inheritCaption(options.anonymizeFailClosed, Boolean(siteDefaults.anonymizeFailClosed))}
 				<p class="dg-field-help">{inheritCaption(options.anonymizeFailClosed, Boolean(siteDefaults.anonymizeFailClosed))}</p>
 			{:else}
@@ -480,15 +464,15 @@
 				</button>
 			{/if}
 			<div>
-				<label class="dg-field-label" for="dg-anonymize-ack">Anonymize certification</label>
-				<textarea
+				<Field
 					id="dg-anonymize-ack"
-					class="dg-input"
-					rows="3"
+					label="Anonymize certification"
+					multiline
+					rows={3}
 					placeholder={ackPlaceholder}
 					value={options.anonymizeAck || ''}
 					oninput={(e) => setOption('anonymizeAck', emptyToNull(e.currentTarget.value))}
-				></textarea>
+				/>
 				{#if !options.anonymizeAck}
 					<p class="dg-field-help">Using site default</p>
 				{:else}
@@ -511,45 +495,48 @@
 	</div>
 	<div class="dg-publish-block">
 		<p class="dg-field-label">Who can apply</p>
-		<label class="dg-check-row">
+		<div class="dg-check-row">
 			<input
+				id="dg-access-anyone"
 				type="radio"
 				name="dg-access-audience"
 				checked={access.audience === 'anyone'}
 				onchange={() => setAccess({ audience: 'anyone' })}
 			/>
-			<span>Anyone</span>
-		</label>
-		<label class="dg-check-row">
+			<Label.Root for="dg-access-anyone">Anyone</Label.Root>
+		</div>
+		<div class="dg-check-row">
 			<input
+				id="dg-access-logged-in"
 				type="radio"
 				name="dg-access-audience"
 				checked={access.audience === 'logged_in'}
 				onchange={() => setAccess({ audience: 'logged_in' })}
 			/>
-			<span>Signed-in users</span>
-		</label>
-		<label class="dg-check-row">
+			<Label.Root for="dg-access-logged-in">Signed-in users</Label.Root>
+		</div>
+		<div class="dg-check-row">
 			<input
+				id="dg-access-members"
 				type="radio"
 				name="dg-access-audience"
 				checked={access.audience === 'members'}
 				onchange={() => setAccess({ audience: 'members' })}
 			/>
-			<span>{membershipPlans.length > 0 ? 'Members only' : 'Specific WordPress role'}</span>
-		</label>
+			<Label.Root for="dg-access-members"
+				>{membershipPlans.length > 0 ? 'Members only' : 'Specific WordPress role'}</Label.Root
+			>
+		</div>
 		{#if access.audience === 'members' && membershipPlans.length > 0}
 			<p class="dg-field-help">Leave every plan unchecked to allow any active membership.</p>
 			<div class="dg-plan-list">
 				{#each membershipPlans as plan (plan.id)}
-					<label class="dg-check-row">
-						<input
-							type="checkbox"
-							checked={access.membershipPlanIds.includes(String(plan.id))}
-							onchange={(e) => togglePlan(String(plan.id), e.currentTarget.checked, 'access')}
-						/>
-						<span>{plan.name}</span>
-					</label>
+					<CheckField
+						id={`dg-access-plan-${plan.id}`}
+						label={plan.name}
+						checked={access.membershipPlanIds.includes(String(plan.id))}
+						onchange={(e) => togglePlan(String(plan.id), e.currentTarget.checked, 'access')}
+					/>
 				{/each}
 			</div>
 		{:else if access.audience === 'members'}
@@ -558,14 +545,12 @@
 			</p>
 			<div class="dg-plan-list">
 				{#each siteRoles as role (role.id)}
-					<label class="dg-check-row">
-						<input
-							type="checkbox"
-							checked={access.roles.includes(String(role.id))}
-							onchange={(e) => toggleRole(String(role.id), e.currentTarget.checked)}
-						/>
-						<span>{role.name}</span>
-					</label>
+					<CheckField
+						id={`dg-access-role-${role.id}`}
+						label={role.name}
+						checked={access.roles.includes(String(role.id))}
+						onchange={(e) => toggleRole(String(role.id), e.currentTarget.checked)}
+					/>
 				{/each}
 			</div>
 		{/if}
@@ -575,37 +560,36 @@
 		<p class="dg-field-help">Optional. Limit by country, institution, occupation, age, or any profile field.</p>
 		{#each access.profileRules as rule, i (i)}
 			<div class="dg-profile-rule">
-				<select
-					class="dg-input"
-					aria-label="Profile field"
+				<SelectField
+					id={`dg-rule-key-${i}`}
+					ariaLabel="Profile field"
 					value={rule.key}
-					onchange={(e) => patchProfileRule(i, { key: e.currentTarget.value })}
-				>
-					{#each profileFields as field (field.key)}
-						<option value={field.key}>{field.label}</option>
-					{/each}
-					{#if !profileFields.some((f) => f.key === rule.key)}
-						<option value={rule.key}>{rule.key}</option>
-					{/if}
-					<option value="age">Age</option>
-				</select>
-				<select
-					class="dg-input"
-					aria-label="Comparison"
+					options={[
+						...profileFields.map((field) => ({ value: field.key, label: field.label })),
+						...(!profileFields.some((f) => f.key === rule.key)
+							? [{ value: rule.key, label: rule.key }]
+							: []),
+						{ value: 'age', label: 'Age' },
+					]}
+					onValueChange={(next) => patchProfileRule(i, { key: next })}
+				/>
+				<SelectField
+					id={`dg-rule-op-${i}`}
+					ariaLabel="Comparison"
 					value={rule.op}
-					onchange={(e) => patchProfileRule(i, { op: e.currentTarget.value })}
-				>
-					<option value="eq">is</option>
-					<option value="neq">is not</option>
-					<option value="contains">contains</option>
-					<option value="in">is one of</option>
-					<option value="gte">at least</option>
-					<option value="lte">at most</option>
-				</select>
-				<input
-					type="text"
-					class="dg-input"
-					aria-label="Value"
+					options={[
+						{ value: 'eq', label: 'is' },
+						{ value: 'neq', label: 'is not' },
+						{ value: 'contains', label: 'contains' },
+						{ value: 'in', label: 'is one of' },
+						{ value: 'gte', label: 'at least' },
+						{ value: 'lte', label: 'at most' },
+					]}
+					onValueChange={(next) => patchProfileRule(i, { op: next })}
+				/>
+				<Field
+					id={`dg-rule-value-${i}`}
+					ariaLabel="Value"
 					placeholder={rule.op === 'in' ? 'Comma-separated values' : 'Value'}
 					value={rule.value}
 					oninput={(e) => patchProfileRule(i, { value: e.currentTarget.value })}
@@ -622,22 +606,19 @@
 		<button type="button" class="dg-btn dg-btn-ghost dg-btn-sm" onclick={addProfileRule}>
 			Add profile rule
 		</button>
-		<label class="dg-field-label" for="dg-access-deny">Denied message</label>
-		<input
+		<Field
 			id="dg-access-deny"
-			type="text"
-			class="dg-input"
+			label="Denied message"
 			placeholder="Leave blank for a default message"
 			value={access.denyMessage}
 			oninput={(e) => setAccess({ denyMessage: e.currentTarget.value })}
 		/>
 	</div>
 	<div class="dg-publish-block">
-		<label class="dg-field-label" for="dg-guidelines">Guidelines URL</label>
-		<input
+		<Field
 			id="dg-guidelines"
+			label="Guidelines URL"
 			type="url"
-			class="dg-input"
 			placeholder={emptyToNull(siteDefaults.guidelinesUrl) || 'https://…'}
 			value={options.guidelinesUrl || ''}
 			oninput={(e) => setOption('guidelinesUrl', emptyToNull(e.currentTarget.value))}
@@ -645,11 +626,9 @@
 		{#if !options.guidelinesUrl && siteDefaults.guidelinesUrl}
 			<p class="dg-field-help">Using site default</p>
 		{/if}
-		<label class="dg-field-label" for="dg-guidelines-label">Guidelines link label</label>
-		<input
+		<Field
 			id="dg-guidelines-label"
-			type="text"
-			class="dg-input"
+			label="Guidelines link label"
 			placeholder={emptyToNull(siteDefaults.guidelinesLinkLabel) ||
 				BUILTIN_GUIDELINES_LINK_LABEL}
 			value={options.guidelinesLinkLabel || ''}

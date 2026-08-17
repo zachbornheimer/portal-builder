@@ -1,4 +1,7 @@
 <script>
+	import Field from '../../ui/Field.svelte';
+	import CheckField from '../../ui/CheckField.svelte';
+
 	/**
 	 * Selected-field inspector for Build (label, required, branch options).
 	 * @typedef {Object} Props
@@ -34,33 +37,30 @@
 </script>
 
 <div class="dg-field-editor cardish">
-	<label class="dg-field-label" for="dg-field-label-input">Label</label>
-	<input
+	<Field
 		id="dg-field-label-input"
-		type="text"
-		class="dg-input"
+		label="Label"
 		value={field.label}
 		oninput={(e) => onRename(e.currentTarget.value)}
 	/>
 	{#if field.type !== 'static_html'}
-		<label class="dg-field-check">
-			<input
-				type="checkbox"
-				checked={!!field.required}
-				onchange={(e) => onSetRequired(e.currentTarget.checked)}
-			/>
-			Required
-		</label>
+		<CheckField
+			id="dg-field-required"
+			label="Required"
+			checked={!!field.required}
+			rowClass="dg-field-check"
+			onchange={(e) => onSetRequired(e.currentTarget.checked)}
+		/>
 	{/if}
 	{#if field.type === 'static_html'}
-		<label class="dg-field-label" for="dg-field-html-input">Note text</label>
-		<textarea
+		<Field
 			id="dg-field-html-input"
-			class="dg-input"
-			rows="4"
+			label="Note text"
+			multiline
+			rows={4}
 			value={field.html || ''}
 			oninput={(e) => onSetHtml(e.currentTarget.value)}
-		></textarea>
+		/>
 	{/if}
 	<p class="dg-field-help">
 		Field id: <code class="dg-mono">{field.id}</code> (stable for mapping)
@@ -71,11 +71,10 @@
 			<p class="dg-field-label">Options</p>
 			{#each field.options || [] as opt (opt.id)}
 				<div class="dg-branch-editor-option">
-					<input
-						type="text"
-						class="dg-input"
+					<Field
+						id={`dg-option-label-${opt.id}`}
 						value={opt.label}
-						aria-label={`Option label ${opt.id}`}
+						ariaLabel={`Option label ${opt.id}`}
 						oninput={(e) => onRenameOption(opt.id, e.currentTarget.value)}
 					/>
 					<button

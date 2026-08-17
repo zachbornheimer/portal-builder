@@ -64,14 +64,14 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 		 * @param int $post_id Portal post ID.
 		 */
 		private static function define_closed_request_flags( $post_id ) {
-			if ( ! defined( 'PB_APPLICATION_CLOSED' ) ) {
-				define( 'PB_APPLICATION_CLOSED', true );
+			if ( ! defined( 'DG_APPLICATION_CLOSED' ) ) {
+				define( 'DG_APPLICATION_CLOSED', true );
 			}
 			$reason = class_exists( 'Portal_Open_State' )
 				? Portal_Open_State::closed_reason( (int) $post_id )
 				: null;
-			if ( 'deadline' === $reason && ! defined( 'PB_APPLICATION_DEADLINE_PASSED' ) ) {
-				define( 'PB_APPLICATION_DEADLINE_PASSED', true );
+			if ( 'deadline' === $reason && ! defined( 'DG_APPLICATION_DEADLINE_PASSED' ) ) {
+				define( 'DG_APPLICATION_DEADLINE_PASSED', true );
 			}
 		}
 
@@ -81,10 +81,10 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 		 * @return bool
 		 */
 		public static function form_chrome_hidden() {
-			if ( defined( 'PB_APPLICATION_CLOSED' ) && PB_APPLICATION_CLOSED ) {
+			if ( defined( 'DG_APPLICATION_CLOSED' ) && DG_APPLICATION_CLOSED ) {
 				return true;
 			}
-			return defined( 'PB_APPLICATION_DEADLINE_PASSED' ) && PB_APPLICATION_DEADLINE_PASSED;
+			return defined( 'DG_APPLICATION_DEADLINE_PASSED' ) && DG_APPLICATION_DEADLINE_PASSED;
 		}
 
 		/**
@@ -136,7 +136,7 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 			}
 
 			// Legacy submission success / review flows own the content.
-			if ( defined( 'PB_APPLICATION_SUBMITTED' ) && PB_APPLICATION_SUBMITTED ) {
+			if ( defined( 'DG_APPLICATION_SUBMITTED' ) && DG_APPLICATION_SUBMITTED ) {
 				return $content;
 			}
 
@@ -188,6 +188,7 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 					. $errors_html
 					. self::render_applicant_packets( $post_id )
 					. Portal_Definition_Renderer::render( $definition, $site )
+					. self::preview_root_markup()
 					. self::render_spam_widget( $definition )
 				);
 			}
@@ -405,7 +406,7 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 			if ( defined( 'DG_DEFINITION_SUBMIT_OK' ) && DG_DEFINITION_SUBMIT_OK ) {
 				return false;
 			}
-			if ( defined( 'PB_APPLICATION_SUBMITTED' ) && PB_APPLICATION_SUBMITTED ) {
+			if ( defined( 'DG_APPLICATION_SUBMITTED' ) && DG_APPLICATION_SUBMITTED ) {
 				return false;
 			}
 			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- receipt view flag.
@@ -445,7 +446,7 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 		 */
 		public static function render_submit_control() {
 			return sprintf(
-				'<p class="dg-actions sub_submit_container"><button class="dg-public-submit" name="sub_submit" type="submit">%s</button></p>',
+				'<p class="dg-actions sub_submit_container"><button class="dg-public-submit" name="sub_submit" type="submit" data-testid="dg-submit">%s</button></p>',
 				esc_html__( 'Submit application', 'dragongate-portals' )
 			);
 		}
@@ -645,6 +646,15 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 		}
 
 		/**
+		 * Mount point for the public Bits file-confirm island.
+		 *
+		 * @return string
+		 */
+		public static function preview_root_markup() {
+			return '<div data-dg-preview-root></div>';
+		}
+
+		/**
 		 * Turnstile widget when a site key is set.
 		 *
 		 * @param array $definition Definition.
@@ -708,7 +718,7 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 				return '';
 			}
 			return sprintf(
-				'<div class="dg-turnstile" data-dg-spam-gate="turnstile"><div class="cf-turnstile" data-sitekey="%1$s" role="group" aria-label="%2$s"></div><script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script></div>',
+				'<div class="dg-turnstile" data-dg-spam-gate="turnstile" data-testid="dg-turnstile"><div class="cf-turnstile" data-sitekey="%1$s" role="group" aria-label="%2$s"></div><script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script></div>',
 				esc_attr( $key ),
 				esc_attr( 'Spam check' )
 			);
@@ -771,10 +781,18 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 				self::asset_version( $plugin_dir . '/assets/file-preview.js' ),
 				true
 			);
+			wp_enqueue_script(
+				'dg-public-preview',
+				plugins_url( 'assets/dist/dragongate-public.js', $plugin_file ),
+				array(),
+				self::asset_version( $plugin_dir . '/assets/dist/dragongate-public.js' ),
+				true
+			);
 			add_filter(
 				'script_loader_tag',
 				static function ( $tag, $handle ) {
-					if ( 'dg-file-preview' === $handle && false === strpos( $tag, 'type=' ) ) {
+					$modules = array( 'dg-file-preview', 'dg-public-preview' );
+					if ( in_array( $handle, $modules, true ) && false === strpos( $tag, 'type=' ) ) {
 						return str_replace( '<script ', '<script type="module" ', $tag );
 					}
 					return $tag;
@@ -785,7 +803,7 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 			wp_enqueue_script(
 				'dg-definition-form',
 				plugins_url( 'assets/definition-form.js', $plugin_file ),
-				array( 'dg-file-preview' ),
+				array( 'dg-file-preview', 'dg-public-preview' ),
 				self::asset_version( $plugin_dir . '/assets/definition-form.js' ),
 				true
 			);
@@ -823,7 +841,7 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 					$post_id,
 					static function ( $rel ) use ( $plugin_dir ) {
 						$path = $plugin_dir . '/' . $rel;
-						return is_readable( $path ) ? (string) filemtime( $path ) : PB_VERSION;
+						return is_readable( $path ) ? (string) filemtime( $path ) : DG_VERSION;
 					}
 				);
 			}
@@ -862,7 +880,7 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 		}
 
 		/**
-		 * Filemtime so a deploy is visible without bumping PB_VERSION.
+		 * Filemtime so a deploy is visible without bumping DG_VERSION.
 		 *
 		 * @param string $path Absolute path.
 		 * @return string
@@ -871,7 +889,7 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 			if ( is_readable( $path ) ) {
 				return (string) filemtime( $path );
 			}
-			return PB_VERSION;
+			return DG_VERSION;
 		}
 
 		/**
