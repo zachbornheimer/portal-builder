@@ -36,6 +36,13 @@ test('PublishStep has no raw select; uses Bits Select', () => {
 	assert.match(src, /SelectField|from ["']bits-ui["']|<Select/);
 });
 
+test('PublishStep has no raw radio inputs; uses Bits RadioGroup', () => {
+	const src = read('src/wizard/steps/PublishStep.svelte');
+	assert.doesNotMatch(src, /<input type="radio"/);
+	assert.match(src, /RadioGroup/);
+	assert.match(src, /from ["']bits-ui["']/);
+});
+
 test('wizard and fields have no raw select', () => {
 	const files = [
 		'src/wizard/steps/PublishStep.svelte',

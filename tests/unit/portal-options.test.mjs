@@ -150,6 +150,8 @@ test('promote moves pb_login_url onto dg_login_url and deletes the legacy key', 
 	assert.equal(data.read, '/signin');
 	assert.equal(data.store.dg_login_url, '/signin');
 	assert.equal(Object.hasOwn(data.store, 'pb_login_url'), false);
+	assert.equal(data.result.moved, 1);
+	assert.equal(data.result.dropped, 0);
 });
 
 test('promote keeps dg_login_url and deletes pb_ when both are set', () => {
@@ -165,6 +167,8 @@ test('promote keeps dg_login_url and deletes pb_ when both are set', () => {
 	assert.equal(data.read, '/new');
 	assert.equal(data.store.dg_login_url, '/new');
 	assert.equal(Object.hasOwn(data.store, 'pb_login_url'), false);
+	assert.equal(data.result.moved, 0);
+	assert.equal(data.result.dropped, 1);
 });
 
 test('promote does not overwrite an empty dg_login_url from pb_', () => {
@@ -180,6 +184,17 @@ test('promote does not overwrite an empty dg_login_url from pb_', () => {
 	assert.equal(data.read, '');
 	assert.equal(data.store.dg_login_url, '');
 	assert.equal(Object.hasOwn(data.store, 'pb_login_url'), false);
+});
+
+test('portal-builder.php does not hook promote on plugins_loaded', () => {
+	const src = fs.readFileSync(path.join(root, 'portal-builder.php'), 'utf8');
+	assert.doesNotMatch(src, /plugins_loaded.*promote/);
+});
+
+test('Default Settings can run promote via nonce dg_promote_options', () => {
+	const src = fs.readFileSync(path.join(root, 'includes/class-portal-settings.php'), 'utf8');
+	assert.match(src, /dg_promote_options/);
+	assert.match(src, /Portal_Options::promote/);
 });
 
 test('site login_url still resolves when only pb_login_url is stored', () => {

@@ -74,11 +74,12 @@ if ( 'set' === $action ) {
 }
 
 if ( 'promote' === $action ) {
-	Portal_Options::promote();
+	$result = Portal_Options::promote();
 	echo json_encode(
 		array(
-			'store' => $GLOBALS['dg_option_store'],
-			'read'  => Portal_Options::get( $key, $default ),
+			'store'  => $GLOBALS['dg_option_store'],
+			'read'   => Portal_Options::get( $key, $default ),
+			'result' => $result,
 		)
 	) . "\n";
 	exit( 0 );

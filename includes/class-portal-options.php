@@ -19,6 +19,8 @@ if ( ! class_exists( 'Portal_Options' ) ) {
 
 		const CANONICAL_PREFIX = 'dg_';
 		const LEGACY_PREFIX    = 'pb_';
+		const PROMOTE_MOVED    = 'moved';
+		const PROMOTE_DROPPED  = 'dropped';
 
 		/**
 		 * Bare names after the prefix. Settings, site-defaults, mailer, Google, update, spam-gate.
@@ -107,16 +109,31 @@ if ( ! class_exists( 'Portal_Options' ) ) {
 		/**
 		 * Move each stored pb_* onto dg_* once. Empty / false / 0 on dg_* is already set.
 		 *
-		 * @return void
+		 * @return array{moved: int, dropped: int} Keys that still had a pb_* twin.
 		 */
 		public static function promote() {
+			$empty = array(
+				self::PROMOTE_MOVED   => 0,
+				self::PROMOTE_DROPPED => 0,
+			);
 			if ( ! function_exists( 'get_option' ) || ! function_exists( 'update_option' ) || ! function_exists( 'delete_option' ) ) {
-				return;
+				return $empty;
 			}
 			$sentinel = new stdClass();
+			$moved    = 0;
+			$dropped  = 0;
 			foreach ( self::KNOWN_KEYS as $bare ) {
-				self::promote_key( $bare, $sentinel );
+				$outcome = self::promote_key( $bare, $sentinel );
+				if ( self::PROMOTE_MOVED === $outcome ) {
+					++$moved;
+				} elseif ( self::PROMOTE_DROPPED === $outcome ) {
+					++$dropped;
+				}
 			}
+			return array(
+				self::PROMOTE_MOVED   => $moved,
+				self::PROMOTE_DROPPED => $dropped,
+			);
 		}
 
 		/**
@@ -124,7 +141,7 @@ if ( ! class_exists( 'Portal_Options' ) ) {
 		 *
 		 * @param string   $bare     Name after the prefix.
 		 * @param stdClass $sentinel Unset marker — same object as get().
-		 * @return void
+		 * @return string self::PROMOTE_MOVED | self::PROMOTE_DROPPED | ''
 		 */
 		private static function promote_key( $bare, $sentinel ) {
 			$dg        = self::CANONICAL_PREFIX . $bare;
@@ -136,11 +153,13 @@ if ( ! class_exists( 'Portal_Options' ) ) {
 			if ( ! $dg_set && $pb_set ) {
 				update_option( $dg, $pb_stored );
 				delete_option( $pb );
-				return;
+				return self::PROMOTE_MOVED;
 			}
 			if ( $dg_set && $pb_set ) {
 				delete_option( $pb );
+				return self::PROMOTE_DROPPED;
 			}
+			return '';
 		}
 
 		/**

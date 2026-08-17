@@ -8,6 +8,8 @@ if (! class_exists('Portal_Settings')) {
 
     class Portal_Settings
     {
+        const PROMOTE_NONCE = 'dg_promote_options';
+
         public function init()
         {
             add_action('admin_menu', array( $this, 'add_menu_pages' ));
@@ -1061,13 +1063,87 @@ if (! class_exists('Portal_Settings')) {
 			<?php
         }
 
+        /**
+         * POST handler for leftover pb_* → dg_* move. Null when the form was not submitted.
+         *
+         * @return array{moved: int, dropped: int}|null
+         */
+        private function maybe_promote_legacy_options() {
+            if ( empty( $_POST[ self::PROMOTE_NONCE ] ) ) {
+                return null;
+            }
+            if ( ! function_exists( 'current_user_can' ) || ! current_user_can( 'manage_options' ) ) {
+                return null;
+            }
+            if ( function_exists( 'check_admin_referer' ) ) {
+                check_admin_referer( self::PROMOTE_NONCE );
+            }
+            return Portal_Options::promote();
+        }
+
+        /**
+         * @param array{moved?: int, dropped?: int} $result Promote counts.
+         * @return void
+         */
+        private function render_promote_notice( $result ) {
+            $moved   = isset( $result[ Portal_Options::PROMOTE_MOVED ] ) ? (int) $result[ Portal_Options::PROMOTE_MOVED ] : 0;
+            $dropped = isset( $result[ Portal_Options::PROMOTE_DROPPED ] ) ? (int) $result[ Portal_Options::PROMOTE_DROPPED ] : 0;
+            $twins   = $moved + $dropped;
+            if ( 0 === $twins ) {
+                $message = __( 'No leftover pb_ options were in the database.', 'dragongate-portals' );
+                $class   = 'notice-info';
+            } else {
+                $message = sprintf(
+                    /* translators: 1: leftover pb_* keys, 2: copied onto empty dg_*, 3: dropped twins */
+                    _n(
+                        '%1$d leftover pb_ key processed. %2$d moved onto dg_. %3$d dropped because dg_ already had a value.',
+                        '%1$d leftover pb_ keys processed. %2$d moved onto dg_. %3$d dropped because dg_ already had a value.',
+                        $twins,
+                        'dragongate-portals'
+                    ),
+                    $twins,
+                    $moved,
+                    $dropped
+                );
+                $class = 'notice-success';
+            }
+            echo '<div class="notice ' . esc_attr( $class ) . ' is-dismissible"><p>' . esc_html( $message ) . '</p></div>';
+        }
+
+        /**
+         * Optional one-shot: move leftover pb_* keys onto dg_*.
+         *
+         * @return void
+         */
+        private function render_promote_legacy_form() {
+            echo '<h2>' . esc_html__( 'Leftover pb_ options', 'dragongate-portals' ) . '</h2>';
+            echo '<p>' . esc_html__(
+                'Move leftover pb_ options to dg_. Only needed if an old pb_* option is still in the database.',
+                'dragongate-portals'
+            ) . '</p>';
+            echo '<form method="post">';
+            if ( function_exists( 'wp_nonce_field' ) ) {
+                wp_nonce_field( self::PROMOTE_NONCE );
+            }
+            submit_button(
+                __( 'Move leftover pb_ options to dg_', 'dragongate-portals' ),
+                'secondary',
+                self::PROMOTE_NONCE
+            );
+            echo '</form>';
+        }
+
         public function settings_page_callback()
         {
+            $promote_result = $this->maybe_promote_legacy_options();
             ?>
 			<div class="wrap">
 				<?php
 				if ( class_exists( 'Portal_Google_Connect' ) ) {
 					Portal_Google_Connect::render_checklist_if_needed( Portal_Google_Connect::SCREEN_SETTINGS );
+				}
+				if ( is_array( $promote_result ) ) {
+					$this->render_promote_notice( $promote_result );
 				}
 				?>
 				<h1><?php _e('Default Settings', 'dragongate-portals'); ?></h1>
@@ -1078,6 +1154,7 @@ if (! class_exists('Portal_Settings')) {
             submit_button();
             ?>
 				</form>
+				<?php $this->render_promote_legacy_form(); ?>
 			</div>
 			<?php
         }

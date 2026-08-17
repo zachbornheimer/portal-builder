@@ -1204,8 +1204,12 @@ select.dg-input {
 
 #wpbody-content .dg-wizard .dg-check-row input[type='checkbox'],
 #wpbody-content .dg-wizard .dg-check-row input[type='radio'],
+#wpbody-content .dg-wizard .dg-check-row [role='radio'],
+#wpbody-content .dg-wizard .dg-check-row .dg-radio,
 .dg-check-row input[type='checkbox'],
-.dg-check-row input[type='radio'] {
+.dg-check-row input[type='radio'],
+.dg-check-row [role='radio'],
+.dg-check-row .dg-radio {
 	appearance: none;
 	-webkit-appearance: none;
 	width: 20px;
@@ -1228,8 +1232,12 @@ select.dg-input {
 	border-radius: 4px;
 }
 
-.dg-check-row input[type='radio'] {
+.dg-check-row input[type='radio'],
+.dg-check-row [role='radio'],
+.dg-check-row .dg-radio {
 	border-radius: 50%;
+	display: inline-block;
+	cursor: pointer;
 }
 
 .dg-check-row input[type='checkbox']:checked {
@@ -1238,7 +1246,9 @@ select.dg-input {
 	background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none'><path d='M2.2 6.2 4.8 8.7 9.8 3.3' stroke='%23FCFBF6' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/></svg>");
 }
 
-.dg-check-row input[type='radio']:checked {
+.dg-check-row input[type='radio']:checked,
+.dg-check-row [role='radio'][data-state='checked'],
+.dg-check-row .dg-radio[data-state='checked'] {
 	background-color: var(--ember);
 	border-color: var(--ember);
 	background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'><circle cx='6' cy='6' r='3.2' fill='%23FCFBF6'/></svg>");
@@ -1247,7 +1257,11 @@ select.dg-input {
 .dg-check-row input[type='checkbox']:focus,
 .dg-check-row input[type='checkbox']:focus-visible,
 .dg-check-row input[type='radio']:focus,
-.dg-check-row input[type='radio']:focus-visible {
+.dg-check-row input[type='radio']:focus-visible,
+.dg-check-row [role='radio']:focus,
+.dg-check-row [role='radio']:focus-visible,
+.dg-check-row .dg-radio:focus,
+.dg-check-row .dg-radio:focus-visible {
 	outline: none;
 	box-shadow: 0 0 0 2px var(--paper-50), 0 0 0 3px var(--ember);
 }
