@@ -1,3 +1,11 @@
+## 0.1.9
+
+### Fixes
+- Keep theme upgrades intact and relocate to dragongate-portals
+- Ship CHANGELOG.md in the plugin zip
+
+**Full Changelog**: https://github.com/zachbornheimer/portal-builder/compare/v0.1.8...v0.1.9
+
 ## 0.1.8
 
 ### Features
