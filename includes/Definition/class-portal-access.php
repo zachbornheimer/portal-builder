@@ -18,6 +18,7 @@ if ( ! class_exists( 'Portal_Access' ) ) {
 		const REASON_LOGIN        = 'login';
 		const REASON_MEMBERSHIP   = 'membership';
 		const REASON_PROFILE      = 'profile';
+		const ROLE_ADMINISTRATOR  = 'administrator';
 
 		/**
 		 * Decide whether this applicant may apply, and whether the fee is waived.
@@ -35,6 +36,14 @@ if ( ! class_exists( 'Portal_Access' ) ) {
 			$meta      = isset( $applicant['meta'] ) && is_array( $applicant['meta'] )
 				? $applicant['meta']
 				: array();
+
+			if ( $logged_in && self::holds_staff_visibility( $applicant ) ) {
+				return array(
+					'allowed'   => true,
+					'feeWaived' => true,
+					'reason'    => null,
+				);
+			}
 
 			$audience = isset( $access['audience'] ) ? (string) $access['audience'] : self::AUDIENCE_ANYONE;
 			if ( self::AUDIENCE_LOGGED_IN === $audience && ! $logged_in ) {
@@ -214,6 +223,17 @@ if ( ! class_exists( 'Portal_Access' ) ) {
 		private static function site_has_membership_provider() {
 			return function_exists( 'wc_memberships_get_user_active_memberships' )
 				|| function_exists( 'wc_memberships_get_membership_plans' );
+		}
+
+		/**
+		 * Whether a signed-in applicant holds staff visibility (skips membership and profile gates).
+		 *
+		 * @param array $applicant Applicant snapshot.
+		 * @return bool
+		 */
+		private static function holds_staff_visibility( array $applicant ) {
+			$roles = self::string_list( isset( $applicant['roles'] ) ? $applicant['roles'] : array() );
+			return in_array( self::ROLE_ADMINISTRATOR, $roles, true );
 		}
 
 		/**

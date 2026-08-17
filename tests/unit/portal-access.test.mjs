@@ -76,6 +76,52 @@ test('members audience requires a held plan; empty required list means any plan'
 	assert.equal(right.allowed, true);
 });
 
+test('signed-in administrator bypasses members and profile gates; guests and editors do not', () => {
+	const membersPortal = {
+		audience: 'members',
+		membershipPlanIds: ['17214', '17276'],
+	};
+	const woo = { membership_provider: true, plan_ids: [], meta: {} };
+
+	const admin = decide({
+		access: membersPortal,
+		applicant: { ...woo, logged_in: true, roles: ['administrator'] },
+	});
+	assert.equal(admin.allowed, true);
+	assert.equal(admin.feeWaived, true);
+
+	const guest = decide({
+		access: membersPortal,
+		applicant: { ...woo, logged_in: false, roles: [] },
+	});
+	assert.equal(guest.allowed, false);
+	assert.equal(guest.reason, 'login');
+
+	const stuffedGuest = decide({
+		access: membersPortal,
+		applicant: { ...woo, logged_in: false, roles: ['administrator'] },
+	});
+	assert.equal(stuffedGuest.allowed, false);
+	assert.equal(stuffedGuest.reason, 'login');
+
+	const editor = decide({
+		access: membersPortal,
+		applicant: { ...woo, logged_in: true, roles: ['editor'] },
+	});
+	assert.equal(editor.allowed, false);
+	assert.equal(editor.reason, 'membership');
+
+	const adminDespiteProfile = decide({
+		access: {
+			...membersPortal,
+			profileRules: [{ key: 'COUNTRY', op: 'eq', value: 'Canada' }],
+		},
+		applicant: { ...woo, logged_in: true, roles: ['Administrator'] },
+	});
+	assert.equal(adminDespiteProfile.allowed, true);
+	assert.equal(adminDespiteProfile.feeWaived, true);
+});
+
 test('vanilla members allows signed-in users and gates a named WordPress role', () => {
 	const vanilla = { membership_provider: false, plan_ids: [], meta: {} };
 
