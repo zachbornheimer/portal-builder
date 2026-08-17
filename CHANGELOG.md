@@ -1,3 +1,10 @@
+## 0.1.8
+
+### Features
+- Show DragonGate seal and changelog on plugin updates
+
+**Full Changelog**: https://github.com/zachbornheimer/portal-builder/compare/v0.1.7...v0.1.8
+
 ## 0.1.7
 
 ### Features
