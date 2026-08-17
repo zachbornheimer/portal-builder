@@ -65,7 +65,7 @@ Anyone-audience portals can require Cloudflare Turnstile (set the site key and s
 
 GitHub Releases are the update channel. This plugin is not on WordPress.org.
 
-**WordPress Dashboard.** Open **Dashboard → Updates** (or **Plugins**). When a newer **stable** GitHub Release exists (`vMAJOR.MINOR.PATCH` with a `portal-builder-*.zip` asset), DragonGate Portals appears as an update. Click **Update now**. The install folder name stays put (including `portal-builder-0.0.4a` on ISJAC). Portal posts and `_portal_definition` stay in the database.
+**WordPress Dashboard.** Open **Dashboard → Updates** (or **Plugins**). When a newer **stable** GitHub Release exists (`vMAJOR.MINOR.PATCH` with a `portal-builder-*.zip` asset), DragonGate Portals appears as an update. Click **Update now**. The install folder is `dragongate-portals` (the release ZIP unpacks under that name). Legacy folders (`portal-builder`, `portal-builder-0.0.4a`) self-relocate on load. Portal posts and `_portal_definition` stay in the database.
 
 Rolling / prerelease tags are ignored. Manual ZIP replace still works:
 

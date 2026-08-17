@@ -8,6 +8,9 @@
 if ( ! function_exists( 'add_filter' ) ) {
 	function add_filter() {}
 }
+if ( ! function_exists( 'add_action' ) ) {
+	function add_action() {}
+}
 if ( ! function_exists( 'plugins_url' ) ) {
 	function plugins_url( $path, $file = '' ) {
 		unset( $file );
@@ -74,6 +77,109 @@ array_map( 'unlink', glob( $dir . '/portal-builder-0.0.4a/*' ) ?: array() );
 @rmdir( $dir . '/portal-builder' );
 @rmdir( $dir );
 
+// keep_folder must only rename when THIS plugin is upgrading (Kadence outage class).
+$upgrader  = (object) array();
+$theme_dir = sys_get_temp_dir() . '/dg-keep-theme-' . bin2hex( random_bytes( 4 ) );
+mkdir( $theme_dir );
+mkdir( $theme_dir . '/kadence' );
+file_put_contents( $theme_dir . '/kadence/style.css', "/* theme */\n" );
+$theme_source = $theme_dir . '/kadence/';
+$theme_kept   = Portal_Update::keep_folder( $theme_source, '', $upgrader, array( 'theme' => 'kadence' ) );
+$theme_ok     = $theme_kept === $theme_source
+	&& is_dir( $theme_dir . '/kadence' )
+	&& ! is_dir( $theme_dir . '/portal-builder' )
+	&& ! is_dir( $theme_dir . '/portal-builder-0.0.4a' );
+array_map( 'unlink', glob( $theme_dir . '/kadence/*' ) ?: array() );
+@rmdir( $theme_dir . '/kadence' );
+@rmdir( $theme_dir );
+
+$empty_source = '/tmp/unpacked-something/';
+$empty_kept   = Portal_Update::keep_folder( $empty_source, '', $upgrader, array() );
+$empty_ok     = $empty_kept === $empty_source;
+
+$plugin_dir = sys_get_temp_dir() . '/dg-keep-plugin-' . bin2hex( random_bytes( 4 ) );
+mkdir( $plugin_dir );
+mkdir( $plugin_dir . '/portal-builder' );
+file_put_contents( $plugin_dir . '/portal-builder/portal-builder.php', "<?php\n" );
+$plugin_source = $plugin_dir . '/portal-builder/';
+$plugin_kept   = Portal_Update::keep_folder(
+	$plugin_source,
+	'',
+	$upgrader,
+	array( 'plugin' => 'portal-builder-0.0.4a/portal-builder.php' )
+);
+$plugin_ok = basename( rtrim( (string) $plugin_kept, '/\\' ) ) === 'portal-builder-0.0.4a'
+	&& is_dir( $plugin_dir . '/portal-builder-0.0.4a' )
+	&& is_file( $plugin_dir . '/portal-builder-0.0.4a/portal-builder.php' );
+array_map( 'unlink', glob( $plugin_dir . '/portal-builder-0.0.4a/*' ) ?: array() );
+@rmdir( $plugin_dir . '/portal-builder-0.0.4a' );
+@rmdir( $plugin_dir . '/portal-builder' );
+@rmdir( $plugin_dir );
+
+// relocate_legacy_folder: pure rename + active_plugins rewrite.
+$relocate_dir = sys_get_temp_dir() . '/dg-relocate-' . bin2hex( random_bytes( 4 ) );
+mkdir( $relocate_dir );
+mkdir( $relocate_dir . '/portal-builder-0.0.4a' );
+file_put_contents( $relocate_dir . '/portal-builder-0.0.4a/portal-builder.php', "<?php\n" );
+$relocate = method_exists( 'Portal_Update', 'relocate_legacy_folder' )
+	? Portal_Update::relocate_legacy_folder(
+		$relocate_dir,
+		'portal-builder-0.0.4a',
+		array(
+			'akismet/akismet.php',
+			'portal-builder-0.0.4a/portal-builder.php',
+			'hello.php',
+		)
+	)
+	: array( 'ok' => false, 'active' => array(), 'folder' => '' );
+$relocate_ok = ! empty( $relocate['ok'] )
+	&& isset( $relocate['folder'] )
+	&& 'dragongate-portals' === $relocate['folder']
+	&& is_dir( $relocate_dir . '/dragongate-portals' )
+	&& is_file( $relocate_dir . '/dragongate-portals/portal-builder.php' )
+	&& ! is_dir( $relocate_dir . '/portal-builder-0.0.4a' )
+	&& is_array( $relocate['active'] )
+	&& in_array( 'dragongate-portals/portal-builder.php', $relocate['active'], true )
+	&& ! in_array( 'portal-builder-0.0.4a/portal-builder.php', $relocate['active'], true )
+	&& in_array( 'akismet/akismet.php', $relocate['active'], true );
+
+// dest already exists → no-op, leave source and active list alone.
+$clobber_dir = sys_get_temp_dir() . '/dg-relocate-clobber-' . bin2hex( random_bytes( 4 ) );
+mkdir( $clobber_dir );
+mkdir( $clobber_dir . '/portal-builder' );
+mkdir( $clobber_dir . '/dragongate-portals' );
+file_put_contents( $clobber_dir . '/portal-builder/portal-builder.php', "<?php // legacy\n" );
+file_put_contents( $clobber_dir . '/dragongate-portals/portal-builder.php', "<?php // dest\n" );
+$clobber_active = array( 'portal-builder/portal-builder.php' );
+$clobber        = method_exists( 'Portal_Update', 'relocate_legacy_folder' )
+	? Portal_Update::relocate_legacy_folder( $clobber_dir, 'portal-builder', $clobber_active )
+	: array( 'ok' => true, 'active' => array(), 'folder' => 'x' );
+$clobber_ok = empty( $clobber['ok'] )
+	&& is_dir( $clobber_dir . '/portal-builder' )
+	&& is_dir( $clobber_dir . '/dragongate-portals' )
+	&& is_array( $clobber['active'] )
+	&& $clobber['active'] === $clobber_active
+	&& 'portal-builder' === (string) $clobber['folder'];
+array_map( 'unlink', glob( $clobber_dir . '/portal-builder/*' ) ?: array() );
+array_map( 'unlink', glob( $clobber_dir . '/dragongate-portals/*' ) ?: array() );
+@rmdir( $clobber_dir . '/portal-builder' );
+@rmdir( $clobber_dir . '/dragongate-portals' );
+@rmdir( $clobber_dir );
+
+// cleanup relocate success tree
+array_map( 'unlink', glob( $relocate_dir . '/dragongate-portals/*' ) ?: array() );
+@rmdir( $relocate_dir . '/dragongate-portals' );
+@rmdir( $relocate_dir . '/portal-builder-0.0.4a' );
+@rmdir( $relocate_dir );
+
+$plugin_file_fallback = method_exists( 'Portal_Update', 'FOLDER' ) || defined( 'Portal_Update::FOLDER' )
+	? ( new ReflectionClass( 'Portal_Update' ) )->getConstant( 'FOLDER' )
+	: '';
+// plugin_basename is mocked; re-check constant drives the advertised path.
+$fallback_file = ( '' !== $plugin_file_fallback )
+	? $plugin_file_fallback . '/portal-builder.php'
+	: '';
+
 $release_info = array(
 	'tag_name'     => 'v0.1.7',
 	'prerelease'   => false,
@@ -116,6 +222,13 @@ echo json_encode(
 		'newVersion'   => is_object( $injected ) ? (string) $injected->new_version : '',
 		'folderKept'   => $kept,
 		'renamedPath'  => basename( rtrim( (string) $renamed, '/\\' ) ),
+		'themeUnchanged'  => $theme_ok,
+		'emptyUnchanged'  => $empty_ok,
+		'pluginRenamed'   => $plugin_ok,
+		'relocateOk'      => $relocate_ok,
+		'relocateNoClobber' => $clobber_ok,
+		'folderConst'     => $plugin_file_fallback,
+		'fallbackFile'    => $fallback_file,
 		'semverV'      => Portal_Update::semver( 'v0.1.0' ),
 		'notNewer'     => ! Portal_Update::is_newer( '0.1.0', '0.1.0' ),
 		'fromLocation' => Portal_Update::release_from_location(
