@@ -35,3 +35,27 @@ test('update injects the live plugin basename and keeps portal-builder-0.0.4a', 
 	assert.equal(data.folderKept, true);
 	assert.equal(data.renamedPath, 'portal-builder-0.0.4a');
 });
+
+test('inject offers the DragonGate seal icons and compatibility fields', () => {
+	const data = run();
+	assert.equal(data.hasIcons, true, 'inject must set icons');
+	assert.equal(data.iconSeal, true, `icon-128 missing from ${data.icon1x}`);
+	assert.equal(data.injectTested, true);
+	assert.equal(data.injectRequires, true);
+	assert.equal(data.injectPhp, true);
+});
+
+test('info_from_release exposes author, compatibility, icons, and changelog', () => {
+	const data = run();
+	assert.equal(data.infoOk, true);
+	assert.equal(data.infoAuthor, true);
+	assert.equal(data.infoRequires, true);
+	assert.equal(data.infoPhp, true);
+	assert.equal(data.infoTested, true);
+	assert.equal(data.infoIcons, true);
+	assert.equal(data.infoChangelog, true);
+	assert.equal(data.infoFeatures, true);
+	assert.equal(data.infoDesc, true);
+	assert.equal(data.infoUpdated, true);
+	assert.equal(data.thinFallsBack, true, 'compare-only GitHub body must use bundled CHANGELOG');
+});

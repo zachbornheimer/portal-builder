@@ -65,7 +65,7 @@ echo "cut-release: ${current} → ${next} (${tag})"
 if [[ "${next}" != "${current}" ]]; then
   tmp="$(mktemp)"
   sed \
-    -e "s/^ \\* Version:     ${current}$/ * Version:     ${next}/" \
+    -e "s/^ \* Version:     ${current}$/ * Version:     ${next}/" \
     -e "s/define( 'DG_VERSION', '${current}' );/define( 'DG_VERSION', '${next}' );/" \
     portal-builder.php >"${tmp}"
   mv "${tmp}" portal-builder.php
@@ -73,6 +73,41 @@ if [[ "${next}" != "${current}" ]]; then
     echo "cut-release: failed to bump portal-builder.php to ${next}" >&2
     exit 1
   fi
+fi
+
+# Notes from conventional-commit subjects since the previous v* tag.
+prev="$(git describe --tags --abbrev=0 --match 'v[0-9]*' HEAD 2>/dev/null || true)"
+range="HEAD"
+if [[ -n "${prev}" ]]; then
+  range="${prev}..HEAD"
+fi
+compare_url=""
+if [[ -n "${prev}" ]]; then
+  compare_url="https://github.com/zachbornheimer/portal-builder/compare/${prev}...${tag}"
+fi
+
+mkdir -p dist
+notes_file="${ROOT}/dist/release-notes-${next}.md"
+subjects="$(git log --pretty=%s "${range}" 2>/dev/null || true)"
+printf '%s\n' "${subjects}" | php -r '
+require $argv[1];
+$subjects = array_values(array_filter(array_map("trim", explode("\n", stream_get_contents(STDIN)))));
+$version = $argv[2];
+$compare = $argv[3];
+echo Portal_Release_Notes::markdown_from_subjects($subjects, $version, $compare);
+' "${ROOT}/includes/class-portal-release-notes.php" "${next}" "${compare_url}" >"${notes_file}"
+
+# Prepend this version to CHANGELOG.md (create when missing). Skip if
+# this version is already the leading section (re-run after a failed build).
+if [[ ! -f CHANGELOG.md ]]; then
+  cp "${notes_file}" CHANGELOG.md
+elif ! grep -q "^## ${next}$" CHANGELOG.md; then
+  {
+    cat "${notes_file}"
+    echo
+    cat CHANGELOG.md
+  } >"${ROOT}/dist/CHANGELOG.next.md"
+  mv "${ROOT}/dist/CHANGELOG.next.md" CHANGELOG.md
 fi
 
 mise run test
@@ -85,19 +120,26 @@ if [[ ! -f "${zip_path}" ]]; then
 fi
 
 if [[ "${next}" != "${current}" ]]; then
-  git add portal-builder.php
+  git add portal-builder.php CHANGELOG.md
   git commit -m "chore(release): ${next}"
+else
+  # Version already matched next; still ship notes if CHANGELOG changed.
+  if [[ -n "$(git status --porcelain -- CHANGELOG.md)" ]]; then
+    git add CHANGELOG.md
+    git commit -m "chore(release): ${next}"
+  fi
 fi
 
 git tag -a "${tag}" -m "${tag}"
 echo "cut-release: tagged ${tag} at $(git rev-parse --short HEAD)"
 echo "cut-release: zip ${zip_path}"
+echo "cut-release: notes ${notes_file}"
 
 if [[ "${CUT_RELEASE_PUSH:-0}" == "1" ]]; then
   git push origin refs/heads/main
   git push origin "refs/tags/${tag}"
   if command -v gh >/dev/null 2>&1; then
-    gh release create "${tag}" "${zip_path}" --title "${tag}" --generate-notes
+    gh release create "${tag}" "${zip_path}" --title "${tag}" --notes-file "${notes_file}"
   else
     echo "cut-release: gh not installed; tag pushed, no GitHub Release" >&2
   fi
