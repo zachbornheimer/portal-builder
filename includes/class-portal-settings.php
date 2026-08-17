@@ -395,6 +395,15 @@ if (! class_exists('Portal_Settings')) {
                     'default'           => array(),
                 )
             );
+            register_setting(
+                'dg_settings_group',
+                'dg_view_as_roles',
+                array(
+                    'type'              => 'array',
+                    'sanitize_callback' => array( $this, 'sanitize_view_as_roles' ),
+                    'default'           => array( 'administrator' ),
+                )
+            );
         }
 
         /**
@@ -497,6 +506,20 @@ if (! class_exists('Portal_Settings')) {
                 array( $this, 'render_default_brand_field' ),
                 'portal-default-settings',
                 'dg_white_label_section'
+            );
+
+            add_settings_section(
+                'dg_view_as_section',
+                __( 'View portal as', 'dragongate-portals' ),
+                array( $this, 'view_as_section_callback' ),
+                'portal-default-settings'
+            );
+            add_settings_field(
+                'dg_view_as_roles',
+                __( 'Who may view as', 'dragongate-portals' ),
+                array( $this, 'render_view_as_roles_field' ),
+                'portal-default-settings',
+                'dg_view_as_section'
             );
         }
 
@@ -724,6 +747,69 @@ if (! class_exists('Portal_Settings')) {
                 ? Portal_Brand::preset( Portal_Brand::PRESET_ISJAC )
                 : array();
             echo '<script type="application/json" id="pb-brand-isjac">' . wp_json_encode( $example ) . '</script>';
+        }
+
+        /**
+         * Empty after sanitize becomes administrator.
+         *
+         * @param mixed $value Posted role slugs.
+         * @return string[]
+         */
+        public function sanitize_view_as_roles( $value ) {
+            if ( class_exists( 'Portal_View_As' ) ) {
+                return Portal_View_As::sanitize_roles( $value );
+            }
+            return array( 'administrator' );
+        }
+
+        /**
+         * @return void
+         */
+        public function view_as_section_callback() {
+            echo '<p>' . esc_html__(
+                'Staff with a checked role can preview a public portal as a guest, a signed-in non-member, or a membership plan. Each portal may override this list.',
+                'dragongate-portals'
+            ) . '</p>';
+        }
+
+        /**
+         * @return void
+         */
+        public function render_view_as_roles_field() {
+            $saved = class_exists( 'Portal_View_As' )
+                ? Portal_View_As::sanitize_roles( Portal_Options::get( 'dg_view_as_roles', array() ) )
+                : array( 'administrator' );
+            foreach ( $this->view_as_role_choices() as $slug => $name ) {
+                $on = in_array( (string) $slug, $saved, true );
+                echo '<label><input type="checkbox" name="dg_view_as_roles[]" value="' . esc_attr( (string) $slug ) . '" ' . checked( $on, true, false ) . ' /> ';
+                echo esc_html( (string) $name ) . '</label><br />';
+            }
+            echo '<p class="description">' . esc_html__(
+                'Leave every box unchecked and Save to keep Administrator only.',
+                'dragongate-portals'
+            ) . '</p>';
+        }
+
+        /**
+         * @return array<string,string>
+         */
+        private function view_as_role_choices() {
+            if ( function_exists( 'wp_roles' ) ) {
+                $wp_roles = wp_roles();
+                if ( is_object( $wp_roles ) && method_exists( $wp_roles, 'get_names' ) ) {
+                    $names = $wp_roles->get_names();
+                    if ( is_array( $names ) && ! empty( $names ) ) {
+                        return $names;
+                    }
+                }
+            }
+            return array(
+                'administrator' => __( 'Administrator', 'dragongate-portals' ),
+                'editor'        => __( 'Editor', 'dragongate-portals' ),
+                'author'        => __( 'Author', 'dragongate-portals' ),
+                'contributor'   => __( 'Contributor', 'dragongate-portals' ),
+                'subscriber'    => __( 'Subscriber', 'dragongate-portals' ),
+            );
         }
 
         /**
@@ -1008,9 +1094,11 @@ if (! class_exists('Portal_Settings')) {
         }
         public function render_receipt_from_name_field()
         {
-            $value = Portal_Options::get( 'dg_receipt_from_name', '');
+            $value       = Portal_Options::get( 'dg_receipt_from_name', '');
+            $placeholder = Portal_Mailer::DEFAULT_FROM_NAME;
             ?>
-			<input type="text" name="dg_receipt_from_name" id="dg_receipt_from_name" class="form-control " style="width:100%" value="<?php echo $value; ?>" placeholder="<?php _e('Automated Submission Receipts', 'dragongate-portals'); ?>" />
+			<input type="text" name="dg_receipt_from_name" id="dg_receipt_from_name" class="form-control " style="width:100%" value="<?php echo $value; ?>" placeholder="<?php echo esc_attr( $placeholder ); ?>" />
+			<p class="description"><?php echo esc_html( sprintf( __( 'Shown as the From name on applicant receipts. Leave blank to use %s.', 'dragongate-portals' ), $placeholder ) ); ?></p>
 
 			<?php
         }

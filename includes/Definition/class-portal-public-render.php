@@ -161,13 +161,15 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 				$options  = isset( $definition['options'] ) && is_array( $definition['options'] )
 					? $definition['options']
 					: array();
-				$decision = Portal_Access::decide( $access, $options, Portal_Access::current_applicant() );
+				$decision = Portal_Access::decide( $access, $options, self::applicant_for( $post_id ) );
 				if ( empty( $decision['allowed'] ) ) {
-					return self::render_restricted_message( $post_id, $definition, $decision );
+					$denied = self::render_restricted_message( $post_id, $definition, $decision );
+					$notice = self::render_view_as_banner( $post_id );
+					return '' === $notice ? $denied : $notice . $denied;
 				}
 			}
 
-			$banner = $is_preview ? self::render_preview_banner() : '';
+			$banner = $is_preview ? self::render_preview_banner() : self::render_view_as_banner( $post_id );
 
 			if ( is_array( $definition ) ) {
 				$errors_html = '';
@@ -394,6 +396,37 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 		}
 
 		/**
+		 * View-as banner when a privileged overlay is active.
+		 *
+		 * @param int $post_id Portal post ID.
+		 * @return string
+		 */
+		public static function render_view_as_banner( $post_id ) {
+			if ( ! class_exists( 'Portal_View_As' ) || ! Portal_View_As::is_active( $post_id ) ) {
+				return '';
+			}
+			$persona = Portal_View_As::requested_persona();
+			$catalog = class_exists( 'Portal_Access' ) ? Portal_Access::catalog() : array();
+			return sprintf(
+				'<div class="dg-view-as-banner" data-testid="dg-view-as-banner" role="status"><strong>%s</strong></div>',
+				esc_html( Portal_View_As::banner_text( (string) $persona, $catalog ) )
+			);
+		}
+
+		/**
+		 * Overlay applicant when view-as is active.
+		 *
+		 * @param int $post_id Portal post ID.
+		 * @return array
+		 */
+		private static function applicant_for( $post_id ) {
+			if ( class_exists( 'Portal_View_As' ) ) {
+				return Portal_View_As::applicant( $post_id );
+			}
+			return Portal_Access::current_applicant();
+		}
+
+		/**
 		 * Whether the definition path should emit formstart and submit.
 		 *
 		 * @param int $post_id Portal post ID.
@@ -419,6 +452,9 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 			if ( ! Portal_Open_State::should_show_form( (int) $post_id ) ) {
 				return false;
 			}
+			if ( class_exists( 'Portal_View_As' ) && Portal_View_As::is_active( (int) $post_id ) ) {
+				return false;
+			}
 			if ( Portal_Open_State::is_preview_request( (int) $post_id ) ) {
 				return true;
 			}
@@ -435,7 +471,7 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 			$options  = isset( $definition['options'] ) && is_array( $definition['options'] )
 				? $definition['options']
 				: array();
-			$decision = Portal_Access::decide( $access, $options, Portal_Access::current_applicant() );
+			$decision = Portal_Access::decide( $access, $options, self::applicant_for( (int) $post_id ) );
 			return ! empty( $decision['allowed'] );
 		}
 

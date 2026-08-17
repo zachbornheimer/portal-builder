@@ -4,7 +4,7 @@
  * Plugin Name: DragonGate Portals
  * Plugin URI:  https://dragongateportals.com
  * Description: A plugin to build portals for accepting applications and managing submissions with Google Sheets and Google Drive integration.
- * Version:     0.1.4
+ * Version:     0.1.5
  * Requires at least: 6.4
  * Requires PHP: 8.0
  * Update URI:  https://github.com/zachbornheimer/portal-builder
@@ -27,7 +27,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 // Define plugin version constant
 if ( ! defined( 'DG_VERSION' ) ) {
-	define( 'DG_VERSION', '0.1.4' );
+	define( 'DG_VERSION', '0.1.5' );
 }
 
 // Include the necessary files
@@ -47,6 +47,7 @@ require_once plugin_dir_path( __FILE__ ) . 'includes/Definition/class-portal-bra
 require_once plugin_dir_path( __FILE__ ) . 'includes/Definition/class-portal-definition-renderer.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/Definition/class-portal-open-state.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/Definition/class-portal-access.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/Definition/class-portal-view-as.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/Definition/class-portal-public-render.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-files.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-test-mode.php';
@@ -137,6 +138,10 @@ function dg_initialize_plugin() {
 		dg_register_meta_boxes( $portal_meta );
 		add_action( 'admin_notices', 'dg_duplicate_success_notice' );
 		add_action( 'admin_notices', array( 'Portal_Google_Connect', 'render_admin_notice' ) );
+	}
+
+	if ( class_exists( 'Portal_View_As' ) ) {
+		Portal_View_As::init();
 	}
 
 	handle_submissions();
