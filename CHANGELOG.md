@@ -1,3 +1,14 @@
+## 0.1.10
+
+### Fixes
+- Treat incomplete Turnstile keys as keys_complete off so CFS submits are not blocked
+- Harden Safari Open/confirm for packet file preview
+
+### Maintenance
+- CI lint runs php -l in Actions (defer full phpcs until baseline)
+
+**Full Changelog**: https://github.com/zachbornheimer/portal-builder/compare/v0.1.9...v0.1.10
+
 ## 0.1.9
 
 ### Fixes
