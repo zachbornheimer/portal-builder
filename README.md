@@ -59,7 +59,7 @@ Every control named below is a label that exists in this plugin.
 
 12. **Applicant packets.** A signed-in applicant sees **Your submissions for this portal** on the public form. They can **Replace file** on a current packet (same Drive dest adapter) or **Recall** it so staff no longer treat it as current.
 
-Anyone-audience portals can require Cloudflare Turnstile (set the site key and secret under Default Settings). Logged-in and members portals skip the widget.
+Cloudflare Turnstile (set **both** the site key and secret under Default Settings) gates public submits for every audience — anyone, logged-in, and members. Incomplete keys leave the gate off so applicants are not blocked; finish both keys before relying on spam protection.
 
 ## Upgrade by ZIP
 

@@ -598,17 +598,19 @@ function enqueue_portal_county_region_script()
 }
 add_action('wp_enqueue_scripts', 'enqueue_portal_county_region_script');
 
-// enqueue recaptcha
+// Legacy Google reCAPTCHA — only when leftover sitekey is set (definition path uses Turnstile).
 function enqueue_recaptcha_script()
 {
-    if (is_singular('portal')) {
-        global $post;
-        $script_url = 'https://www.google.com/recaptcha/api.js';
-
-        if (! empty($script_url)) {
-            wp_enqueue_script('recaptcha', $script_url, array(), DG_VERSION, true);
-        }
+    if (! is_singular('portal')) {
+        return;
     }
+    $sitekey = class_exists('Portal_Options')
+        ? Portal_Options::get('dg_recaptcha_sitekey', '')
+        : '';
+    if (! is_string($sitekey) || '' === trim($sitekey)) {
+        return;
+    }
+    wp_enqueue_script('recaptcha', 'https://www.google.com/recaptcha/api.js', array(), DG_VERSION, true);
 }
 add_action('wp_enqueue_scripts', 'enqueue_recaptcha_script');
 

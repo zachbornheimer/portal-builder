@@ -103,19 +103,50 @@
 
   function openConfirmedPreview(card, url, onReady, onError) {
     if (!previewReady()) {
+      // Modules can lag classic scripts on Safari (~1s was too short). Poll up
+      // to ~5s and also wake on dg-file-preview-ready from file-preview.js.
       var tries = 0
+      var settled = false
+      function finishOk() {
+        if (settled) {
+          return
+        }
+        settled = true
+        clearInterval(wait)
+        if (typeof globalThis.removeEventListener === 'function') {
+          globalThis.removeEventListener('dg-file-preview-ready', onReadyEvent)
+        }
+        openConfirmedPreview(card, url, onReady, onError)
+      }
+      function finishErr() {
+        if (settled) {
+          return
+        }
+        settled = true
+        clearInterval(wait)
+        if (typeof globalThis.removeEventListener === 'function') {
+          globalThis.removeEventListener('dg-file-preview-ready', onReadyEvent)
+        }
+        onError()
+      }
+      function onReadyEvent() {
+        if (previewReady()) {
+          finishOk()
+        }
+      }
       var wait = setInterval(function () {
         tries += 1
         if (previewReady()) {
-          clearInterval(wait)
-          openConfirmedPreview(card, url, onReady, onError)
+          finishOk()
           return
         }
-        if (tries >= 20) {
-          clearInterval(wait)
-          onError()
+        if (tries >= 100) {
+          finishErr()
         }
       }, 50)
+      if (typeof globalThis.addEventListener === 'function') {
+        globalThis.addEventListener('dg-file-preview-ready', onReadyEvent)
+      }
       return
     }
     var preview = globalThis.FilePreview

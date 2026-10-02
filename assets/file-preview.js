@@ -4,6 +4,9 @@
  * Iframe `load` is display only. Chrome's PDF viewer (especially Playwright
  * Chromium) often never fires that event, so readiness is GET + non-empty
  * body, and for iframe/pdf a `%PDF` magic or Content-Type application/pdf.
+ *
+ * Staged REST must return raw bytes (serve_raw_request). A JSON body means the
+ * binary serve path failed — treat as not readable (Safari/Chrome Open confirm).
  */
 var PDF_MAGIC = [0x25, 0x50, 0x44, 0x46]
 var PDF_TYPE = 'application/pdf'
@@ -63,6 +66,29 @@ async function readBytes(response) {
   return new Uint8Array()
 }
 
+function looksLikeJson(type, bytes) {
+  if (String(type || '').indexOf('application/json') !== -1) {
+    return true
+  }
+  if (!bytes || !bytes.length) {
+    return false
+  }
+  // Skip UTF-8 BOM / whitespace then look for `{` / `[` (REST error or JSON envelope).
+  var i = 0
+  if (bytes.length >= 3 && bytes[0] === 0xef && bytes[1] === 0xbb && bytes[2] === 0xbf) {
+    i = 3
+  }
+  while (i < bytes.length) {
+    var c = bytes[i]
+    if (c === 0x20 || c === 0x09 || c === 0x0a || c === 0x0d) {
+      i += 1
+      continue
+    }
+    return c === 0x7b || c === 0x5b // { or [
+  }
+  return false
+}
+
 function decideReadable(kind, response, bytes) {
   if (!response || !response.ok) {
     var status = response && response.status ? response.status : 0
@@ -70,6 +96,9 @@ function decideReadable(kind, response, bytes) {
   }
   if (!bytes || !bytes.length) {
     return { ready: false, reason: 'empty body' }
+  }
+  if (looksLikeJson(contentTypeOf(response), bytes)) {
+    return { ready: false, reason: 'json instead of file bytes' }
   }
   if (needsPdfProof(kind) && !hasPdfType(contentTypeOf(response)) && !hasPdfMagic(bytes)) {
     return { ready: false, reason: 'not a pdf' }
@@ -90,7 +119,8 @@ export async function proveReadable(options) {
   }
   var response
   try {
-    response = await fetchImpl(url)
+    // Same-origin staged REST; cookies/nonce sessions need credentials on Safari.
+    response = await fetchImpl(url, { credentials: 'same-origin' })
   } catch (err) {
     throw new Error('file preview: fetch failed')
   }
@@ -106,4 +136,9 @@ export var FilePreview = { proveReadable: proveReadable }
 
 if (typeof globalThis !== 'undefined') {
   globalThis.FilePreview = FilePreview
+  try {
+    globalThis.dispatchEvent(new Event('dg-file-preview-ready'))
+  } catch (err) {
+    /* Event unsupported — definition-form still polls previewReady. */
+  }
 }

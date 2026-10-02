@@ -71,7 +71,9 @@ test('public-render enqueues dragongate-public and prints the preview mount', ()
 	assert.match(php, /assets\/dist\/dragongate-public\.js/);
 	assert.match(php, /data-dg-preview-root/);
 	assert.match(php, /dg-file-preview/);
-	assert.match(php, /array\(\s*'dg-file-preview',\s*'dg-public-preview'\s*\)/);
+	assert.match(php, /dg-public-preview/);
+	assert.match(php, /dg-definition-form/);
+	assert.match(php, /'dg-file-preview', 'dg-public-preview', 'dg-definition-form'/);
 	assert.doesNotMatch(php, /dragongate-portal\.js/);
 });
 

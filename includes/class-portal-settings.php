@@ -17,6 +17,7 @@ if (! class_exists('Portal_Settings')) {
             add_action('admin_enqueue_scripts', array( $this, 'enqueue_admin_scripts' ));
             add_action('wp_ajax_validate_url', array( $this, 'validate_url_callback' )); // AJAX callback for URL validation
             add_action( 'wp_ajax_dg_google_probe', array( $this, 'google_probe_callback' ) );
+            add_action( 'admin_notices', array( $this, 'turnstile_incomplete_notice' ) );
         }
 
         public function add_menu_pages()
@@ -1006,15 +1007,49 @@ if (! class_exists('Portal_Settings')) {
         public function render_turnstile_site_field() {
             $value = Portal_Options::get( Portal_Spam_Gate::OPTION_SITE, '' );
             echo '<input type="text" name="' . esc_attr( Portal_Spam_Gate::OPTION_SITE ) . '" class="regular-text" value="' . esc_attr( (string) $value ) . '" autocomplete="off" />';
-            echo '<p class="description">' . esc_html__( 'Cloudflare Turnstile site key. Public submits need a valid token when this is set.', 'dragongate-portals' ) . '</p>';
+            echo '<p class="description">' . esc_html__( 'Cloudflare Turnstile site key. Pair with the secret below; both are required before the spam gate runs (any audience, including members).', 'dragongate-portals' ) . '</p>';
         }
 
         public function render_turnstile_secret_field() {
             echo Portal_Secret_Field::render_textarea(
                 Portal_Spam_Gate::OPTION_SECRET,
                 Portal_Options::get( Portal_Spam_Gate::OPTION_SECRET, '' ),
-                __( 'Cloudflare Turnstile secret. Public submits are rejected without a valid token.', 'dragongate-portals' )
+                __( 'Cloudflare Turnstile secret. Pair with the site key; incomplete keys leave the gate off so applicants are not blocked.', 'dragongate-portals' )
             );
+        }
+
+        /**
+         * Warn when only one Turnstile key is saved (site without secret used to fail every submit).
+         */
+        public function turnstile_incomplete_notice() {
+            if ( ! current_user_can( 'manage_options' ) ) {
+                return;
+            }
+            if ( ! class_exists( 'Portal_Spam_Gate' ) || ! Portal_Spam_Gate::keys_incomplete() ) {
+                return;
+            }
+            $screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+            $on_settings = $screen && isset( $screen->id ) && false !== strpos( (string) $screen->id, 'portal-default-settings' );
+            // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- admin page slug only.
+            $page = isset( $_GET['page'] ) ? sanitize_text_field( wp_unslash( $_GET['page'] ) ) : '';
+            if ( ! $on_settings && 'portal-default-settings' !== $page ) {
+                // Still show on portal list / edit screens where ops notice broken submits.
+                $post_type = isset( $_GET['post_type'] ) ? sanitize_text_field( wp_unslash( $_GET['post_type'] ) ) : '';
+                if ( 'portal' !== $post_type && ! ( $screen && isset( $screen->post_type ) && 'portal' === $screen->post_type ) ) {
+                    return;
+                }
+            }
+            $secret  = Portal_Spam_Gate::secret();
+            $missing = '' === $secret ? __( 'secret', 'dragongate-portals' ) : __( 'site key', 'dragongate-portals' );
+            echo '<div class="notice notice-warning"><p>';
+            echo esc_html(
+                sprintf(
+                    /* translators: %s: which Turnstile key is missing (site key or secret). */
+                    __( 'DragonGate Portals: Cloudflare Turnstile is incomplete (missing %s). The spam gate is off until both keys are set, so public submits are not blocked.', 'dragongate-portals' ),
+                    $missing
+                )
+            );
+            echo '</p></div>';
         }
 
         public function render_legal_disclaimers_field()

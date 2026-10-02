@@ -827,7 +827,10 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 			add_filter(
 				'script_loader_tag',
 				static function ( $tag, $handle ) {
-					$modules = array( 'dg-file-preview', 'dg-public-preview' );
+					// Classic defer can run before ES modules on Safari; keep the
+					// public form stack as modules so FilePreview/DGPreview exist
+					// before definition-form.js init (Open and confirm).
+					$modules = array( 'dg-file-preview', 'dg-public-preview', 'dg-definition-form' );
 					if ( in_array( $handle, $modules, true ) && false === strpos( $tag, 'type=' ) ) {
 						return str_replace( '<script ', '<script type="module" ', $tag );
 					}

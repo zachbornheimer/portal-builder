@@ -3,7 +3,7 @@
  * Drive shipped Portal_Spam_Gate::admit.
  *
  * Usage:
- *   php tests/support/php-spam-gate.php '{"audience":"anyone","token":"","secret":"s"}'
+ *   php tests/support/php-spam-gate.php '{"audience":"anyone","token":"","secret":"s","site":"site"}'
  */
 // phpcs:disable
 if ( ! class_exists( 'WP_Error' ) ) {
@@ -36,7 +36,11 @@ require_once $repo . '/includes/Submission/class-portal-spam-gate.php';
 
 $in = json_decode( isset( $argv[1] ) ? $argv[1] : '{}', true );
 $in = is_array( $in ) ? $in : array();
-$GLOBALS['dg_options'][ Portal_Spam_Gate::OPTION_SECRET ] = isset( $in['secret'] ) ? $in['secret'] : 'test-secret';
+
+$has_secret = array_key_exists( 'secret', $in );
+$has_site   = array_key_exists( 'site', $in );
+$GLOBALS['dg_options'][ Portal_Spam_Gate::OPTION_SECRET ] = $has_secret ? $in['secret'] : 'test-secret';
+$GLOBALS['dg_options'][ Portal_Spam_Gate::OPTION_SITE ]   = $has_site ? $in['site'] : 'test-site';
 
 $definition = array(
 	'access' => array(
@@ -59,10 +63,12 @@ $err    = Portal_Spam_Gate::admit(
 
 echo json_encode(
 	array(
-		'required' => Portal_Spam_Gate::required_for_audience( $definition['access']['audience'] ),
-		'ok'       => ! is_wp_error( $err ) && null === $err,
-		'code'     => is_wp_error( $err ) ? $err->get_error_code() : null,
-		'message'  => is_wp_error( $err ) ? $err->get_error_message() : null,
+		'required'   => Portal_Spam_Gate::required_for_audience( $definition['access']['audience'] ),
+		'complete'   => Portal_Spam_Gate::keys_complete(),
+		'incomplete' => Portal_Spam_Gate::keys_incomplete(),
+		'ok'         => ! is_wp_error( $err ) && null === $err,
+		'code'       => is_wp_error( $err ) ? $err->get_error_code() : null,
+		'message'    => is_wp_error( $err ) ? $err->get_error_message() : null,
 	)
 ) . "\n";
 

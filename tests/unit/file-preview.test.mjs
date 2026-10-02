@@ -123,3 +123,33 @@ test('readable audio becomes ready from fetch proof without element load', async
 	});
 	assert.equal(result.ready, true);
 });
+
+test('JSON REST body is an error (staged serve_raw failed)', async () => {
+	await assert.rejects(
+		() =>
+			proveReadable({
+				url: PDF_URL,
+				kind: 'iframe',
+				fetchImpl: fetchOf({
+					type: 'application/json',
+					body: JSON.stringify({ code: 'dg_staged_not_found', message: 'Staged file not found.' }),
+				}),
+			}),
+		/json instead of file bytes/i,
+	);
+});
+
+test('JSON envelope without content-type is an error', async () => {
+	await assert.rejects(
+		() =>
+			proveReadable({
+				url: PDF_URL,
+				kind: 'iframe',
+				fetchImpl: fetchOf({
+					type: 'application/octet-stream',
+					body: '{"dg_raw_body":"%PDF-1.4"}',
+				}),
+			}),
+		/json instead of file bytes/i,
+	);
+});

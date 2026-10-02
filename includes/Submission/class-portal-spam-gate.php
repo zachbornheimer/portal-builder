@@ -12,7 +12,7 @@ if ( ! class_exists( 'Portal_Options' ) ) {
 if ( ! class_exists( 'Portal_Spam_Gate' ) ) {
 
 	/**
-	 * When keys are set, every public submit needs a valid token.
+	 * When both Turnstile keys are set, every public submit needs a valid token.
 	 */
 	class Portal_Spam_Gate {
 
@@ -25,12 +25,33 @@ if ( ! class_exists( 'Portal_Spam_Gate' ) ) {
 		const MSG_INVALID   = 'The spam check failed. Refresh the page and try again.';
 
 		/**
-		 * @param string $audience Access audience (unused when keys are set).
+		 * Both site key and secret must be present before the gate is enforced.
+		 * A site key alone used to reject every submit with MSG_INVALID.
+		 *
+		 * @return bool
+		 */
+		public static function keys_complete() {
+			return '' !== self::site_key() && '' !== self::secret();
+		}
+
+		/**
+		 * Exactly one of site/secret is set — admin should finish configuration.
+		 *
+		 * @return bool
+		 */
+		public static function keys_incomplete() {
+			$site   = self::site_key();
+			$secret = self::secret();
+			return ( '' !== $site ) xor ( '' !== $secret );
+		}
+
+		/**
+		 * @param string $audience Access audience (unused when keys are complete).
 		 * @return bool
 		 */
 		public static function required_for_audience( $audience ) {
 			unset( $audience );
-			return '' !== self::site_key() || '' !== self::secret();
+			return self::keys_complete();
 		}
 
 		/**
@@ -48,16 +69,9 @@ if ( ! class_exists( 'Portal_Spam_Gate' ) ) {
 				return null;
 			}
 			$secret = self::secret();
-			$site   = self::site_key();
-			if ( '' === $secret && '' === $site ) {
-				return null;
-			}
-			$token = self::posted_token( $values );
+			$token  = self::posted_token( $values );
 			if ( '' === $token ) {
 				return new WP_Error( self::CODE, self::MSG_MISSING );
-			}
-			if ( '' === $secret ) {
-				return new WP_Error( self::CODE, self::MSG_INVALID );
 			}
 			$ok = is_callable( $verifier )
 				? (bool) call_user_func( $verifier, $token, $secret )
