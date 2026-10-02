@@ -118,7 +118,7 @@ if ( ! class_exists( 'Portal_Notification_When' ) ) {
 			}
 			try {
 				$parsed = new DateTimeImmutable( $raw, $utc );
-			} catch ( Exception $e ) {
+			} catch ( Throwable $e ) {
 				return '';
 			}
 			return $parsed->format( self::DATE_FORMAT );

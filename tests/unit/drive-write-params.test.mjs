@@ -6,10 +6,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
+import fs from 'node:fs';
 import path from 'node:path';
 
 const root = process.cwd();
 const harness = path.join(root, 'tests/support/php-drive-write-params.php');
+const filestoreAutoload = path.join(root, 'gsuite-filestore/vendor/autoload.php');
 
 function runHarness() {
 	const r = spawnSync('php', [harness], { encoding: 'utf8' });
@@ -38,7 +40,11 @@ function assertCreateSendsAllDrives(label, captured) {
 	);
 }
 
-test('every FileStore files->create on submit sends supportsAllDrives', () => {
+test('every FileStore files->create on submit sends supportsAllDrives', (t) => {
+	if (!fs.existsSync(filestoreAutoload)) {
+		t.skip('gsuite-filestore vendor missing (submodule not checked out in CI)');
+		return;
+	}
 	const { code, out, data } = runHarness();
 	assert.equal(code, 0, out);
 	assert.ok(data, out);
