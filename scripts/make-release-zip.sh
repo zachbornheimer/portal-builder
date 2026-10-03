@@ -21,8 +21,8 @@ PREFIX="dragongate-portals"
 git archive --format=tar --prefix="${PREFIX}/" HEAD | tar -C "${TMP}" -xf -
 
 git submodule foreach --quiet --recursive '
-	sm_path="$displaypath"
-	git archive --format=tar --prefix="'"${PREFIX}"'/${sm_path}/" HEAD | tar -C "'"${TMP}"'" -xf -
+\tsm_path="$displaypath"
+\tgit archive --format=tar --prefix="'"${PREFIX}"'/${sm_path}/" HEAD | tar -C "'"${TMP}"'" -xf -
 '
 
 if [[ -d vendor ]]; then
@@ -37,6 +37,14 @@ fi
 # the Updates “View details” changelog when GitHub’s API is blocked.
 if [[ -f CHANGELOG.md ]]; then
   cp CHANGELOG.md "${TMP}/${PREFIX}/CHANGELOG.md"
+fi
+
+# git archive of an uninitialized submodule writes an empty directory.
+# portal-builder.php requires this class; a zip without it fatals on boot.
+STORE="${TMP}/${PREFIX}/gsuite-filestore/zysys-file-store.class.php"
+if [[ ! -s "${STORE}" ]]; then
+  echo "release zip missing gsuite-filestore/zysys-file-store.class.php (git submodule update --init)" >&2
+  exit 1
 fi
 
 rm -f "${OUT}"

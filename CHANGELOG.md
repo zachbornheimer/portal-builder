@@ -1,3 +1,10 @@
+## 0.1.11
+
+### Fixes
+- Show a playable audio bar in the CFS confirm dialog (zero-height player)
+
+**Full Changelog**: https://github.com/zachbornheimer/portal-builder/compare/v0.1.10...v0.1.11
+
 ## 0.1.10
 
 ### Fixes
@@ -92,10 +99,6 @@
 - Mask Google secrets, Turnstile gate, and packet console
 - Keep per-portal testMode off the mapped production dests
 - Keep connect-Google notice until test write succeeds
-- Ship semver 0.1.0 and document ZIP upgrade
-- Write an operator log row for each definition submit
-- Add Google connection probe on Settings
-- Recommend a generic starter on Start
 - Notify the portal operator on successful submit
 - White-label public form from host brand settings
 - DragonGate Portals marketing site and waitlist
