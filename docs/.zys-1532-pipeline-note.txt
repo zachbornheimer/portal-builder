@@ -1,2 +1,0 @@
-<?php
-// ZYS-1532: see worktree for full pipeline; this is a temporary marker that must be replaced.
