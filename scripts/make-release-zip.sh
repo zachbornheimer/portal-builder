@@ -21,8 +21,8 @@ PREFIX="dragongate-portals"
 git archive --format=tar --prefix="${PREFIX}/" HEAD | tar -C "${TMP}" -xf -
 
 git submodule foreach --quiet --recursive '
-\tsm_path="$displaypath"
-\tgit archive --format=tar --prefix="'"${PREFIX}"'/${sm_path}/" HEAD | tar -C "'"${TMP}"'" -xf -
+	sm_path="$displaypath"
+	git archive --format=tar --prefix="'"${PREFIX}"'/${sm_path}/" HEAD | tar -C "'"${TMP}"'" -xf -
 '
 
 if [[ -d vendor ]]; then
