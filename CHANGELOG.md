@@ -1,3 +1,8 @@
+## Unreleased
+
+### Features
+- Log Turnstile reject path to dg-logs/spam-rejects.jsonl without storing tokens (ZYS-1532)
+
 ## 0.1.10
 
 ### Fixes
