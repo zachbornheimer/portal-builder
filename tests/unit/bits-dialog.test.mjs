@@ -120,3 +120,14 @@ test('built public bundle exposes DGPreview and does not contain WizardShell', (
 		assert.doesNotMatch(source, /WizardShell/, `${name} must not contain WizardShell`);
 	}
 });
+
+test('audio confirm preview uses a definite height so controls are not 0px', () => {
+	const css = read('assets/definition-form.css');
+	const block = css.match(/audio\.dg-file-preview-media\s*\{([^}]*)\}/);
+	assert.ok(block, 'audio preview rule');
+	assert.doesNotMatch(block[1], /height:\s*auto/);
+	assert.match(block[1], /height:\s*54px/);
+	const dialog = read('src/public/PreviewDialog.svelte');
+	assert.match(dialog, /<audio[^>]*controls/);
+	assert.match(dialog, /kind === KIND_AUDIO/);
+});

@@ -39,6 +39,14 @@ if [[ -f CHANGELOG.md ]]; then
   cp CHANGELOG.md "${TMP}/${PREFIX}/CHANGELOG.md"
 fi
 
+# git archive of an uninitialized submodule writes an empty directory.
+# portal-builder.php requires this class; a zip without it fatals on boot.
+STORE="${TMP}/${PREFIX}/gsuite-filestore/zysys-file-store.class.php"
+if [[ ! -s "${STORE}" ]]; then
+  echo "release zip missing gsuite-filestore/zysys-file-store.class.php (git submodule update --init)" >&2
+  exit 1
+fi
+
 rm -f "${OUT}"
 (
   cd "${TMP}"

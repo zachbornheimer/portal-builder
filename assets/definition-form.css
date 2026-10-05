@@ -945,7 +945,12 @@ body.single-portal button.dg-file-open:focus-visible {
 }
 
 audio.dg-file-preview-media {
-  height: auto;
+  /* Block audio with an automatic height lays out at 0px, so the confirm
+     dialog opens with no player. A definite bar height keeps controls visible.
+     PDF and image previews keep the tall media box. */
+  height: 54px;
+  min-height: 54px;
+  flex-shrink: 0;
   margin: var(--s-6) auto;
   width: min(100%, 28rem);
 }

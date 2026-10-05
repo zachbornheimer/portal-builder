@@ -1,3 +1,17 @@
+## 0.1.12
+
+### Fixes
+- Log Turnstile spam-check rejects to dg-logs/spam-rejects.jsonl (no tokens stored).
+
+**Full Changelog**: https://github.com/zachbornheimer/portal-builder/compare/v0.1.11...v0.1.12
+
+## 0.1.11
+
+### Fixes
+- Show a playable audio bar in the CFS confirm dialog (zero-height player)
+
+**Full Changelog**: https://github.com/zachbornheimer/portal-builder/compare/v0.1.10...v0.1.11
+
 ## 0.1.10
 
 ### Fixes
