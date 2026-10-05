@@ -266,6 +266,12 @@ if ( ! class_exists( 'Portal_Spam_Gate' ) ) {
 		 * @return void
 		 */
 		private static function log_reject( $portal_id, $audience, array $values, $token_empty, $outcome, array $error_codes, $reason ) {
+			if ( '' === (string) $portal_id && function_exists( 'get_the_ID' ) ) {
+				$maybe = (int) get_the_ID();
+				if ( $maybe > 0 ) {
+					$portal_id = (string) $maybe;
+				}
+			}
 			$row = array(
 				'time'        => gmdate( 'c' ),
 				'portalId'    => (string) $portal_id,
