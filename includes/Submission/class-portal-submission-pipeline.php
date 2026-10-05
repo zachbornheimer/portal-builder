@@ -565,7 +565,7 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 			}
 
 			if ( class_exists( 'Portal_Spam_Gate' ) ) {
-				$captcha = Portal_Spam_Gate::admit( $definition, $values );
+				$captcha = Portal_Spam_Gate::admit( $definition, $values, null, $portal_id );
 				if ( is_wp_error( $captcha ) ) {
 					return $captcha;
 				}
