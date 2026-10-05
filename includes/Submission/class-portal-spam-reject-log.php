@@ -167,7 +167,7 @@ if ( ! class_exists( 'Portal_Spam_Reject_Log' ) ) {
 		private function timestamp() {
 			if ( null !== $this->now ) {
 				$stamp = call_user_func( $this->now );
-				if ( is_string( $stamp ) && '' === $stamp ) {
+				if ( is_string( $stamp ) && '' !== $stamp ) {
 					return $stamp;
 				}
 				if ( is_int( $stamp ) || is_float( $stamp ) ) {
