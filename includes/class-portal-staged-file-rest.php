@@ -276,13 +276,11 @@ if ( ! class_exists( 'Portal_Staged_File_REST' ) ) {
 		}
 
 		/**
-		 * rest_pre_serve_request: emit binary body, skip wp_json_encode.
+		 * Slice one byte range from a staged body.
 		 *
-		 * @param bool             $served  Already served.
-		 * @param WP_REST_Response $result  Response.
-		 * @param WP_REST_Request  $request Request.
-		 * @param WP_REST_Server   $server  Server.
-		 * @return bool
+		 * @param string $body   Full file bytes.
+		 * @param string $header Range header, such as bytes=0-1023.
+		 * @return array{status:int,start:int,end:int,total:int,body:string}|null Null serves the whole file.
 		 */
 		public static function byte_range( $body, $header ) {
 			$total  = strlen( (string) $body );
@@ -329,7 +327,7 @@ if ( ! class_exists( 'Portal_Staged_File_REST' ) ) {
 		}
 
 		/**
-		 * rest_pre_serve_request: emit binary body, skip wp_json_encode.
+		 * Emit the binary body and skip wp_json_encode.
 		 *
 		 * @param bool             $served  Already served.
 		 * @param WP_REST_Response $result  Response.
