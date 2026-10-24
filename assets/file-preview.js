@@ -219,19 +219,24 @@ function showLoading(media) {
 }
 
 function armPreview() {
+  function arm() {
+    var media = document.querySelector(MEDIA_SELECTOR);
+    if (!media) {
+      return false;
+    }
+    startEager(media);
+    showLoading(media);
+    return true;
+  }
+  if (arm()) {
+    return;
+  }
   var tries = 0;
   var timer = setInterval(function() {
     tries += 1;
-    var media = document.querySelector(MEDIA_SELECTOR);
-    if (!media) {
-      if (tries >= ARM_TRIES) {
-        clearInterval(timer);
-      }
-      return;
+    if (arm() || tries >= ARM_TRIES) {
+      clearInterval(timer);
     }
-    clearInterval(timer);
-    startEager(media);
-    showLoading(media);
   }, ARM_WAIT_MS);
 }
 

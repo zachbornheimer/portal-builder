@@ -77,16 +77,13 @@ test("public-render enqueues dragongate-public and prints the preview mount", ()
   assert.doesNotMatch(php, /dragongate-portal\.js/);
 });
 
-test("definition-form opens DGPreview only after proveReadable; missing island is an error", () => {
+test("definition-form opens through FilePreview and treats a missing island as an error", () => {
   const js = read("assets/definition-form.js");
-  assert.match(js, /proveReadable/);
-  assert.match(js, /globalThis\.DGPreview\.open/);
+  assert.match(js, /FilePreview\.open/);
   assert.match(js, /function previewReady\s*\(/);
-  assert.match(
-    js,
-    /proveReadable\s*\([\s\S]*?\)\s*\.then\s*\(\s*function\s*\(\)\s*\{[\s\S]*?globalThis\.DGPreview\.open/,
-  );
   assert.match(js, /if\s*\(\s*!previewReady\(\)\s*\)/);
+  assert.match(js, /\.then\s*\(\s*onReady\s*,\s*onError\s*\)/);
+  assert.doesNotMatch(js, /globalThis\.DGPreview\.open/);
   assert.match(js, /onError\(\)/);
   assert.doesNotMatch(js, /PREVIEW_DIALOG_ID/);
   assert.doesNotMatch(js, /ensurePreviewDialog/);
