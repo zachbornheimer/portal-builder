@@ -2,7 +2,7 @@
  * Public definition form — packet language (docs/design/TOKENS.md).
  * Tokens live next to this file so a deploy of assets/ is enough.
  */
-@import url('tokens.css');
+@import url("tokens.css");
 body.dg-public-portal,
 body.single-portal {
   background-color: var(--paper);
@@ -120,10 +120,15 @@ body.single-portal form.dg-portal-submit-form fieldset {
 
 .dg-rule-ornament::before,
 .dg-rule-ornament::after {
-  content: '';
+  content: "";
   flex: 1;
   height: 1px;
-  background: linear-gradient(90deg, transparent, var(--brass-200), transparent);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--brass-200),
+    transparent
+  );
 }
 
 .dg-meta {
@@ -223,6 +228,11 @@ body.single-portal form.dg-portal-submit-form fieldset {
   min-width: 0;
 }
 
+/* Application Category sits tight under the intro. Asked gap is 16px. */
+.dg-form [data-dg-field-id="category"] {
+  margin-top: 16px;
+}
+
 .dg-grid {
   display: grid;
   gap: var(--s-4);
@@ -261,7 +271,7 @@ body.single-portal form.dg-portal-submit-form fieldset {
 
 .dg-packet legend::after,
 .dg-form.portal-definition-form legend::after {
-  content: '';
+  content: "";
   flex: 1;
   height: 1px;
   background: var(--rule);
@@ -297,14 +307,14 @@ body.single-portal form.dg-portal-submit-form fieldset {
 }
 
 .dg-control,
-.dg-packet input[type='text'],
-.dg-packet input[type='email'],
-.dg-packet input[type='tel'],
+.dg-packet input[type="text"],
+.dg-packet input[type="email"],
+.dg-packet input[type="tel"],
 .dg-packet select,
 .dg-packet textarea,
-.dg-form.portal-definition-form input[type='text'],
-.dg-form.portal-definition-form input[type='email'],
-.dg-form.portal-definition-form input[type='tel'],
+.dg-form.portal-definition-form input[type="text"],
+.dg-form.portal-definition-form input[type="email"],
+.dg-form.portal-definition-form input[type="tel"],
 .dg-form.portal-definition-form select,
 .dg-form.portal-definition-form textarea {
   width: 100%;
@@ -439,7 +449,7 @@ body.single-portal form.dg-portal-submit-form fieldset {
 }
 
 .dg-file-status::before {
-  content: '';
+  content: "";
   width: 12px;
   height: 12px;
   border: 2px solid var(--rule-strong);
@@ -682,7 +692,7 @@ body.single-portal button.dg-file-open:focus-visible {
   color: var(--ink-800);
 }
 
-.dg-packet .dg-check input[type='checkbox'] {
+.dg-packet .dg-check input[type="checkbox"] {
   appearance: none;
   -webkit-appearance: none;
   width: 20px;
@@ -700,22 +710,20 @@ body.single-portal button.dg-file-open:focus-visible {
   box-shadow: none;
 }
 
-.dg-packet .dg-check input[type='checkbox']:checked {
+.dg-packet .dg-check input[type="checkbox"]:checked {
   background-color: var(--ember);
   border-color: var(--ember);
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none'><path d='M2.2 6.2 4.8 8.7 9.8 3.3' stroke='%23FCFBF6' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/></svg>");
 }
 
-.dg-packet .dg-check input[type='checkbox']:checked::after {
+.dg-packet .dg-check input[type="checkbox"]:checked::after {
   content: none;
 }
 
-.dg-packet .dg-check input[type='checkbox']:focus,
-.dg-packet .dg-check input[type='checkbox']:focus-visible {
+.dg-packet .dg-check input[type="checkbox"]:focus,
+.dg-packet .dg-check input[type="checkbox"]:focus-visible {
   outline: none;
-  box-shadow:
-    0 0 0 2px var(--paper-50),
-    0 0 0 3px var(--ember);
+  box-shadow: 0 0 0 2px var(--paper-50), 0 0 0 3px var(--ember);
 }
 
 .dg-check label {
@@ -757,8 +765,8 @@ body.single-portal button.dg-file-open:focus-visible {
 }
 
 /* Keep radios intrinsic. Host themes often stretch every input to 100%. */
-.dg-packet .dg-branch-option input[type='radio'],
-.dg-form.portal-definition-form .dg-branch-option input[type='radio'] {
+.dg-packet .dg-branch-option input[type="radio"],
+.dg-form.portal-definition-form .dg-branch-option input[type="radio"] {
   appearance: auto;
   width: 1.15rem;
   height: 1.15rem;
@@ -1011,12 +1019,16 @@ body.single-portal .dg-actions .dg-public-submit:focus,
 body.single-portal button.dg-public-submit:focus,
 .dg-public-submit:focus {
   outline: none;
-  box-shadow: var(--focus-ring), var(--shadow-ember);
+  box-shadow:
+    var(--focus-ring),
+    var(--shadow-ember);
 }
 
 body.single-portal .dg-actions .dg-public-submit:disabled,
 body.single-portal button.dg-public-submit:disabled,
-.dg-form.portal-definition-form + .sub_submit_container .dg-public-submit:disabled,
+.dg-form.portal-definition-form
+  + .sub_submit_container
+  .dg-public-submit:disabled,
 .sub_submit_container .dg-public-submit:disabled,
 .dg-public-submit:disabled {
   background: var(--ember-flow);
@@ -1046,7 +1058,7 @@ body.single-portal button.dg-public-submit:disabled,
 
 body.single-portal .cs-replacer,
 body.single-portal .custom-sidebars-replacer,
-body.single-portal [class*='Sidebar Infos'],
+body.single-portal [class*="Sidebar Infos"],
 body.dg-public-portal .widget_custom_sidebars {
   display: none !important;
 }
