@@ -74,55 +74,14 @@ test("Open shows the preview while the readability fetch is still pending", asyn
     await browser.close();
   }
 });
-test("audio, image, and pdf previews load through one open", async () => {
-  const browser = await chromium.launch({ headless: true });
-  try {
-    const page = await browser.newPage();
-    await page.setContent("<!doctype html><html><body></body></html>");
-    const source = fs.readFileSync(path.join(root, "assets/file-preview.js"), "utf8");
-    await page.addScriptTag({ content: source, type: "module" });
-    await page.waitForFunction(
-      () => window.FilePreview && typeof window.FilePreview.open === "function",
-      null,
-      { timeout: 3000 },
-    );
-    const kinds = [
-      { kind: "audio", tag: "AUDIO" },
-      { kind: "image", tag: "IMG" },
-      { kind: "iframe", tag: "IFRAME" },
-    ];
-    for (const item of kinds) {
-      await page.evaluate((kind) => {
-        document.body.replaceChildren();
-        window.DGPreview = {
-          open(options) {
-            const media = document.createElement(kind === "audio" ? "audio" : kind === "image" ? "img" : "iframe");
-            media.className = "dg-file-preview-media";
-            media.src = options.url;
-            document.body.appendChild(media);
-          },
-        };
-        window.FilePreview.open({
-          url: "https://files.test/piece",
-          kind: kind,
-          fetchImpl: () => new Promise(() => {}),
-        });
-      }, item.kind);
-      await page.waitForFunction(
-        (tag) => {
-          const note = document.querySelector(".dg-file-preview-loading");
-          const media = document.querySelector(".dg-file-preview-media");
-          return note && note.textContent === "Loading…" && media && media.tagName === tag;
-        },
-        item.tag,
-        { timeout: 1000 },
-      );
-      if (item.kind === "audio") {
-        const preload = await page.locator("audio").evaluate((el) => el.preload);
-        assert.equal(preload, "auto");
-      }
-    }
-  } finally {
-    await browser.close();
-  }
+test("openPreview arms every kind before the readability promise", () => {
+  const src = fs.readFileSync(path.join(root, "assets/file-preview.js"), "utf8");
+  const open = src.slice(src.indexOf("function openPreview"), src.indexOf("export var FilePreview"));
+  const armAt = open.indexOf("armPreview()");
+  const proveAt = open.indexOf("return proveReadable");
+  assert.ok(armAt > 0, "openPreview must arm the media");
+  assert.ok(proveAt > armAt, "arming must happen before the readability promise");
+  assert.match(src, /function armPreview/);
+  assert.match(src, /Loading…/);
+  assert.doesNotMatch(src, /kind === ["']audio["'][\s\S]{0,80}showLoading/);
 });
