@@ -102,7 +102,7 @@ test("audio, image, and pdf previews load through one open", async () => {
             document.body.appendChild(media);
           },
         };
-        return window.FilePreview.open({
+        window.FilePreview.open({
           url: "https://files.test/piece",
           kind: kind,
           fetchImpl: () => new Promise(() => {}),
