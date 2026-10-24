@@ -83,7 +83,7 @@ test("definition-form opens through FilePreview and treats a missing island as a
   assert.match(js, /function previewReady\s*\(/);
   assert.match(js, /if\s*\(\s*!previewReady\(\)\s*\)/);
   assert.match(js, /\.then\s*\(\s*onReady\s*,\s*onError\s*\)/);
-  assert.doesNotMatch(js, /globalThis\.DGPreview\.open/);
+  assert.doesNotMatch(js, /DGPreview\.open\s*\(/);
   assert.match(js, /onError\(\)/);
   assert.doesNotMatch(js, /PREVIEW_DIALOG_ID/);
   assert.doesNotMatch(js, /ensurePreviewDialog/);
