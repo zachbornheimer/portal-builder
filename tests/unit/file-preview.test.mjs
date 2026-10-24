@@ -1,155 +1,182 @@
 /**
  * FilePreview.proveReadable — bytes are proof; iframe `load` is display only.
  */
-import test from 'node:test';
-import assert from 'node:assert/strict';
-import { proveReadable } from '../../assets/file-preview.js';
+import assert from "node:assert/strict";
+import test from "node:test";
+import { proveReadable } from "../../assets/file-preview.js";
 
-const PDF_URL = 'https://files.test/bio.pdf';
-const PDF_BYTES = '%PDF-1.4\n%âãÏÓ\n1 0 obj\n<<>>\nendobj\n';
-const JUNK_BYTES = '<!doctype html><title>not a pdf</title>';
+const PDF_URL = "https://files.test/bio.pdf";
+const PDF_BYTES = "%PDF-1.4\n%âãÏÓ\n1 0 obj\n<<>>\nendobj\n";
+const JUNK_BYTES = "<!doctype html><title>not a pdf</title>";
 
 function bytesOf(text) {
-	return new TextEncoder().encode(text);
+  return new TextEncoder().encode(text);
 }
 
-function fetchOf({ ok = true, status = 200, type = '', body = '' } = {}) {
-	const bytes = typeof body === 'string' ? bytesOf(body) : body;
-	return async function fetchImpl(url) {
-		assert.ok(url, 'fetchImpl received a url');
-		return {
-			ok,
-			status,
-			headers: {
-				get(name) {
-					return String(name).toLowerCase() === 'content-type' ? type : null;
-				},
-			},
-			async arrayBuffer() {
-				return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
-			},
-		};
-	};
+function fetchOf({ ok = true, status = 200, type = "", body = "" } = {}) {
+  const bytes = typeof body === "string" ? bytesOf(body) : body;
+  return async function fetchImpl(url) {
+    assert.ok(url, "fetchImpl received a url");
+    return {
+      ok,
+      status,
+      headers: {
+        get(name) {
+          return String(name).toLowerCase() === "content-type" ? type : null;
+        },
+      },
+      async arrayBuffer() {
+        return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+      },
+    };
+  };
 }
 
 function neverLoadMedia() {
-	return {
-		addEventListener() {
-			/* Chrome PDF iframe: load never fires. */
-		},
-	};
+  return {
+    addEventListener() {
+      /* Chrome PDF iframe: load never fires. */
+    },
+  };
 }
 
-test('readable %PDF bytes become ready when the iframe never fires load', { timeout: 500 }, async () => {
-	const result = await proveReadable({
-		url: PDF_URL,
-		kind: 'iframe',
-		fetchImpl: fetchOf({ type: 'application/octet-stream', body: PDF_BYTES }),
-		media: neverLoadMedia(),
-	});
-	assert.equal(result.ready, true);
+test("readable %PDF bytes become ready when the iframe never fires load", { timeout: 500 }, async () => {
+  const result = await proveReadable({
+    url: PDF_URL,
+    kind: "iframe",
+    fetchImpl: fetchOf({ type: "application/octet-stream", body: PDF_BYTES }),
+    media: neverLoadMedia(),
+  });
+  assert.equal(result.ready, true);
 });
 
-test('application/pdf Content-Type becomes ready without a media load', async () => {
-	const result = await proveReadable({
-		url: PDF_URL,
-		kind: 'iframe',
-		fetchImpl: fetchOf({ type: 'application/pdf', body: 'not-magic-but-typed' }),
-	});
-	assert.equal(result.ready, true);
+test("application/pdf Content-Type becomes ready without a media load", async () => {
+  const result = await proveReadable({
+    url: PDF_URL,
+    kind: "iframe",
+    fetchImpl: fetchOf({ type: "application/pdf", body: "not-magic-but-typed" }),
+  });
+  assert.equal(result.ready, true);
 });
 
-test('404 is an error and is not ready', async () => {
-	await assert.rejects(
-		() =>
-			proveReadable({
-				url: PDF_URL,
-				kind: 'iframe',
-				fetchImpl: fetchOf({ ok: false, status: 404, type: 'application/pdf', body: PDF_BYTES }),
-			}),
-		/not readable|404/i,
-	);
+test("404 is an error and is not ready", async () => {
+  await assert.rejects(
+    () =>
+      proveReadable({
+        url: PDF_URL,
+        kind: "iframe",
+        fetchImpl: fetchOf({ ok: false, status: 404, type: "application/pdf", body: PDF_BYTES }),
+      }),
+    /not readable|404/i,
+  );
 });
 
-test('empty body is an error and is not ready', async () => {
-	await assert.rejects(
-		() =>
-			proveReadable({
-				url: PDF_URL,
-				kind: 'iframe',
-				fetchImpl: fetchOf({ type: 'application/pdf', body: '' }),
-			}),
-		/empty/i,
-	);
+test("empty body is an error and is not ready", async () => {
+  await assert.rejects(
+    () =>
+      proveReadable({
+        url: PDF_URL,
+        kind: "iframe",
+        fetchImpl: fetchOf({ type: "application/pdf", body: "" }),
+      }),
+    /empty/i,
+  );
 });
 
-test('non-PDF junk is an error and is not ready', async () => {
-	await assert.rejects(
-		() =>
-			proveReadable({
-				url: PDF_URL,
-				kind: 'iframe',
-				fetchImpl: fetchOf({ type: 'text/html', body: JUNK_BYTES }),
-			}),
-		/not a pdf/i,
-	);
+test("non-PDF junk is an error and is not ready", async () => {
+  await assert.rejects(
+    () =>
+      proveReadable({
+        url: PDF_URL,
+        kind: "iframe",
+        fetchImpl: fetchOf({ type: "text/html", body: JUNK_BYTES }),
+      }),
+    /not a pdf/i,
+  );
 });
 
-test('missing url is an error and is not ready', async () => {
-	await assert.rejects(() => proveReadable({ kind: 'iframe', fetchImpl: fetchOf() }), /missing url/i);
+test("missing url is an error and is not ready", async () => {
+  await assert.rejects(() => proveReadable({ kind: "iframe", fetchImpl: fetchOf() }), /missing url/i);
 });
 
-test('empty url is an error and is not ready', async () => {
-	await assert.rejects(
-		() => proveReadable({ url: '   ', kind: 'iframe', fetchImpl: fetchOf() }),
-		/missing url/i,
-	);
+test("empty url is an error and is not ready", async () => {
+  await assert.rejects(
+    () => proveReadable({ url: "   ", kind: "iframe", fetchImpl: fetchOf() }),
+    /missing url/i,
+  );
 });
 
-test('readable image becomes ready from fetch proof without element load', async () => {
-	const result = await proveReadable({
-		url: 'https://files.test/headshot.png',
-		kind: 'image',
-		fetchImpl: fetchOf({ type: 'image/png', body: '\x89PNG' }),
-	});
-	assert.equal(result.ready, true);
+test("readable image becomes ready from fetch proof without element load", async () => {
+  const result = await proveReadable({
+    url: "https://files.test/headshot.png",
+    kind: "image",
+    fetchImpl: fetchOf({ type: "image/png", body: "\x89PNG" }),
+  });
+  assert.equal(result.ready, true);
 });
 
-test('readable audio becomes ready from fetch proof without element load', async () => {
-	const result = await proveReadable({
-		url: 'https://files.test/excerpt.mp3',
-		kind: 'audio',
-		fetchImpl: fetchOf({ type: 'audio/mpeg', body: 'ID3\x04fake' }),
-	});
-	assert.equal(result.ready, true);
+test("readable audio becomes ready from fetch proof without element load", async () => {
+  const result = await proveReadable({
+    url: "https://files.test/excerpt.mp3",
+    kind: "audio",
+    fetchImpl: fetchOf({ type: "audio/mpeg", body: "ID3\x04fake" }),
+  });
+  assert.equal(result.ready, true);
 });
 
-test('JSON REST body is an error (staged serve_raw failed)', async () => {
-	await assert.rejects(
-		() =>
-			proveReadable({
-				url: PDF_URL,
-				kind: 'iframe',
-				fetchImpl: fetchOf({
-					type: 'application/json',
-					body: JSON.stringify({ code: 'dg_staged_not_found', message: 'Staged file not found.' }),
-				}),
-			}),
-		/json instead of file bytes/i,
-	);
+test("JSON REST body is an error (staged serve_raw failed)", async () => {
+  await assert.rejects(
+    () =>
+      proveReadable({
+        url: PDF_URL,
+        kind: "iframe",
+        fetchImpl: fetchOf({
+          type: "application/json",
+          body: JSON.stringify({ code: "dg_staged_not_found", message: "Staged file not found." }),
+        }),
+      }),
+    /json instead of file bytes/i,
+  );
 });
 
-test('JSON envelope without content-type is an error', async () => {
-	await assert.rejects(
-		() =>
-			proveReadable({
-				url: PDF_URL,
-				kind: 'iframe',
-				fetchImpl: fetchOf({
-					type: 'application/octet-stream',
-					body: '{"dg_raw_body":"%PDF-1.4"}',
-				}),
-			}),
-		/json instead of file bytes/i,
-	);
+test("JSON envelope without content-type is an error", async () => {
+  await assert.rejects(
+    () =>
+      proveReadable({
+        url: PDF_URL,
+        kind: "iframe",
+        fetchImpl: fetchOf({
+          type: "application/octet-stream",
+          body: "{\"dg_raw_body\":\"%PDF-1.4\"}",
+        }),
+      }),
+    /json instead of file bytes/i,
+  );
+});
+
+test("a large audio body is judged from the first chunk and the rest is cancelled", async () => {
+  let cancelled = false;
+  const result = await proveReadable({
+    url: "https://files.test/excerpt.mp3",
+    kind: "audio",
+    fetchImpl: async () => ({
+      ok: true,
+      status: 200,
+      headers: { get: () => "audio/mpeg" },
+      body: {
+        getReader() {
+          return {
+            async read() {
+              return { value: new Uint8Array([0x49, 0x44, 0x33]), done: false };
+            },
+            async cancel() {
+              cancelled = true;
+            },
+          };
+        },
+      },
+    }),
+  });
+  assert.equal(result.ready, true);
+  assert.equal(cancelled, true);
 });

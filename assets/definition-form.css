@@ -228,6 +228,11 @@ body.single-portal form.dg-portal-submit-form fieldset {
   min-width: 0;
 }
 
+/* Application Category sits tight under the intro. Asked gap is 16px. */
+.dg-form [data-dg-field-id="category"] {
+  margin-top: 16px;
+}
+
 .dg-grid {
   display: grid;
   gap: var(--s-4);
@@ -963,6 +968,12 @@ audio.dg-file-preview-media {
   min-height: 0;
 }
 
+.dg-file-preview-loading {
+  margin: 0;
+  padding: var(--s-3) var(--s-4) 0;
+  color: var(--ink-800);
+  text-align: center;
+}
 img.dg-file-preview-media {
   height: auto;
   max-height: min(70vh, 40rem);

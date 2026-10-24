@@ -211,6 +211,7 @@ if ( ! class_exists( 'Portal_Staged_File_REST' ) ) {
 					'inline; filename="' . rawurlencode( $payload['filename'] ) . '"'
 				);
 				$response->header( 'Content-Length', (string) $payload['content_length'] );
+				$response->header( 'Accept-Ranges', 'bytes' );
 				$response->header( 'Cache-Control', 'private, no-store' );
 				return $response;
 			}
@@ -222,6 +223,7 @@ if ( ! class_exists( 'Portal_Staged_File_REST' ) ) {
 					'Content-Type'        => $payload['content_type'],
 					'Content-Disposition' => 'inline; filename="' . rawurlencode( $payload['filename'] ) . '"',
 					'Content-Length'      => (string) $payload['content_length'],
+					'Accept-Ranges'       => 'bytes',
 					'Cache-Control'       => 'private, no-store',
 				),
 				'status'  => 200,
@@ -274,7 +276,58 @@ if ( ! class_exists( 'Portal_Staged_File_REST' ) ) {
 		}
 
 		/**
-		 * rest_pre_serve_request: emit binary body, skip wp_json_encode.
+		 * Slice one byte range from a staged body.
+		 *
+		 * @param string $body   Full file bytes.
+		 * @param string $header Range header, such as bytes=0-1023.
+		 * @return array{status:int,start:int,end:int,total:int,body:string}|null Null serves the whole file.
+		 */
+		public static function byte_range( $body, $header ) {
+			$total  = strlen( (string) $body );
+			$header = trim( (string) $header );
+			if ( '' === $header || ! preg_match( '/^bytes=(\d*)-(\d*)$/i', $header, $match ) ) {
+				return null;
+			}
+			$has_start = '' !== $match[1];
+			$has_end   = '' !== $match[2];
+			if ( ! $has_start && ! $has_end ) {
+				return null;
+			}
+			if ( ! $has_start ) {
+				$length = (int) $match[2];
+				$start  = $total - $length;
+				$end    = $total - 1;
+			} else {
+				$start = (int) $match[1];
+				$end   = $has_end ? (int) $match[2] : $total - 1;
+			}
+			if ( $start < 0 ) {
+				$start = 0;
+			}
+			if ( $end >= $total ) {
+				$end = $total - 1;
+			}
+			if ( $total < 1 || $start >= $total || $start > $end ) {
+				return array(
+					'status' => 416,
+					'start'  => 0,
+					'end'    => 0,
+					'total'  => $total,
+					'body'   => '',
+				);
+			}
+			$length = $end - $start + 1;
+			return array(
+				'status' => 206,
+				'start'  => $start,
+				'end'    => $end,
+				'total'  => $total,
+				'body'   => substr( (string) $body, $start, $length ),
+			);
+		}
+
+		/**
+		 * Emit the binary body and skip wp_json_encode.
 		 *
 		 * @param bool             $served  Already served.
 		 * @param WP_REST_Response $result  Response.
@@ -283,7 +336,7 @@ if ( ! class_exists( 'Portal_Staged_File_REST' ) ) {
 		 * @return bool
 		 */
 		public static function serve_raw_request( $served, $result, $request, $server ) {
-			unset( $request, $server );
+			unset( $server );
 			if ( true === $served ) {
 				return $served;
 			}
@@ -291,15 +344,40 @@ if ( ! class_exists( 'Portal_Staged_File_REST' ) ) {
 			if ( null === $body ) {
 				return $served;
 			}
+			$range = '';
+			if ( is_object( $request ) && method_exists( $request, 'get_header' ) ) {
+				$range = (string) $request->get_header( 'range' );
+			}
+			$slice  = self::byte_range( $body, $range );
+			$status = null;
+			if ( is_array( $slice ) ) {
+				$status = (int) $slice['status'];
+				$body   = (string) $slice['body'];
+			}
 
 			// Headers were set on the response object; re-send them before body.
 			if ( is_object( $result ) && method_exists( $result, 'get_headers' ) ) {
 				foreach ( $result->get_headers() as $key => $value ) {
+					if ( null !== $status && 'content-length' === strtolower( (string) $key ) ) {
+						continue;
+					}
 					// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- header() may warn after output in edge cases.
 					header( sprintf( '%s: %s', $key, $value ) );
 				}
 			}
-			if ( is_object( $result ) && method_exists( $result, 'get_status' ) && function_exists( 'status_header' ) ) {
+			if ( ! headers_sent() ) {
+				header( 'Accept-Ranges: bytes' );
+			}
+			if ( is_array( $slice ) && 206 === $status ) {
+				header( 'Content-Range: bytes ' . $slice['start'] . '-' . $slice['end'] . '/' . $slice['total'] );
+				header( 'Content-Length: ' . strlen( $body ) );
+			} elseif ( is_array( $slice ) && 416 === $status ) {
+				header( 'Content-Range: bytes */' . $slice['total'] );
+				header( 'Content-Length: 0' );
+			}
+			if ( null !== $status && function_exists( 'status_header' ) ) {
+				status_header( $status );
+			} elseif ( is_object( $result ) && method_exists( $result, 'get_status' ) && function_exists( 'status_header' ) ) {
 				status_header( (int) $result->get_status() );
 			}
 
