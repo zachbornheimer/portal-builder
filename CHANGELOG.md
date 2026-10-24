@@ -1,92 +1,139 @@
+## 0.1.11
+
+### Fixes
+
+- Check preview arm order without a second browser
+- Allow the preview readiness check
+- Match the shared preview open and arm it immediately
+- Do not wait on the pending preview promise
+- Load the preview module inline so the suite cannot hang
+- Document the staged byte-range helper
+- Open every file preview through one loader
+- Copy dropped file bytes during the drop turn
+- Show a visible player for recording confirm
+- Stop Remove upload from opening the file picker (#9)
+- CFS Turnstile incomplete keys + Open/confirm Safari
+
+### Maintenance
+
+- Merge main into the preview loader branch
+
+### Other
+
+- Merge pull request #16 from zachbornheimer/fix/preview-test-deterministic
+- Merge pull request #15 from zachbornheimer/fix/preview-dialog-assertion
+- Merge pull request #14 from zachbornheimer/fix/preview-release-tests
+- Merge pull request #13 from zachbornheimer/fix/preview-test-promise
+- Merge pull request #12 from zachbornheimer/fix/preview-test-hang
+- Merge pull request #11 from zachbornheimer/fix/zys-1710-dropped-file-bytes
+- Merge pull request #10 from zachbornheimer/fix/audio-preview
+
+**Full Changelog**: <https://github.com/zachbornheimer/portal-builder/compare/v0.1.9...v0.1.11>
+
 ## 0.1.10
 
 ### Fixes
+
 - Treat incomplete Turnstile keys as keys_complete off so CFS submits are not blocked
 - Harden Safari Open/confirm for packet file preview
 
 ### Maintenance
+
 - CI lint runs php -l in Actions (defer full phpcs until baseline)
 
-**Full Changelog**: https://github.com/zachbornheimer/portal-builder/compare/v0.1.9...v0.1.10
+**Full Changelog**: <https://github.com/zachbornheimer/portal-builder/compare/v0.1.9...v0.1.10>
 
 ## 0.1.9
 
 ### Fixes
+
 - Keep theme upgrades intact and relocate to dragongate-portals
 - Ship CHANGELOG.md in the plugin zip
 
-**Full Changelog**: https://github.com/zachbornheimer/portal-builder/compare/v0.1.8...v0.1.9
+**Full Changelog**: <https://github.com/zachbornheimer/portal-builder/compare/v0.1.8...v0.1.9>
 
 ## 0.1.8
 
 ### Features
+
 - Show DragonGate seal and changelog on plugin updates
 
-**Full Changelog**: https://github.com/zachbornheimer/portal-builder/compare/v0.1.7...v0.1.8
+**Full Changelog**: <https://github.com/zachbornheimer/portal-builder/compare/v0.1.7...v0.1.8>
 
 ## 0.1.7
 
 ### Features
+
 - Let signed-in administrators see members portals
 
-**Full Changelog**: https://github.com/zachbornheimer/portal-builder/compare/v0.1.6...v0.1.7
+**Full Changelog**: <https://github.com/zachbornheimer/portal-builder/compare/v0.1.6...v0.1.7>
 
 ## 0.1.6
 
 ### Features
+
 - Add view-as preview and receipt From name
 
 ### Fixes
+
 - Show every site disclosure on the definition form
 
 ### Tests
+
 - Assert live CFS form shows all three disclosures
 
 ### Maintenance
+
 - Add mise, Lefthook, aube, and cut-release
 
-**Full Changelog**: https://github.com/zachbornheimer/portal-builder/compare/v0.1.4...v0.1.6
+**Full Changelog**: <https://github.com/zachbornheimer/portal-builder/compare/v0.1.4...v0.1.6>
 
 ## 0.1.4
 
 ### Features
+
 - Make option promote an admin action and use Bits radios
 
-**Full Changelog**: https://github.com/zachbornheimer/portal-builder/compare/v0.1.3...v0.1.4
+**Full Changelog**: <https://github.com/zachbornheimer/portal-builder/compare/v0.1.3...v0.1.4>
 
 ## 0.1.3
 
 ### Features
-- Add Bits UI, DG_ prefixes, and pb_ to dg_ option move
+
+- Add Bits UI, DG_prefixes, and pb_ to dg_ option move
 - Say on or before a date, or a window like mid-December
 - Ship the Claude Design homepage
 
 ### Fixes
+
 - Store Turnstile keys as dg_turnstile_* and require them on members
 - Give file cards a section break before the next heading
 - Prove file bytes before marking a packet file opened
 - Stop button hover from flashing
 
-**Full Changelog**: https://github.com/zachbornheimer/portal-builder/compare/v0.1.2...v0.1.3
+**Full Changelog**: <https://github.com/zachbornheimer/portal-builder/compare/v0.1.2...v0.1.3>
 
 ## 0.1.2
 
 ### Fixes
+
 - Drop “call,” cap the gated pane, follow brand shadow
 
-**Full Changelog**: https://github.com/zachbornheimer/portal-builder/compare/v0.1.1...v0.1.2
+**Full Changelog**: <https://github.com/zachbornheimer/portal-builder/compare/v0.1.1...v0.1.2>
 
 ## 0.1.1
 
 ### Fixes
+
 - Confirm files in a modal and ship 0.1.1
 - Find GitHub updates when the API is rate-limited
 
-**Full Changelog**: https://github.com/zachbornheimer/portal-builder/compare/v0.1.0...v0.1.1
+**Full Changelog**: <https://github.com/zachbornheimer/portal-builder/compare/v0.1.0...v0.1.1>
 
 ## 0.1.0
 
 ### Features
+
 - Let WordPress find GitHub Release updates
 - Let staff and applicants replace a current packet file
 - Mask Google secrets, Turnstile gate, and packet console
@@ -109,6 +156,7 @@
 - Design tokens, wizard shell, and save integrity
 
 ### Fixes
+
 - Build the plugin ZIP without git-archive-all
 - Keep fail-closed and guidelines label on site defaults
 - Keep public POST out of legacy Portal_Submission
@@ -135,6 +183,7 @@
 - Skip empty Google Drive folder IDs in submission processing
 
 ### Tests
+
 - Prove generic host submit writes sheet and receipt
 - Harden portal CRUD list search and REST budgets
 - Stabilize portal admin create-edit-trash via REST (1.4)
@@ -150,15 +199,18 @@
 - Add env assert config and portal fixtures (0.1)
 
 ### Documentation
+
 - Packet console, ZIP upgrade, sitemap and robots
 - Walk ZIP install through the definition wizard
 - Portal domain model contract for full rewrite
 
 ### Maintenance
+
 - Npm CI scripts and GH workflow stubs (0.4)
 - E2e runbook and phase workflow (0.4)
 
 ### Other
+
 - Indent the release ZIP script
 - merge: mockable definition submit pipeline (3.x)
 - merge: portal CRUD e2e from worktree (1.4)
