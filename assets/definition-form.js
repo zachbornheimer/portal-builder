@@ -2,8 +2,8 @@
  * Public definition form — file enclosure + open-to-confirm + branch paths.
  *
  * After a file is chosen: stage bytes (XHR progress → anonymize spinner →
- * retained server name). Confirm proves the file bytes are readable, then
- * opens the Bits preview island. Opened means proveReadable succeeded.
+ * retained server name). Confirm opens the preview at once, then proves the
+ * file bytes are readable. Opened still means proveReadable succeeded.
  *
  * Branch radios show only the selected path’s `.dg-branch-children` and disable
  * hidden controls so HTML5 `required` cannot block submit.
@@ -95,7 +95,7 @@
     var preview = globalThis.FilePreview;
     return (
       preview
-      && typeof preview.proveReadable === "function"
+      && typeof preview.open === "function"
       && globalThis.DGPreview
       && typeof globalThis.DGPreview.open === "function"
     );
@@ -149,29 +149,15 @@
       }
       return;
     }
-    var preview = globalThis.FilePreview;
-    preview
-      .proveReadable({
-        url: url,
-        kind: previewKind(card, url),
-      })
-      .then(function() {
-        try {
-          globalThis.DGPreview.open({
-            url: url,
-            kind: previewKind(card, url),
-            title: PREVIEW_TITLE,
-            returnFocus: previewReturnFocus,
-            onClose: function() {
-              previewReturnFocus = null;
-            },
-          });
-        } catch {
-          onError();
-          return;
-        }
-        onReady();
-      }, onError);
+    globalThis.FilePreview.open({
+      url: url,
+      kind: previewKind(card, url),
+      title: PREVIEW_TITLE,
+      returnFocus: previewReturnFocus,
+      onClose: function() {
+        previewReturnFocus = null;
+      },
+    }).then(onReady, onError);
   }
 
   function bindFileCard(card) {

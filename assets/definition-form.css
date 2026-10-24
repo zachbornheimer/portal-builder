@@ -953,9 +953,26 @@ body.single-portal button.dg-file-open:focus-visible {
 }
 
 audio.dg-file-preview-media {
-  height: auto;
+  /* A block audio element with height:auto lays out at 0px, so the confirm
+     dialog opens with no player. A definite bar keeps the controls visible.
+     PDF and image previews keep the tall media box. */
+  height: 54px;
+  min-height: 54px;
+  flex-shrink: 0;
   margin: var(--s-6) auto;
   width: min(100%, 28rem);
+}
+
+.dg-file-preview-panel:has(audio.dg-file-preview-media) .dg-file-preview-body {
+  flex: 0 0 auto;
+  min-height: 0;
+}
+
+.dg-file-preview-loading {
+  margin: 0;
+  padding: var(--s-3) var(--s-4) 0;
+  color: var(--ink-800);
+  text-align: center;
 }
 
 img.dg-file-preview-media {
