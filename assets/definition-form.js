@@ -520,8 +520,8 @@
     if (swapBtn) {
       swapBtn.addEventListener("click", function() {
         abortXhr();
-        clearStaged(true);
-        input.click();
+        input.value = "";
+        sync();
       });
     }
 

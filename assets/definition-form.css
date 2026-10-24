@@ -974,7 +974,6 @@ audio.dg-file-preview-media {
   color: var(--ink-800);
   text-align: center;
 }
-
 img.dg-file-preview-media {
   height: auto;
   max-height: min(70vh, 40rem);
