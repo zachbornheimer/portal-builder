@@ -4,6 +4,7 @@
  */
 import { chromium } from "@playwright/test";
 import assert from "node:assert/strict";
+import fs from "node:fs";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
@@ -78,8 +79,13 @@ test("audio, image, and pdf previews load through one open", async () => {
   try {
     const page = await browser.newPage();
     await page.setContent("<!doctype html><html><body></body></html>");
-    await page.addScriptTag({ path: path.join(root, "assets/file-preview.js"), type: "module" });
-    await page.waitForFunction(() => window.FilePreview && typeof window.FilePreview.open === "function");
+    const source = fs.readFileSync(path.join(root, "assets/file-preview.js"), "utf8");
+    await page.addScriptTag({ content: source, type: "module" });
+    await page.waitForFunction(
+      () => window.FilePreview && typeof window.FilePreview.open === "function",
+      null,
+      { timeout: 3000 },
+    );
     const kinds = [
       { kind: "audio", tag: "AUDIO" },
       { kind: "image", tag: "IMG" },
