@@ -84,7 +84,11 @@ if ( ! class_exists( 'Portal_Staged_File_REST' ) ) {
 		}
 
 		/**
-		 * Portal exists, form is open (or preview), nonce valid.
+		 * Portal exists, form is open (or the caller can edit it), nonce valid.
+		 *
+		 * The staging URL carries no ?preview flag, so an editor previewing a
+		 * closed portal is recognized by capability. Staging only writes a
+		 * temporary file; the submit gate stays separate.
 		 *
 		 * @param WP_REST_Request $request Request.
 		 * @return bool|WP_Error
@@ -98,7 +102,8 @@ if ( ! class_exists( 'Portal_Staged_File_REST' ) ) {
 			if ( ! $post || 'portal' !== $post->post_type ) {
 				return new WP_Error( 'dg_not_found', 'Portal not found.', array( 'status' => 404 ) );
 			}
-			if ( class_exists( 'Portal_Open_State' ) && ! Portal_Open_State::should_show_form( $id ) ) {
+			$can_preview = function_exists( 'current_user_can' ) && current_user_can( 'edit_post', $id );
+			if ( class_exists( 'Portal_Open_State' ) && ! $can_preview && ! Portal_Open_State::should_show_form( $id ) ) {
 				return new WP_Error( 'dg_portal_closed', 'This portal is not accepting files.', array( 'status' => 403 ) );
 			}
 			$nonce = $request->get_header( 'X-WP-Nonce' );
