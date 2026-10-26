@@ -488,20 +488,55 @@ test("MP3 recordings joined end to end lose the ID3v2 tag between them", () => {
   assert.deepEqual(stored, Buffer.concat([frames, frames]));
 });
 
-test("audio bytes that merely contain ID3 or 3DI text are not cut", () => {
+/**
+ * Audio bytes that look like an ID3v2 header but fail exactly one check. Each must be left in place.
+ * Header layout: "ID3", version, revision, flags, 4 syncsafe size bytes.
+ */
+const NEAR_MISS_HEADERS = [
+  ["text after ID3", Buffer.from("ID3 and 3DI and TAG inside audio", "latin1")],
+  ["version 5", Buffer.from([0x49, 0x44, 0x33, 5, 0, 0, 0, 0, 0, 0x10])],
+  ["nonzero revision", Buffer.from([0x49, 0x44, 0x33, 3, 1, 0, 0, 0, 0, 0x10])],
+  ["low flag bits set", Buffer.from([0x49, 0x44, 0x33, 3, 0, 0x01, 0, 0, 0, 0x10])],
+  ["size byte with high bit", Buffer.from([0x49, 0x44, 0x33, 3, 0, 0, 0x80, 0, 0, 0x10])],
+  ["tag longer than the file", Buffer.from([0x49, 0x44, 0x33, 3, 0, 0, 0, 0x7f, 0x7f, 0x7f])],
+];
+
+for (const [index, [why, header]] of NEAR_MISS_HEADERS.entries()) {
+  test(`audio containing an ID3-like header (${why}) is not cut`, () => {
+    const frames = mp3Frames();
+    header.copy(frames, 600);
+    const { code, out, data } = runScenario({
+      entry: "anonymizer",
+      portalId: `anon-mp3-lookalike-${index}`,
+      filename: "Recording.mp3",
+      declared_type: "audio/mpeg",
+      original_b64: frames.toString("base64"),
+      options: enabledOptions(),
+      script: [completedCreate(), rawReply(DOWNLOAD_PDF)],
+    });
+    assert.equal(code, 0, out);
+    assert.ok(data, out);
+    assert.equal(data.call_count, 0);
+    assert.equal(data.stored_equals_original, true);
+  });
+}
+
+test("a leading ID3v2 tag with a nonzero revision byte is still removed", () => {
   const frames = mp3Frames();
-  frames.write("ID3 and 3DI and TAG inside audio", 600, "latin1");
+  const tag = id3v2Artist();
+  tag[4] = 1;
   const { code, out, data } = runScenario({
     entry: "anonymizer",
-    portalId: "anon-mp3-lookalike",
+    portalId: "anon-mp3-leading-rev",
     filename: "Recording.mp3",
     declared_type: "audio/mpeg",
-    original_b64: frames.toString("base64"),
+    original_b64: Buffer.concat([tag, frames]).toString("base64"),
     options: enabledOptions(),
     script: [completedCreate(), rawReply(DOWNLOAD_PDF)],
   });
   assert.equal(code, 0, out);
   assert.ok(data, out);
-  assert.equal(data.call_count, 0);
-  assert.equal(data.stored_equals_original, true);
+  const stored = Buffer.from(data.stored_b64, "base64");
+  assert.equal(stored.includes(Buffer.from(APPLICANT, "latin1")), false, "applicant name survived");
+  assert.deepEqual(stored, frames);
 });
