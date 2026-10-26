@@ -4,13 +4,19 @@ aube = "1.41.0"
 lefthook = "2.1.9"
 
 [tasks.setup]
-description = "Install Node (aube, npm lockfile fallback), PHP (Composer), and Lefthook hooks"
+description = "Install Node (aube, npm lockfile fallback), Playwright Chromium, PHP (Composer), and Lefthook hooks"
 run = """
 #!/usr/bin/env bash
 set -euo pipefail
 if ! aube install; then
   echo 'aube install failed; falling back to npm ci'
   npm ci
+fi
+# open-shows-before-proof.test.mjs drives a real headless Chromium.
+if [[ -n "${CI:-}" ]]; then
+  npx playwright install --with-deps chromium
+else
+  npx playwright install chromium
 fi
 composer install
 lefthook install
