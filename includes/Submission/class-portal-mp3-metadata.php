@@ -25,6 +25,9 @@ if ( ! class_exists( 'Portal_Mp3_Metadata' ) ) {
 		const APE_HAS_HEADER     = 0x80000000;
 		const LYRICS3_END        = 'LYRICS200';
 		const LYRICS3_SIZE_BYTES = 6;
+		const LYRICS3V1_BEGIN    = 'LYRICSBEGIN';
+		const LYRICS3V1_END      = 'LYRICSEND';
+		const LYRICS3V1_MAX      = 5100;
 
 		/**
 		 * Remove leading and trailing tag blocks until none remain.
@@ -61,7 +64,7 @@ if ( ! class_exists( 'Portal_Mp3_Metadata' ) ) {
 		}
 
 		/**
-		 * Remove one trailing tag block (ID3v1, ID3v1 extended, APEv2, Lyrics3).
+		 * Remove one trailing tag block (ID3v1, ID3v1 extended, APEv2, Lyrics3 v1/v2).
 		 *
 		 * @param string $bytes Bytes.
 		 * @return string
@@ -77,12 +80,30 @@ if ( ! class_exists( 'Portal_Mp3_Metadata' ) ) {
 			if ( $len >= self::APE_BLOCK_BYTES && 'APETAGEX' === substr( $bytes, -self::APE_BLOCK_BYTES, 8 ) ) {
 				return (string) substr( $bytes, 0, max( 0, $len - self::ape_size( substr( $bytes, -self::APE_BLOCK_BYTES ) ) ) );
 			}
+			return self::strip_lyrics3( $bytes );
+		}
+
+		/**
+		 * Remove one trailing Lyrics3 block: v2 by its size field, v1 by its BEGIN marker.
+		 *
+		 * @param string $bytes Bytes.
+		 * @return string
+		 */
+		private static function strip_lyrics3( $bytes ) {
+			$len = strlen( $bytes );
 			$end = strlen( self::LYRICS3_END );
 			if ( $len >= $end + self::LYRICS3_SIZE_BYTES && self::LYRICS3_END === substr( $bytes, -$end ) ) {
 				$body = (int) substr( $bytes, -( $end + self::LYRICS3_SIZE_BYTES ), self::LYRICS3_SIZE_BYTES );
 				return (string) substr( $bytes, 0, max( 0, $len - $body - $end - self::LYRICS3_SIZE_BYTES ) );
 			}
-			return $bytes;
+			$v1_end = strlen( self::LYRICS3V1_END );
+			if ( $len < $v1_end || self::LYRICS3V1_END !== substr( $bytes, -$v1_end ) ) {
+				return $bytes;
+			}
+			$span   = min( $len, strlen( self::LYRICS3V1_BEGIN ) + self::LYRICS3V1_MAX + $v1_end );
+			$window = (string) substr( $bytes, -$span );
+			$at     = strrpos( $window, self::LYRICS3V1_BEGIN );
+			return false === $at ? $bytes : (string) substr( $bytes, 0, $len - $span + $at );
 		}
 
 		/**

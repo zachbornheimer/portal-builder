@@ -378,6 +378,15 @@ function id3v1Artist() {
   return tag;
 }
 
+function lyrics3v1Artist() {
+  return Buffer.from(`LYRICSBEGIN${APPLICANT} sings the bridgeLYRICSEND`, "latin1");
+}
+
+function lyrics3v2Artist() {
+  const body = `LYRICSBEGININD00002 0EAR0${String(APPLICANT.length).padStart(3, "0")}${APPLICANT}`;
+  return Buffer.from(`${body}${String(body.length).padStart(6, "0")}LYRICS200`, "latin1");
+}
+
 test("MP3 recording drops every identifying tag locally and keeps audio frames byte-identical", () => {
   const frames = mp3Frames();
   const tagged = Buffer.concat([id3v2Artist(), frames, apev2Artist(), id3v1Artist()]);
@@ -414,3 +423,30 @@ test("MP3 recording without tags passes through unchanged with no remote call", 
   assert.equal(data.call_count, 0);
   assert.equal(data.stored_equals_original, true);
 });
+
+for (
+  const [layout, trailer] of [
+    ["Lyrics3v1 before ID3v1", () => Buffer.concat([lyrics3v1Artist(), id3v1Artist()])],
+    ["Lyrics3v1 alone", () => lyrics3v1Artist()],
+    ["Lyrics3v2 before ID3v1", () => Buffer.concat([lyrics3v2Artist(), id3v1Artist()])],
+    ["APEv2 then Lyrics3v1 then ID3v1", () => Buffer.concat([apev2Artist(), lyrics3v1Artist(), id3v1Artist()])],
+  ]
+) {
+  test(`MP3 recording with ${layout} keeps only the audio frames`, () => {
+    const frames = mp3Frames();
+    const { code, out, data } = runScenario({
+      entry: "anonymizer",
+      portalId: "anon-mp3-trailer",
+      filename: "Recording.mp3",
+      declared_type: "audio/mpeg",
+      original_b64: Buffer.concat([frames, trailer()]).toString("base64"),
+      options: enabledOptions(),
+      script: [completedCreate(), rawReply(DOWNLOAD_PDF)],
+    });
+    assert.equal(code, 0, out);
+    assert.ok(data, out);
+    const stored = Buffer.from(data.stored_b64, "base64");
+    assert.equal(stored.includes(Buffer.from(APPLICANT, "latin1")), false, "applicant name survived");
+    assert.deepEqual(stored, frames);
+  });
+}
