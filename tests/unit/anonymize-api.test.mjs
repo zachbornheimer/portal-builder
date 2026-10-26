@@ -331,7 +331,7 @@ test("file larger than 50 MiB makes zero transport calls and keeps original", ()
 });
 
 /** Applicant name planted in every tag format a recording can carry. */
-const APPLICANT = "Sarah Jerrom";
+const APPLICANT = "Pat A. Noname";
 
 /** Three MPEG-1 Layer III 128 kbps 44.1 kHz frames (417 bytes each). */
 function mp3Frames() {
