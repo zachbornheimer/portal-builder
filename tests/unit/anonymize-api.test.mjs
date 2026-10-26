@@ -540,3 +540,21 @@ test("a leading ID3v2 tag with a nonzero revision byte is still removed", () => 
   assert.equal(stored.includes(Buffer.from(APPLICANT, "latin1")), false, "applicant name survived");
   assert.deepEqual(stored, frames);
 });
+
+test("a file that is only a truncated leading ID3v2 tag gets a decision instead of crashing", () => {
+  const tag = id3v2Artist();
+  tag[4] = 1;
+  tag.set([0x7f, 0x7f, 0x7f, 0x7f], 6);
+  const { code, out, data } = runScenario({
+    entry: "anonymizer",
+    portalId: "anon-mp3-truncated-tag",
+    filename: "Recording.mp3",
+    declared_type: "audio/mpeg",
+    original_b64: tag.toString("base64"),
+    options: enabledOptions(),
+    script: [],
+  });
+  assert.equal(code, 0, out);
+  assert.ok(data, out);
+  assert.equal(data.ok, true);
+});

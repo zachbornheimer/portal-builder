@@ -80,6 +80,11 @@ if ( ! class_exists( 'Portal_Mp3_Metadata' ) ) {
 		 * @return string
 		 */
 		private static function strip_embedded_id3v2( $bytes ) {
+			// A tag after the first byte needs a full header; shorter buffers (including the
+			// empty result of a truncated leading tag) have none, and strpos() rejects offset 1 on ''.
+			if ( strlen( $bytes ) <= self::ID3V2_HEADER_BYTES ) {
+				return $bytes;
+			}
 			$kept  = array();
 			$start = 0;
 			$at    = strpos( $bytes, 'ID3', 1 );
