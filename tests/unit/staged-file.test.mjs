@@ -1,16 +1,17 @@
 /**
  * Unit tests for Portal_Staged_File (retained name + stage/read/forget + pipeline).
  */
-import test from 'node:test';
-import assert from 'node:assert/strict';
-import { spawnSync } from 'node:child_process';
-import fs from 'node:fs';
-import path from 'node:path';
+import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
+import fs from "node:fs";
+import path from "node:path";
+import test from "node:test";
 
 const root = process.cwd();
-const harness = path.join(root, 'tests/support/php-staged-file.php');
-const artifactDir = path.join(root, 'tests/.artifacts');
-const scenarioDir = path.join(artifactDir, 'staged-scenarios');
+const harness = path.join(root, "tests/support/php-staged-file.php");
+// Own directory: mail captures use a fixed clock, so a shared mail/ dir lets parallel test files overwrite them.
+const artifactDir = path.join(root, "tests/.artifacts/staged-file");
+const scenarioDir = path.join(artifactDir, "staged-scenarios");
 
 /**
  * @param {Record<string, unknown>} scenario
@@ -22,14 +23,14 @@ function runScenario(scenario) {
     `sc-${Date.now()}-${Math.random().toString(16).slice(2)}.json`,
   );
   fs.writeFileSync(file, JSON.stringify({ artifactDir, ...scenario }));
-  const r = spawnSync('php', [harness, file], {
-    encoding: 'utf8',
-    env: { ...process.env, DG_TEST_MODE: '1' },
+  const r = spawnSync("php", [harness, file], {
+    encoding: "utf8",
+    env: { ...process.env, DG_TEST_MODE: "1" },
   });
-  const out = (r.stdout || '') + (r.stderr || '');
+  const out = (r.stdout || "") + (r.stderr || "");
   let data = null;
   try {
-    const start = out.indexOf('{');
+    const start = out.indexOf("{");
     data = start >= 0 ? JSON.parse(out.slice(start)) : null;
   } catch {
     data = null;
@@ -37,34 +38,34 @@ function runScenario(scenario) {
   return {
     code: r.status,
     out,
-    stdout: r.stdout || '',
-    stderr: r.stderr || '',
+    stdout: r.stdout || "",
+    stderr: r.stderr || "",
     data,
   };
 }
 
 const retainedCases = [
-  { name: 'bio role discards pick name', original: 'blank.pdf', suffix: '_BIO', want: 'Bio.pdf' },
-  { name: 'already suffixed pick still Bio.pdf', original: 'blank_BIO.pdf', suffix: '_BIO', want: 'Bio.pdf' },
-  { name: 'score role is Score.pdf', original: 'sample-score.pdf', suffix: '_SCORE', want: 'Score.pdf' },
+  { name: "bio role discards pick name", original: "blank.pdf", suffix: "_BIO", want: "Bio.pdf" },
+  { name: "already suffixed pick still Bio.pdf", original: "blank_BIO.pdf", suffix: "_BIO", want: "Bio.pdf" },
+  { name: "score role is Score.pdf", original: "sample-score.pdf", suffix: "_SCORE", want: "Score.pdf" },
   {
-    name: 'unsafe pick chars do not leak into dest',
-    original: 'my score (final).pdf',
-    suffix: '_SCORE',
-    want: 'Score.pdf',
+    name: "unsafe pick chars do not leak into dest",
+    original: "my score (final).pdf",
+    suffix: "_SCORE",
+    want: "Score.pdf",
   },
-  { name: 'empty suffix is File.ext', original: 'blank.pdf', suffix: '', want: 'File.pdf' },
+  { name: "empty suffix is File.ext", original: "blank.pdf", suffix: "", want: "File.pdf" },
   {
-    name: 'stem already ending in suffix is still Score.pdf',
-    original: 'piece_SCORE.pdf',
-    suffix: '_SCORE',
-    want: 'Score.pdf',
+    name: "stem already ending in suffix is still Score.pdf",
+    original: "piece_SCORE.pdf",
+    suffix: "_SCORE",
+    want: "Score.pdf",
   },
-  { name: 'recording keeps audio extension', original: 'take.mp3', suffix: '_REC', want: 'Recording.mp3' },
-  { name: 'abstract role', original: 'paper.pdf', suffix: '_ABSTRACT', want: 'Abstract.pdf' },
-  { name: 'poster desc role', original: 'brief.pdf', suffix: '_POSTER_DESC', want: 'Description.pdf' },
-  { name: 'generic file suffix', original: 'notes.pdf', suffix: '_FILE', want: 'File.pdf' },
-  { name: 'compound score suffix uses SCORE tail', original: 'arr.pdf', suffix: '_NMMA_SCORE', want: 'Score.pdf' },
+  { name: "recording keeps audio extension", original: "take.mp3", suffix: "_REC", want: "Recording.mp3" },
+  { name: "abstract role", original: "paper.pdf", suffix: "_ABSTRACT", want: "Abstract.pdf" },
+  { name: "poster desc role", original: "brief.pdf", suffix: "_POSTER_DESC", want: "Description.pdf" },
+  { name: "generic file suffix", original: "notes.pdf", suffix: "_FILE", want: "File.pdf" },
+  { name: "compound score suffix uses SCORE tail", original: "arr.pdf", suffix: "_NMMA_SCORE", want: "Score.pdf" },
 ];
 
 /** Completed create envelope + raw PDF download (matches Portal_Anonymizer_Reply). */
@@ -73,12 +74,12 @@ function anonScript(downloadBytes) {
     {
       status: 200,
       body: JSON.stringify({
-        object: 'anonymization',
+        object: "anonymization",
         data: {
-          id: 'an_stage_test',
-          status: 'completed',
-          filename: 'score.pdf',
-          file_type: 'application/pdf',
+          id: "an_stage_test",
+          status: "completed",
+          filename: "score.pdf",
+          file_type: "application/pdf",
           bytes: downloadBytes.length,
         },
       }),
@@ -90,7 +91,7 @@ function anonScript(downloadBytes) {
 for (const tc of retainedCases) {
   test(`retained_name: ${tc.name}`, () => {
     const { code, out, data } = runScenario({
-      entry: 'retained_name',
+      entry: "retained_name",
       original: tc.original,
       suffix: tc.suffix,
     });
@@ -101,95 +102,95 @@ for (const tc of retainedCases) {
   });
 }
 
-test('stage without anonymize: storedName uses suffix, bytes unchanged', () => {
-  const original = '%PDF-1.4\n%stage-no-anon\n';
+test("stage without anonymize: storedName uses suffix, bytes unchanged", () => {
+  const original = "%PDF-1.4\n%stage-no-anon\n";
   const { code, out, data } = runScenario({
-    entry: 'stage',
-    portalId: 'stage-no-anon',
-    fieldId: 'score',
-    originalName: 'blank.pdf',
-    fileSuffix: '_SCORE',
+    entry: "stage",
+    portalId: "stage-no-anon",
+    fieldId: "score",
+    originalName: "blank.pdf",
+    fileSuffix: "_SCORE",
     buffer: original,
     options: { anonymize: false },
   });
   assert.equal(code, 0, out);
   assert.ok(data, out);
   assert.equal(data.ok, true, out);
-  assert.equal(data.storedName, 'Score.pdf');
-  assert.equal(data.originalName, 'blank.pdf');
+  assert.equal(data.storedName, "Score.pdf");
+  assert.equal(data.originalName, "blank.pdf");
   assert.equal(data.anonymized, false);
   assert.equal(data.storedEqualsOrig, true);
-  assert.ok(typeof data.token === 'string' && data.token.length >= 32, `token=${data.token}`);
+  assert.ok(typeof data.token === "string" && data.token.length >= 32, `token=${data.token}`);
   assert.match(data.token, /^[a-f0-9]+$/i);
   assert.equal(data.callCount, 0);
 });
 
-test('stage with anonymize + fake transport: different bytes, anonymized true', () => {
-  const original = '%PDF-1.4\n%original-identifying\n';
-  const download = '%PDF-1.4\n%stripped-identity\n';
+test("stage with anonymize + fake transport: different bytes, anonymized true", () => {
+  const original = "%PDF-1.4\n%original-identifying\n";
+  const download = "%PDF-1.4\n%stripped-identity\n";
   const { code, out, data } = runScenario({
-    entry: 'stage',
-    portalId: 'stage-anon',
-    fieldId: 'score',
-    originalName: 'blank.pdf',
-    fileSuffix: '_BIO',
+    entry: "stage",
+    portalId: "stage-anon",
+    fieldId: "score",
+    originalName: "blank.pdf",
+    fileSuffix: "_BIO",
     buffer: original,
     options: {
       anonymize: true,
-      anonymizeEndpoint: 'https://anon.test',
-      anonymizeApiKey: 'test-key-not-real',
+      anonymizeEndpoint: "https://anon.test",
+      anonymizeApiKey: "test-key-not-real",
     },
     script: anonScript(download),
   });
   assert.equal(code, 0, out);
   assert.ok(data, out);
   assert.equal(data.ok, true, out);
-  assert.equal(data.storedName, 'Bio.pdf');
+  assert.equal(data.storedName, "Bio.pdf");
   assert.equal(data.anonymized, true);
   assert.equal(data.storedEqualsOrig, false);
   assert.ok(data.storedBytesLen > 0);
   assert.ok(data.callCount >= 1, `expected anonymizer calls, got ${data.callCount}`);
 });
 
-test('stage anonymize on + empty key does not store original', () => {
-  const original = '%PDF-1.4\n%identifying-empty-key\n';
+test("stage anonymize on + empty key does not store original", () => {
+  const original = "%PDF-1.4\n%identifying-empty-key\n";
   const { code, out, data } = runScenario({
-    entry: 'stage',
-    portalId: 'stage-empty-key',
-    fieldId: 'score',
-    originalName: 'blank.pdf',
-    fileSuffix: '_SCORE',
+    entry: "stage",
+    portalId: "stage-empty-key",
+    fieldId: "score",
+    originalName: "blank.pdf",
+    fileSuffix: "_SCORE",
     buffer: original,
     options: {
       anonymize: true,
       anonymizeEndpoint: null,
-      anonymizeApiKey: '',
+      anonymizeApiKey: "",
     },
   });
   assert.ok(data, out);
   assert.equal(data.ok, false, `empty key must block stage: ${out}`);
-  assert.match(String(data.code || ''), /invalid|anonymize|config|staged/i);
+  assert.match(String(data.code || ""), /invalid|anonymize|config|staged/i);
   assert.notEqual(data.storedEqualsOrig, true);
   assert.equal(data.callCount || 0, 0);
   assert.ok(code !== 0 || data.ok === false);
 });
 
-test('stage anonymizeFailClosed + API error does not store original', () => {
-  const original = '%PDF-1.4\n%identifying-fail-closed\n';
+test("stage anonymizeFailClosed + API error does not store original", () => {
+  const original = "%PDF-1.4\n%identifying-fail-closed\n";
   const { code, out, data } = runScenario({
-    entry: 'stage',
-    portalId: 'stage-fail-closed',
-    fieldId: 'score',
-    originalName: 'blank.pdf',
-    fileSuffix: '_SCORE',
+    entry: "stage",
+    portalId: "stage-fail-closed",
+    fieldId: "score",
+    originalName: "blank.pdf",
+    fileSuffix: "_SCORE",
     buffer: original,
     options: {
       anonymize: true,
-      anonymizeEndpoint: 'https://anon.test',
-      anonymizeApiKey: 'test-key-not-real',
+      anonymizeEndpoint: "https://anon.test",
+      anonymizeApiKey: "test-key-not-real",
       anonymizeFailClosed: true,
     },
-    script: [{ throw: 'timed out after 120s' }],
+    script: [{ throw: "timed out after 120s" }],
   });
   assert.ok(data, out);
   assert.equal(data.ok, false, `fail-closed must block stage: ${out}`);
@@ -197,15 +198,15 @@ test('stage anonymizeFailClosed + API error does not store original', () => {
   assert.ok(code !== 0 || data.ok === false);
 });
 
-test('pipeline uses staged token; drive has staged bytes; no second anonymize', () => {
-  const original = '%PDF-1.4\n%pipe-original\n';
-  const download = '%PDF-1.4\n%pipe-anonymized\n';
+test("pipeline uses staged token; drive has staged bytes; no second anonymize", () => {
+  const original = "%PDF-1.4\n%pipe-original\n";
+  const download = "%PDF-1.4\n%pipe-anonymized\n";
   const { code, out, data } = runScenario({
-    entry: 'pipeline',
-    portalId: 'stage-pipe-anon',
-    fieldId: 'score',
-    originalName: 'blank.pdf',
-    fileSuffix: '_SCORE',
+    entry: "pipeline",
+    portalId: "stage-pipe-anon",
+    fieldId: "score",
+    originalName: "blank.pdf",
+    fileSuffix: "_SCORE",
     buffer: original,
     anonBytes: download,
     anonymize: true,
@@ -214,112 +215,112 @@ test('pipeline uses staged token; drive has staged bytes; no second anonymize', 
   assert.ok(data, out);
   assert.equal(data.ok, true, out);
   assert.equal(data.submitOk, true);
-  assert.equal(data.storedName, 'Score.pdf');
+  assert.equal(data.storedName, "Score.pdf");
   assert.equal(data.anonymized, true);
   assert.equal(data.driveEqualsStaged, true, out);
   assert.equal(data.driveEqualsOrig, false);
   assert.equal(data.extraAnonCalls, 0, `second anonymize fired: ${JSON.stringify(data)}`);
-  assert.ok(data.drivePath, 'drive path present');
+  assert.ok(data.drivePath, "drive path present");
   assert.ok(fs.existsSync(data.drivePath), `drive file missing: ${data.drivePath}`);
 });
 
-test('pipeline without anonymize stages suffix and writes original bytes', () => {
-  const original = '%PDF-1.4\n%pipe-plain\n';
+test("pipeline without anonymize stages suffix and writes original bytes", () => {
+  const original = "%PDF-1.4\n%pipe-plain\n";
   const { code, out, data } = runScenario({
-    entry: 'pipeline',
-    portalId: 'stage-pipe-plain',
-    fieldId: 'score',
-    originalName: 'blank.pdf',
-    fileSuffix: '_SCORE',
+    entry: "pipeline",
+    portalId: "stage-pipe-plain",
+    fieldId: "score",
+    originalName: "blank.pdf",
+    fileSuffix: "_SCORE",
     buffer: original,
     anonymize: false,
   });
   assert.equal(code, 0, out);
   assert.ok(data, out);
   assert.equal(data.ok, true, out);
-  assert.equal(data.storedName, 'Score.pdf');
+  assert.equal(data.storedName, "Score.pdf");
   assert.equal(data.anonymized, false);
   assert.equal(data.driveEqualsStaged, true);
   assert.equal(data.extraAnonCalls, 0);
 });
 
-test('forget removes staged token', () => {
-  const original = '%PDF-1.4\n%to-forget\n';
+test("forget removes staged token", () => {
+  const original = "%PDF-1.4\n%to-forget\n";
   const staged = runScenario({
-    entry: 'stage',
-    portalId: 'stage-forget',
-    fieldId: 'score',
-    originalName: 'blank.pdf',
+    entry: "stage",
+    portalId: "stage-forget",
+    fieldId: "score",
+    originalName: "blank.pdf",
     buffer: original,
     options: { anonymize: false },
   });
   assert.equal(staged.code, 0, staged.out);
   const token = staged.data.token;
-  const forgotten = runScenario({ entry: 'forget', token });
+  const forgotten = runScenario({ entry: "forget", token });
   assert.equal(forgotten.code, 0, forgotten.out);
   assert.equal(forgotten.data.gone, true);
 });
 
-test('GET staged file serves raw bytes (not JSON) via rest_pre_serve_request', () => {
-  const original = '%PDF-1.4\n%open-to-confirm-bytes\n';
+test("GET staged file serves raw bytes (not JSON) via rest_pre_serve_request", () => {
+  const original = "%PDF-1.4\n%open-to-confirm-bytes\n";
   const { code, out, data } = runScenario({
-    entry: 'serve',
-    portalId: 'stage-serve-raw',
-    fieldId: 'score',
-    originalName: 'blank.pdf',
+    entry: "serve",
+    portalId: "stage-serve-raw",
+    fieldId: "score",
+    originalName: "blank.pdf",
     buffer: original,
   });
   assert.equal(code, 0, out);
   assert.ok(data, out);
   assert.equal(data.ok, true, out);
-  assert.equal(data.serveReturnedTrue, true, 'serve_raw_request must claim the response');
-  assert.equal(data.bodyEqualsStaged, true, 'echoed body must equal staged PDF bytes');
-  assert.equal(data.bodyIsJsonString, false, 'body must not be JSON-encoded');
+  assert.equal(data.serveReturnedTrue, true, "serve_raw_request must claim the response");
+  assert.equal(data.bodyEqualsStaged, true, "echoed body must equal staged PDF bytes");
+  assert.equal(data.bodyIsJsonString, false, "body must not be JSON-encoded");
   assert.equal(data.bodyStartsPdf, true);
-  assert.equal(data.contentType, 'application/pdf');
-  assert.equal(data.storedName, 'Score.pdf');
+  assert.equal(data.contentType, "application/pdf");
+  assert.equal(data.storedName, "Score.pdf");
 });
 
-test('two SCORE fields in walk order become Score1.pdf and Score2.pdf', () => {
+test("two SCORE fields in walk order become Score1.pdf and Score2.pdf", () => {
   const definition = {
     version: 1,
     fields: [
       {
-        id: 'score_a',
-        type: 'score_file',
-        label: 'Score A',
+        id: "score_a",
+        type: "score_file",
+        label: "Score A",
         required: true,
-        fileSuffix: '_SCORE',
+        fileSuffix: "_SCORE",
       },
       {
-        id: 'score_b',
-        type: 'score_file',
-        label: 'Score B',
+        id: "score_b",
+        type: "score_file",
+        label: "Score B",
         required: true,
-        fileSuffix: '_NMMA_SCORE',
+        fileSuffix: "_NMMA_SCORE",
       },
     ],
     options: { anonymize: false },
   };
-  const original = '%PDF-1.4\n%two-score\n';
+  const original = "%PDF-1.4\n%two-score\n";
   const first = runScenario({
-    entry: 'stage',
-    portalId: 'stage-two-score',
-    fieldId: 'score_a',
-    originalName: 'first.pdf',
+    entry: "stage",
+    portalId: "stage-two-score",
+    fieldId: "score_a",
+    originalName: "first.pdf",
     buffer: original,
     definition,
   });
   const second = runScenario({
-    entry: 'stage',
-    portalId: 'stage-two-score',
-    fieldId: 'score_b',
-    originalName: 'second.pdf',
+    entry: "stage",
+    portalId: "stage-two-score",
+    fieldId: "score_b",
+    originalName: "second.pdf",
     buffer: original,
     definition,
   });
   assert.equal(first.code, 0, first.out);
   assert.equal(second.code, 0, second.out);
-  assert.equal(first.data.storedName, 'Score1.pdf');
-  assert.equal(second.data.storedName, 'Score2.pdf');
+  assert.equal(first.data.storedName, "Score1.pdf");
+  assert.equal(second.data.storedName, "Score2.pdf");
 });
