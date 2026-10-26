@@ -1,12 +1,15 @@
 <?php
 /**
- * Judge-facing anonymize owner: decide whether to call All Intersections, then execute.
+ * Judge-facing anonymize owner: strip MP3 tags locally; send other files to All Intersections.
  *
  * @package DragonGate
  */
 
 if ( ! class_exists( 'Portal_Anonymize_Decision' ) ) {
 	require_once __DIR__ . '/class-portal-anonymize-decision.php';
+}
+if ( ! class_exists( 'Portal_Mp3_Metadata' ) ) {
+	require_once __DIR__ . '/class-portal-mp3-metadata.php';
 }
 
 if ( ! class_exists( 'Portal_Anonymizer' ) ) {
@@ -25,25 +28,51 @@ if ( ! class_exists( 'Portal_Anonymizer' ) ) {
 		const MAX_CONFLICT_REMINTS  = 1;
 		const MAX_RECREATES         = 1;
 
-		/** @var bool */
+		/**
+		 * Whether anonymize is on for this portal.
+		 *
+		 * @var bool
+		 */
 		private $enabled;
 
-		/** @var bool */
+		/**
+		 * Refuse the upload instead of keeping it when the API fails.
+		 *
+		 * @var bool
+		 */
 		private $fail_closed;
 
-		/** @var string */
+		/**
+		 * API base URL.
+		 *
+		 * @var string
+		 */
 		private $base_url;
 
-		/** @var string */
+		/**
+		 * Bearer secret; never logged.
+		 *
+		 * @var string
+		 */
 		private $api_key;
 
-		/** @var object|null Object with send(array $request). */
+		/**
+		 * Object with send(array $request).
+		 *
+		 * @var object|null
+		 */
 		private $transport;
 
-		/** @var callable|null */
+		/**
+		 * UUID v4 factory for Idempotency-Key.
+		 *
+		 * @var callable|null
+		 */
 		private $uuid_factory;
 
 		/**
+		 * Build the owner from resolved portal options.
+		 *
 		 * @param array         $options      Definition options.
 		 * @param object|null   $transport    Injected transport (tests).
 		 * @param callable|null $uuid_factory Injected UUID v4 factory.
@@ -104,6 +133,10 @@ if ( ! class_exists( 'Portal_Anonymizer' ) ) {
 			if ( null !== $missing ) {
 				return Portal_Anonymize_Decision::block( $missing );
 			}
+			$local_mp3 = $this->local_mp3( $buffer, $filename, $declared_type );
+			if ( null !== $local_mp3 ) {
+				return Portal_Anonymize_Decision::replace( $local_mp3 );
+			}
 			if ( ! $this->should_anonymize( $buffer ) ) {
 				return Portal_Anonymize_Decision::skip( $buffer );
 			}
@@ -136,6 +169,8 @@ if ( ! class_exists( 'Portal_Anonymizer' ) ) {
 		}
 
 		/**
+		 * Whether the remote API should see this upload.
+		 *
 		 * @param string $buffer Original bytes.
 		 * @return bool
 		 */
@@ -147,6 +182,29 @@ if ( ! class_exists( 'Portal_Anonymizer' ) ) {
 		}
 
 		/**
+		 * Tag-free MP3 bytes, or null when the upload is not an MP3 this owner can clean.
+		 *
+		 * The remote re-encode of a 13-minute recording outlasts the host's request
+		 * limit; recordings identify the applicant only through tags.
+		 *
+		 * @param string      $buffer        Original bytes.
+		 * @param string      $filename      Filename.
+		 * @param string|null $declared_type Declared MIME.
+		 * @return string|null
+		 */
+		private function local_mp3( $buffer, $filename, $declared_type ) {
+			$mp3 = Portal_File_Signature::TYPE_MP3;
+			if ( ! $this->enabled || '' === $buffer
+				|| Portal_File_Signature::sniff( $buffer, (string) $filename, $declared_type ) !== $mp3 ) {
+				return null;
+			}
+			$stripped = Portal_Mp3_Metadata::strip( $buffer );
+			return Portal_File_Signature::matches( $stripped, $mp3 ) ? $stripped : null;
+		}
+
+		/**
+		 * Keep or refuse the original after the API failed.
+		 *
 		 * @param string $buffer Original bytes.
 		 * @param string $reason Failure reason.
 		 * @return Portal_Anonymize_Decision
@@ -159,6 +217,8 @@ if ( ! class_exists( 'Portal_Anonymizer' ) ) {
 		}
 
 		/**
+		 * Remote anonymized bytes, or null to keep the original.
+		 *
 		 * @param string      $buffer        Original bytes.
 		 * @param string      $filename      Filename.
 		 * @param string|null $declared_type Declared MIME.
@@ -209,6 +269,8 @@ if ( ! class_exists( 'Portal_Anonymizer' ) ) {
 		}
 
 		/**
+		 * Next step after one create reply.
+		 *
 		 * @param array $created       Create reply.
 		 * @param int   $conflict_left Remints remaining.
 		 * @return array{retry?:bool,key?:string,ok?:bool}
@@ -231,6 +293,8 @@ if ( ! class_exists( 'Portal_Anonymizer' ) ) {
 		}
 
 		/**
+		 * Download anonymized bytes, retrying retryable replies.
+		 *
 		 * @param Portal_Anonymizer_Api $api API.
 		 * @param string                $id  Anonymization id.
 		 * @param string                $key Idempotency key.
@@ -250,6 +314,8 @@ if ( ! class_exists( 'Portal_Anonymizer' ) ) {
 		}
 
 		/**
+		 * Whether downloaded bytes are the same file type as the original.
+		 *
 		 * @param string      $bytes         Downloaded bytes.
 		 * @param string      $api_type      data.file_type.
 		 * @param string      $original      Original bytes.
@@ -266,6 +332,8 @@ if ( ! class_exists( 'Portal_Anonymizer' ) ) {
 		}
 
 		/**
+		 * API client for this owner.
+		 *
 		 * @return Portal_Anonymizer_Api
 		 */
 		private function api() {
@@ -278,6 +346,8 @@ if ( ! class_exists( 'Portal_Anonymizer' ) ) {
 		}
 
 		/**
+		 * Injected or default HTTP transport.
+		 *
 		 * @return object
 		 */
 		private function transport() {
@@ -286,6 +356,5 @@ if ( ! class_exists( 'Portal_Anonymizer' ) ) {
 			}
 			return $this->transport;
 		}
-
 	}
 }

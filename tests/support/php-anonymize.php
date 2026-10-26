@@ -138,7 +138,9 @@ if ( ! is_array( $scenario ) ) {
 
 $entry      = isset( $scenario['entry'] ) ? (string) $scenario['entry'] : 'pipeline';
 $options    = isset( $scenario['options'] ) && is_array( $scenario['options'] ) ? $scenario['options'] : array();
-$original   = isset( $scenario['original'] ) ? (string) $scenario['original'] : '';
+$original   = isset( $scenario['original_b64'] )
+	? (string) base64_decode( (string) $scenario['original_b64'], true )
+	: ( isset( $scenario['original'] ) ? (string) $scenario['original'] : '' );
 $filename   = isset( $scenario['filename'] ) ? (string) $scenario['filename'] : 'score.pdf';
 $declared   = isset( $scenario['declared_type'] ) ? $scenario['declared_type'] : null;
 $download   = isset( $scenario['download'] ) ? (string) $scenario['download'] : '';
@@ -159,9 +161,11 @@ if ( 'anonymizer' === $entry ) {
 	}
 	$anonymizer = new Portal_Anonymizer( $options, $transport );
 	$result     = $anonymizer->maybe_anonymize( $original, $filename, $declared );
-	echo json_encode(
-		result_payload( $result, $original, $download, $transport, true, true )
-	) . "\n";
+	$payload = result_payload( $result, $original, $download, $transport, true, true );
+	if ( isset( $scenario['original_b64'] ) ) {
+		$payload['stored_b64'] = base64_encode( (string) $result );
+	}
+	echo json_encode( $payload ) . "\n";
 	exit( 0 );
 }
 
