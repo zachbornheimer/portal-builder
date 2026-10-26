@@ -387,6 +387,22 @@ function lyrics3v2Artist() {
   return Buffer.from(`${body}${String(body.length).padStart(6, "0")}LYRICS200`, "latin1");
 }
 
+/** ID3v2.4 with the footer flag, as written when the tag is appended after the audio. */
+function id3v24AppendedArtist() {
+  const text = Buffer.concat([Buffer.from([0x03]), Buffer.from(APPLICANT, "utf8")]);
+  const frame = Buffer.concat([Buffer.from("TPE1"), syncsafe(text.length), Buffer.from([0, 0]), text]);
+  const flags = Buffer.from([4, 0, 0x10]);
+  return Buffer.concat([
+    Buffer.from("ID3"),
+    flags,
+    syncsafe(frame.length),
+    frame,
+    Buffer.from("3DI"),
+    flags,
+    syncsafe(frame.length),
+  ]);
+}
+
 test("MP3 recording drops every identifying tag locally and keeps audio frames byte-identical", () => {
   const frames = mp3Frames();
   const tagged = Buffer.concat([id3v2Artist(), frames, apev2Artist(), id3v1Artist()]);
@@ -425,18 +441,20 @@ test("MP3 recording without tags passes through unchanged with no remote call", 
 });
 
 for (
-  const [layout, trailer] of [
+  const [index, [layout, trailer]] of [
     ["Lyrics3v1 before ID3v1", () => Buffer.concat([lyrics3v1Artist(), id3v1Artist()])],
     ["Lyrics3v1 alone", () => lyrics3v1Artist()],
     ["Lyrics3v2 before ID3v1", () => Buffer.concat([lyrics3v2Artist(), id3v1Artist()])],
     ["APEv2 then Lyrics3v1 then ID3v1", () => Buffer.concat([apev2Artist(), lyrics3v1Artist(), id3v1Artist()])],
-  ]
+    ["an appended ID3v2.4 tag", () => id3v24AppendedArtist()],
+    ["an appended ID3v2.4 tag then ID3v1", () => Buffer.concat([id3v24AppendedArtist(), id3v1Artist()])],
+  ].entries()
 ) {
   test(`MP3 recording with ${layout} keeps only the audio frames`, () => {
     const frames = mp3Frames();
     const { code, out, data } = runScenario({
       entry: "anonymizer",
-      portalId: "anon-mp3-trailer",
+      portalId: `anon-mp3-trailer-${index}`,
       filename: "Recording.mp3",
       declared_type: "audio/mpeg",
       original_b64: Buffer.concat([frames, trailer()]).toString("base64"),
@@ -450,3 +468,40 @@ for (
     assert.deepEqual(stored, frames);
   });
 }
+
+test("MP3 recordings joined end to end lose the ID3v2 tag between them", () => {
+  const frames = mp3Frames();
+  const joined = Buffer.concat([id3v2Artist(), frames, id3v2Artist(), frames]);
+  const { code, out, data } = runScenario({
+    entry: "anonymizer",
+    portalId: "anon-mp3-joined",
+    filename: "Recording.mp3",
+    declared_type: "audio/mpeg",
+    original_b64: joined.toString("base64"),
+    options: enabledOptions(),
+    script: [completedCreate(), rawReply(DOWNLOAD_PDF)],
+  });
+  assert.equal(code, 0, out);
+  assert.ok(data, out);
+  const stored = Buffer.from(data.stored_b64, "base64");
+  assert.equal(stored.includes(Buffer.from(APPLICANT, "latin1")), false, "applicant name survived");
+  assert.deepEqual(stored, Buffer.concat([frames, frames]));
+});
+
+test("audio bytes that merely contain ID3 or 3DI text are not cut", () => {
+  const frames = mp3Frames();
+  frames.write("ID3 and 3DI and TAG inside audio", 600, "latin1");
+  const { code, out, data } = runScenario({
+    entry: "anonymizer",
+    portalId: "anon-mp3-lookalike",
+    filename: "Recording.mp3",
+    declared_type: "audio/mpeg",
+    original_b64: frames.toString("base64"),
+    options: enabledOptions(),
+    script: [completedCreate(), rawReply(DOWNLOAD_PDF)],
+  });
+  assert.equal(code, 0, out);
+  assert.ok(data, out);
+  assert.equal(data.call_count, 0);
+  assert.equal(data.stored_equals_original, true);
+});

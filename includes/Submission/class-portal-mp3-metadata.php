@@ -2,10 +2,12 @@
 /**
  * MP3 metadata removal: drop every tag block, keep audio frames byte-identical.
  *
- * Recordings carry the applicant's identity only in tags (ID3v2, ID3v1, APEv2,
- * Lyrics3). Removing those blocks gives the same anonymity as a re-encode, in
- * milliseconds and without quality loss, so long recordings never wait on the
- * remote anonymizer inside the upload request.
+ * Recordings carry the applicant's identity only in tags (ID3v2 at the start,
+ * the end, or between joined recordings; ID3v1; APEv2; Lyrics3). Removing those
+ * blocks gives the same anonymity as a re-encode, in milliseconds and without
+ * quality loss, so long recordings never wait on the remote anonymizer inside
+ * the upload request. An ID3v2 block inside the audio is removed only when its
+ * whole header validates, so audio bytes that happen to spell "ID3" stay.
  *
  * @package DragonGate
  */
@@ -30,7 +32,7 @@ if ( ! class_exists( 'Portal_Mp3_Metadata' ) ) {
 		const LYRICS3V1_MAX      = 5100;
 
 		/**
-		 * Remove leading and trailing tag blocks until none remain.
+		 * Remove tag blocks until none remain.
 		 *
 		 * @param string $bytes MP3 file bytes.
 		 * @return string Audio frames only.
@@ -41,6 +43,7 @@ if ( ! class_exists( 'Portal_Mp3_Metadata' ) ) {
 				$before = $bytes;
 				$bytes  = self::strip_leading_id3v2( $bytes );
 				$bytes  = self::strip_trailing_block( $bytes );
+				$bytes  = self::strip_embedded_id3v2( $bytes );
 				$same   = $bytes === $before;
 			} while ( ! $same );
 			return $bytes;
@@ -49,18 +52,63 @@ if ( ! class_exists( 'Portal_Mp3_Metadata' ) ) {
 		/**
 		 * Remove one leading ID3v2 tag (header, body, optional footer).
 		 *
+		 * A truncated leading tag is cut to the end of the file rather than kept.
+		 *
 		 * @param string $bytes Bytes.
 		 * @return string
 		 */
 		private static function strip_leading_id3v2( $bytes ) {
-			if ( strlen( $bytes ) < self::ID3V2_HEADER_BYTES || 0 !== strpos( $bytes, 'ID3' ) ) {
-				return $bytes;
+			$size = self::id3v2_size_at( $bytes, 0, 'ID3', false );
+			return 0 === $size ? $bytes : (string) substr( $bytes, min( $size, strlen( $bytes ) ) );
+		}
+
+		/**
+		 * Remove every complete, valid ID3v2 tag that sits between audio frames.
+		 *
+		 * @param string $bytes Bytes.
+		 * @return string
+		 */
+		private static function strip_embedded_id3v2( $bytes ) {
+			$at = strpos( $bytes, 'ID3', 1 );
+			while ( false !== $at ) {
+				$size = self::id3v2_size_at( $bytes, $at, 'ID3', true );
+				if ( $size > 0 ) {
+					$bytes = substr( $bytes, 0, $at ) . substr( $bytes, $at + $size );
+					$at    = strpos( $bytes, 'ID3', max( 1, $at ) );
+					continue;
+				}
+				$at = strpos( $bytes, 'ID3', $at + 1 );
 			}
-			$size = self::ID3V2_HEADER_BYTES + self::syncsafe( substr( $bytes, 6, 4 ) );
-			if ( ord( $bytes[5] ) & self::ID3V2_FOOTER_FLAG ) {
+			return $bytes;
+		}
+
+		/**
+		 * Total ID3v2 tag length when a valid header (or footer) starts at $at, else 0.
+		 *
+		 * @param string $bytes  Bytes.
+		 * @param int    $at     Offset of the 10-byte header or footer.
+		 * @param string $marker 'ID3' for a header, '3DI' for a footer.
+		 * @param bool   $fit    Require the whole tag to lie inside $bytes.
+		 * @return int
+		 */
+		private static function id3v2_size_at( $bytes, $at, $marker, $fit ) {
+			$head = (string) substr( $bytes, $at, self::ID3V2_HEADER_BYTES );
+			if ( strlen( $head ) < self::ID3V2_HEADER_BYTES || 0 !== strpos( $head, $marker ) ) {
+				return 0;
+			}
+			$version = ord( $head[3] );
+			$flags   = ord( $head[5] );
+			$valid   = $version >= 2 && $version <= 4 && 0 === ord( $head[4] ) && 0 === ( $flags & 0x0F )
+				&& 0 === ( ord( $head[6] ) | ord( $head[7] ) | ord( $head[8] ) | ord( $head[9] ) ) >> 7;
+			if ( ! $valid ) {
+				return 0;
+			}
+			$size = self::ID3V2_HEADER_BYTES + self::syncsafe( substr( $head, 6, 4 ) );
+			if ( $flags & self::ID3V2_FOOTER_FLAG ) {
 				$size += self::ID3V2_HEADER_BYTES;
 			}
-			return (string) substr( $bytes, min( $size, strlen( $bytes ) ) );
+			$room = '3DI' === $marker ? $at + self::ID3V2_HEADER_BYTES : strlen( $bytes ) - $at;
+			return ( $fit && $size > $room ) ? 0 : $size;
 		}
 
 		/**
@@ -79,6 +127,10 @@ if ( ! class_exists( 'Portal_Mp3_Metadata' ) ) {
 			}
 			if ( $len >= self::APE_BLOCK_BYTES && 'APETAGEX' === substr( $bytes, -self::APE_BLOCK_BYTES, 8 ) ) {
 				return (string) substr( $bytes, 0, max( 0, $len - self::ape_size( substr( $bytes, -self::APE_BLOCK_BYTES ) ) ) );
+			}
+			$footer = self::id3v2_size_at( $bytes, $len - self::ID3V2_HEADER_BYTES, '3DI', true );
+			if ( $footer > 0 ) {
+				return (string) substr( $bytes, 0, $len - $footer );
 			}
 			return self::strip_lyrics3( $bytes );
 		}
