@@ -41,6 +41,9 @@ if ( ! class_exists( 'Portal_Packet_Store' ) ) {
 		 * @return self
 		 */
 		public static function for_uploads( $files = null, $drive = null ) {
+			if ( class_exists( 'Portal_Upload_Store' ) && is_callable( array( 'Portal_Upload_Store', 'data_dir' ) ) ) {
+				return new self( Portal_Upload_Store::data_dir( self::DIR_NAME, $files instanceof Portal_Files ? $files : null ), $files, $drive );
+			}
 			$base = class_exists( 'Portal_Upload_Store' )
 				? Portal_Upload_Store::basedir()
 				: sys_get_temp_dir();
@@ -235,7 +238,7 @@ if ( ! class_exists( 'Portal_Packet_Store' ) ) {
 		 */
 		private function append( $portal_id, array $row ) {
 			$this->files->mkdir( $this->dir );
-			if ( class_exists( 'Portal_Upload_Store' ) && is_callable( array( 'Portal_Upload_Store', 'write_deny' ) ) ) {
+			if ( method_exists( 'Portal_Upload_Store', 'write_deny' ) ) {
 				Portal_Upload_Store::write_deny( $this->files, $this->dir );
 			}
 			$path    = $this->path_for( $portal_id );
@@ -268,7 +271,7 @@ if ( ! class_exists( 'Portal_Packet_Store' ) ) {
 				$lines[] = is_string( $encoded ) ? $encoded : '{}';
 			}
 			$this->files->mkdir( $this->dir );
-			if ( class_exists( 'Portal_Upload_Store' ) && is_callable( array( 'Portal_Upload_Store', 'write_deny' ) ) ) {
+			if ( method_exists( 'Portal_Upload_Store', 'write_deny' ) ) {
 				Portal_Upload_Store::write_deny( $this->files, $this->dir );
 			}
 			$this->files->write( $this->path_for( $portal_id ), implode( "\n", $lines ) . ( $lines ? "\n" : '' ) );
