@@ -171,25 +171,42 @@ if ( ! class_exists( 'Portal_Packet_Store' ) ) {
 		}
 
 		/**
-		 * Staff replace: write bytes through the dest facade, then audit the packet.
+		 * Replace bytes through the dest facade, auditing only a confirmed write.
 		 *
 		 * @param string|int $portal_id Portal.
 		 * @param string     $app_id    Application id.
 		 * @param string     $field_id  Field id.
 		 * @param string     $buffer    New bytes.
 		 * @param string     $filename  Dest name.
-		 * @return array<string,mixed>|null
+		 * @return array<string,mixed>|null Packet with destination or replacementError; null when not current.
 		 */
 		public function replace_file( $portal_id, $app_id, $field_id, $buffer, $filename ) {
 			$packet = $this->get( $portal_id, $app_id );
 			if ( ! is_array( $packet ) || ! Portal_Packet_Policy::is_current( $packet ) ) {
 				return null;
 			}
-			if ( is_object( $this->drive ) && method_exists( $this->drive, 'store_file' ) ) {
-				$this->drive->store_file( $portal_id, $field_id, $buffer, $filename );
+			try {
+				$destination = is_object( $this->drive ) && method_exists( $this->drive, 'store_file' )
+					? $this->drive->store_file( $portal_id, $field_id, $buffer, $filename )
+					: '';
+				if ( ! is_string( $destination ) || '' === $destination ) {
+					$packet['replacementError'] = array(
+						'code'    => 'dg_packet_destination',
+						'message' => 'No destination was written for this file field.',
+					);
+					return $packet;
+				}
+			} catch ( Throwable $error ) {
+				$packet['replacementError'] = array(
+					'code'    => $error->getCode() ? (string) $error->getCode() : 'dg_packet_destination',
+					'message' => $error->getMessage(),
+				);
+				return $packet;
 			}
-			$packet['replacedAt']    = gmdate( 'c' );
-			$packet['replacedField'] = (string) $field_id;
+			$packet['replacementDestination'] = $destination;
+			$packet['replacedAt']             = gmdate( 'c' );
+			$packet['replacedField']          = (string) $field_id;
+			unset( $packet['replacementError'] );
 			$this->rewrite( $portal_id, $app_id, $packet );
 			return $packet;
 		}
@@ -218,6 +235,9 @@ if ( ! class_exists( 'Portal_Packet_Store' ) ) {
 		 */
 		private function append( $portal_id, array $row ) {
 			$this->files->mkdir( $this->dir );
+			if ( class_exists( 'Portal_Upload_Store' ) && is_callable( array( 'Portal_Upload_Store', 'write_deny' ) ) ) {
+				Portal_Upload_Store::write_deny( $this->files, $this->dir );
+			}
 			$path    = $this->path_for( $portal_id );
 			$encoded = wp_json_encode( $row );
 			if ( ! is_string( $encoded ) ) {
@@ -248,6 +268,9 @@ if ( ! class_exists( 'Portal_Packet_Store' ) ) {
 				$lines[] = is_string( $encoded ) ? $encoded : '{}';
 			}
 			$this->files->mkdir( $this->dir );
+			if ( class_exists( 'Portal_Upload_Store' ) && is_callable( array( 'Portal_Upload_Store', 'write_deny' ) ) ) {
+				Portal_Upload_Store::write_deny( $this->files, $this->dir );
+			}
 			$this->files->write( $this->path_for( $portal_id ), implode( "\n", $lines ) . ( $lines ? "\n" : '' ) );
 		}
 

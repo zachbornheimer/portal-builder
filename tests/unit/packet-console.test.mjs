@@ -42,6 +42,14 @@ test('approved staff can replace a file through the dest adapter; guests cannot'
 	assert.equal(data.driveWrites.length, 1);
 	assert.equal(data.driveWrites[0].field, 'score');
 	assert.equal(data.driveWrites[0].bytes, 'NEW-BYTES');
+	assert.equal(data.destination, 'https://drive.google.com/file/d/replacement/view');
+	assert.deepEqual(data.emptyError, {
+		code: 'dg_packet_destination',
+		message: 'No destination was written for this file field.',
+	});
+	assert.deepEqual(data.writeError, { code: '503', message: 'Drive refused these bytes.' });
+	assert.equal(data.emptyUnchanged, true);
+	assert.equal(data.errorUnchanged, true);
 });
 
 test('applicant recall marks the packet so it is no longer current', () => {

@@ -27,14 +27,21 @@ $dir = isset( $in['dir'] ) ? $in['dir'] : sys_get_temp_dir() . '/dg-packets-test
 
 class Fake_Packet_Drive {
 	public $writes = array();
+	public $failure = '';
 	public function store_file( $portal_id, $field_id, $buffer, $filename ) {
+		if ( 'throw' === $this->failure ) {
+			throw new RuntimeException( 'Drive refused these bytes.', 503 );
+		}
+		if ( 'empty' === $this->failure ) {
+			return '';
+		}
 		$this->writes[] = array(
 			'portal'   => (string) $portal_id,
 			'field'    => (string) $field_id,
 			'bytes'    => (string) $buffer,
 			'filename' => (string) $filename,
 		);
-		return $this->writes[ count( $this->writes ) - 1 ];
+		return 'https://drive.google.com/file/d/replacement/view';
 	}
 }
 
@@ -89,6 +96,15 @@ if ( $staff_ok ) {
 
 $denied_replace = $store->replace_file( 'portal-1', 'app-missing', 'score', 'X', 'x.pdf' );
 
+// Failed destinations must preserve the previous packet and its audit stamps.
+$before_failure = $store->get( 'portal-1', 'app-1' );
+$drive->failure = 'empty';
+$empty_result = $store->replace_file( 'portal-1', 'app-1', 'other', 'X', 'x.pdf' );
+$empty_unchanged = $before_failure === $store->get( 'portal-1', 'app-1' );
+$drive->failure = 'throw';
+$error_result = $store->replace_file( 'portal-1', 'app-1', 'other', 'X', 'x.pdf' );
+$error_unchanged = $before_failure === $store->get( 'portal-1', 'app-1' );
+
 $recalled = $store->recall( 'portal-1', 'app-1' );
 $after    = $store->get( 'portal-1', 'app-1' );
 $touch_after = Portal_Packet_Policy::applicant_can_touch( $hash, is_array( $after ) ? $after : array() );
@@ -106,6 +122,11 @@ echo json_encode(
 		'listCount'      => count( $mine ),
 		'listOnlyMine'   => 1 === count( $mine ) && 'app-1' === $mine[0]['applicationId'],
 		'replaced'       => is_array( $replaced ),
+		'destination'    => $replaced['replacementDestination'],
+		'emptyError'     => $empty_result['replacementError'],
+		'emptyUnchanged' => $empty_unchanged,
+		'writeError'     => $error_result['replacementError'],
+		'errorUnchanged' => $error_unchanged,
 		'driveWrites'    => $drive->writes,
 		'deniedReplace'  => null === $denied_replace,
 		'recalled'       => is_array( $recalled ) && Portal_Packet_Policy::STATUS_RECALLED === $recalled['status'],

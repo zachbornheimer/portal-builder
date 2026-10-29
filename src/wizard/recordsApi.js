@@ -14,15 +14,16 @@ import { joinUrl } from './definitionApi.js';
  * @param {{ method?: string, nonce: string, body?: unknown, label: string }} opts
  */
 async function requestJson(url, opts) {
+	const multipart = opts.body instanceof FormData;
 	const res = await fetch(url, {
 		method: opts.method || 'GET',
 		credentials: 'same-origin',
 		headers: {
 			'X-WP-Nonce': opts.nonce,
 			Accept: 'application/json',
-			...(opts.body !== undefined ? { 'Content-Type': 'application/json' } : {}),
+			...(opts.body !== undefined && !multipart ? { 'Content-Type': 'application/json' } : {}),
 		},
-		body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
+		body: multipart ? opts.body : opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
 	});
 	const text = await res.text();
 	let body;
@@ -52,6 +53,27 @@ export async function getRecords(cfg) {
 		total: Number(body?.total) || 0,
 		records: Array.isArray(body?.records) ? body.records : [],
 	};
+}
+
+/**
+ * Upload replacement bytes directly to the packet destination (not staging).
+ * @param {RecordsApiConfig & { applicationId: string, fieldId: string, file: File }} cfg
+ */
+export async function replacePacketFile(cfg) {
+	const body = new FormData();
+	body.append('field_id', cfg.fieldId);
+	body.append('file', cfg.file);
+	const url = joinUrl(cfg.restRoot, `portals/${cfg.portalId}/packets/${encodeURIComponent(cfg.applicationId)}/replace`);
+	return requestJson(url, { method: 'POST', nonce: cfg.nonce, body, label: 'File replacement' });
+}
+
+/**
+ * Recall a packet; the route needs no request body.
+ * @param {RecordsApiConfig & { applicationId: string }} cfg
+ */
+export async function recallPacket(cfg) {
+	const url = joinUrl(cfg.restRoot, `portals/${cfg.portalId}/packets/${encodeURIComponent(cfg.applicationId)}/recall`);
+	return requestJson(url, { method: 'POST', nonce: cfg.nonce, label: 'Packet recall' });
 }
 
 /**

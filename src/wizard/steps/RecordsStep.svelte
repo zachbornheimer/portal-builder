@@ -5,6 +5,8 @@ import Field from '../../ui/Field.svelte';
 		createInvite,
 		getRecords,
 		listInvites,
+		recallPacket,
+		replacePacketFile,
 		resendInvite,
 		revokeInvite,
 		searchInviteCandidates,
@@ -34,6 +36,10 @@ import Field from '../../ui/Field.svelte';
 	let recordsLimit = $state(PAGE_SIZE);
 	let recordsState = $state(/** @type {'loading'|'ready'|'error'} */ ('loading'));
 	let recordsError = $state('');
+	let packetBusyId = $state('');
+	let packetError = $state('');
+	let packetNote = $state('');
+	let replacementFields = $state(/** @type {Record<string, string>} */ ({}));
 
 	let invites = $state(/** @type {object[]} */ ([]));
 	let invitesState = $state(/** @type {'loading'|'ready'|'error'} */ ('loading'));
@@ -120,6 +126,50 @@ import Field from '../../ui/Field.svelte';
 
 	function showAll() {
 		loadRecords(recordsTotal > 0 ? recordsTotal : recordsLimit);
+	}
+
+	/**
+	 * @param {object} row
+	 * @param {Event & { currentTarget: HTMLInputElement }} event
+	 */
+	async function replaceFile(row, event) {
+		const file = event.currentTarget.files?.[0];
+		event.currentTarget.value = '';
+		if (!file) return;
+		packetBusyId = row.applicationId;
+		packetError = '';
+		packetNote = '';
+		try {
+			const result = await replacePacketFile({
+				...cfg(),
+				applicationId: row.applicationId,
+				fieldId: replacementFields[row.applicationId].trim(),
+				file,
+			});
+			packetNote = `Replaced ${result.replacedField}; wrote to ${result.replacementDestination}.`;
+			await loadRecords();
+		} catch (e) {
+			packetError = e instanceof Error ? e.message : 'File replacement failed';
+		} finally {
+			packetBusyId = '';
+		}
+	}
+
+	/** @param {object} row */
+	async function recallRow(row) {
+		if (!window.confirm(`Recall application ${row.applicationId}? Staff will no longer treat this packet as current.`)) return;
+		packetBusyId = row.applicationId;
+		packetError = '';
+		packetNote = '';
+		try {
+			await recallPacket({ ...cfg(), applicationId: row.applicationId });
+			packetNote = `Recalled application ${row.applicationId}.`;
+			await loadRecords();
+		} catch (e) {
+			packetError = e instanceof Error ? e.message : 'Packet recall failed';
+		} finally {
+			packetBusyId = '';
+		}
 	}
 
 	/**
@@ -345,6 +395,7 @@ import Field from '../../ui/Field.svelte';
           <th scope="col">Anonymize</th>
           <th scope="col">Mail</th>
           <th scope="col">Error code</th>
+          <th scope="col">Packet actions</th>
         </tr>
       </thead>
       <tbody>
@@ -365,6 +416,48 @@ import Field from '../../ui/Field.svelte';
             <td>{row.dests?.anonymize ?? '—'}</td>
             <td>{row.dests?.mail ?? '—'}</td>
             <td>{row.errorCode || '—'}</td>
+            <td>
+              <div class="dg-link-actions">
+                {#if row.canReplace}
+                  <input
+                    class="dg-input"
+                    type="text"
+                    placeholder="File field ID"
+                    aria-label={`Replacement field ID for application ${row.applicationId}`}
+                    bind:value={replacementFields[row.applicationId]}
+                    disabled={packetBusyId !== ''}
+                  />
+                  <input
+                    id={`dg-replace-${row.applicationId}`}
+                    type="file"
+                    hidden
+                    aria-label={`Choose replacement file for application ${row.applicationId}`}
+                    onchange={(event) => replaceFile(row, event)}
+                    disabled={packetBusyId !== ''}
+                  />
+                  <button
+                    type="button"
+                    class="dg-btn dg-btn-ghost dg-btn-sm"
+                    aria-label={`Replace file for application ${row.applicationId}`}
+                    disabled={packetBusyId !== '' || !replacementFields[row.applicationId]?.trim()}
+                    onclick={() => document.getElementById(`dg-replace-${row.applicationId}`)?.click()}
+                  >
+                    Replace file
+                  </button>
+                {/if}
+                {#if row.canRecall}
+                  <button
+                    type="button"
+                    class="dg-btn dg-btn-ghost dg-btn-sm"
+                    aria-label={`Recall application ${row.applicationId}`}
+                    disabled={packetBusyId !== ''}
+                    onclick={() => recallRow(row)}
+                  >
+                    Recall
+                  </button>
+                {/if}
+              </div>
+            </td>
           </tr>
         {/each}
       </tbody>
@@ -383,6 +476,17 @@ import Field from '../../ui/Field.svelte';
         Showing all {recordsTotal}.
       {/if}
     </p>
+  {/if}
+  {#if packetBusyId}
+    <p class="dg-field-help" role="status">
+      Updating application {packetBusyId}…
+    </p>
+  {/if}
+  {#if packetNote}
+    <p class="dg-field-help" role="status">{packetNote}</p>
+  {/if}
+  {#if packetError}
+    <p class="dg-wizard-alert" role="alert">{packetError}</p>
   {/if}
 </div>
 

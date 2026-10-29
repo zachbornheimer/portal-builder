@@ -34,6 +34,13 @@ test('records console and recall controls have accessible names', () => {
 	assert.match(step, /aria-label\s*=\s*\{\s*`Copy invite link for /);
 	assert.match(step, /aria-label\s*=\s*\{\s*`Resend invite to /);
 	assert.match(step, /aria-label\s*=\s*\{\s*`Revoke invite for /);
+	assert.match(step, /aria-label\s*=\s*\{\s*`Replace file for application \$\{row\.applicationId\}/);
+	assert.match(step, /aria-label\s*=\s*\{\s*`Recall application \$\{row\.applicationId\}/);
+	assert.match(step, /aria-label\s*=\s*\{\s*`Replacement field ID for application \$\{row\.applicationId\}/);
+	assert.match(step, /aria-label\s*=\s*\{\s*`Choose replacement file for application \$\{row\.applicationId\}/);
+	assert.match(step, /\{#if row\.canReplace\}/);
+	assert.match(step, /\{#if row\.canRecall\}/);
+	assert.match(step, /window\.confirm\(`Recall application \$\{row\.applicationId\}/);
 	assert.match(step, /onclick\s*=\s*\{\s*showAll\s*\}[^>]*?>\s*Show all\s*<\/button>/);
 	assert.match(step, /<th\s+scope="col">\s*Applicant\s*<\/th>/);
 	assert.match(step, /<th\s+scope="col">\s*WordPress user\s*<\/th>/);

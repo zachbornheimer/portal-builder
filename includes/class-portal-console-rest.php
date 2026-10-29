@@ -231,19 +231,40 @@ if ( ! class_exists( 'Portal_Console_Rest' ) ) {
 			if ( ! is_array( $updated ) ) {
 				return new WP_Error( 'dg_packet_replace', 'Could not replace that file.', array( 'status' => 409 ) );
 			}
+			if ( isset( $updated['replacementError'] ) ) {
+				$error = $updated['replacementError'];
+				return new WP_Error( $error['code'], $error['message'], array( 'status' => 409 ) );
+			}
 			return rest_ensure_response( $updated );
 		}
 
 		/**
 		 * Merged records feed for the wizard Records step.
+		 * Each row includes canReplace/canRecall from the packet route policy;
+		 * log-only rows cannot be changed.
 		 *
 		 * @param WP_REST_Request $request Request.
 		 * @return WP_REST_Response
 		 */
 		public static function portal_records( $request ) {
-			$portal = (int) $request['id'];
-			$limit  = isset( $request['limit'] ) ? (int) $request['limit'] : 5;
-			return rest_ensure_response( Portal_Records::for_portal( $portal, $limit ) );
+			$portal  = (int) $request['id'];
+			$limit   = isset( $request['limit'] ) ? (int) $request['limit'] : 5;
+			$data    = Portal_Records::for_portal( $portal, $limit );
+			$caps    = self::caps();
+			$actor   = self::actor_hash();
+			$packets = array();
+			foreach ( Portal_Packet_Store::for_uploads()->all( $portal ) as $packet ) {
+				if ( isset( $packet['applicationId'] ) && ! isset( $packets[ (string) $packet['applicationId'] ] ) ) {
+					$packets[ (string) $packet['applicationId'] ] = $packet;
+				}
+			}
+			foreach ( $data['records'] as &$record ) {
+				$packet               = isset( $packets[ $record['applicationId'] ] ) ? $packets[ $record['applicationId'] ] : null;
+				$record['canReplace'] = self::authorize_actor( $caps, $actor, $packet, 'replace' );
+				$record['canRecall']  = self::authorize_actor( $caps, $actor, $packet, 'mutate' );
+			}
+			unset( $record );
+			return rest_ensure_response( $data );
 		}
 
 		/**
