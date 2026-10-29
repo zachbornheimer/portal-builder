@@ -18,6 +18,7 @@
 ### Fixes
 
 - Replace the hardcoded 2027 guidelines dates with the portal definition dates
+- Store portal data outside the document root under a per-site directory and stop retaining token-bearing mail captures in the plugin tree
 - Rename the guidelines link label to Submission guidelines
 
 ### Tests

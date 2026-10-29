@@ -98,6 +98,8 @@ if ( ! class_exists( 'Portal_Upload_Store' ) ) {
 			self::tmp_dir();
 			self::store_dir();
 			self::staged_dir();
+			self::data_dir( 'dg-logs' );
+			self::data_dir( 'dg-packets' );
 		}
 
 		/**
@@ -238,13 +240,156 @@ if ( ! class_exists( 'Portal_Upload_Store' ) ) {
 		}
 
 		/**
-		 * Write Apache deny + empty index so the dir is not web-listable.
+		 * Whether an explicit test-only base is active.
+		 *
+		 * @return bool
+		 */
+		public static function base_is_test_injection() {
+			return is_string( self::$basedir ) && '' !== self::$basedir;
+		}
+
+		/**
+		 * Stable per-site token for protected store directories.
+		 *
+		 * @return string
+		 */
+		public static function site_segment() {
+			$salt   = function_exists( 'wp_salt' ) ? (string) wp_salt( 'auth' ) : getenv( 'HOME' );
+			$digest = hash( 'sha256', (string) $salt );
+			return substr( $digest, 0, 16 );
+		}
+
+		/**
+		 * Resolve one protected operator-data directory, probing off-root first.
+		 *
+		 * Constant/fallback root DG_DATA_ROOT and filter `dg_data_dir` may override.
+		 * The off-root branch is the containment; segmented fallback remains web-visible.
+		 *
+		 * @param string            $name Store name (`dg-logs`, `dg-packets`, `mail`).
+		 * @param Portal_Files|null $files FS.
+		 * @return string
+		 */
+		public static function data_dir( $name, $files = null ) {
+			$name    = (string) $name;
+			$files   = $files instanceof Portal_Files ? $files : new Portal_Files();
+			$segment = self::site_segment();
+
+			if ( defined( 'DG_DATA_ROOT' ) ) {
+				$root = (string) constant( 'DG_DATA_ROOT' );
+				if ( '' !== $root ) {
+					return self::prepare_data_dir( $root, $name, $files );
+				}
+			}
+			if ( function_exists( 'apply_filters' ) ) {
+				$filtered = apply_filters( 'dg_data_dir', null, $name, $segment );
+				if ( is_string( $filtered ) && '' !== trim( $filtered ) ) {
+					return self::prepare_data_dir( $filtered, $name, $files );
+				}
+			}
+			if ( defined( 'ABSPATH' ) ) {
+				$parent = dirname( rtrim( (string) ABSPATH, '/\\' ) );
+				if ( self::probe_writable( $parent, $files ) ) {
+					return self::prepare_data_dir( $parent . DIRECTORY_SEPARATOR . 'dg-data-' . $segment, $name, $files );
+				}
+			}
+			return self::prepare_data_dir( self::join_basedir( 'dg-' . $segment ), $name, $files );
+		}
+
+		/**
+		 * Create and protect a store under a data root.
+		 *
+		 * @param string            $root Data root.
+		 * @param string            $name Store name.
+		 * @param Portal_Files|null $files FS.
+		 * @return string
+		 */
+		private static function prepare_data_dir( $root, $name, Portal_Files $files ) {
+			$dir = $files->join( rtrim( (string) $root, '/\\' ), $name );
+			$files->mkdir( $dir );
+			self::write_deny( $files, $dir );
+			self::migrate_legacy_store( $name, $dir, $files );
+			return $dir;
+		}
+
+		/**
+		 * Copy legacy web-root rows into the protected root, then remove originals.
+		 *
+		 * A source is retained whenever every byte cannot be verified in place.
+		 *
+		 * @param string       $name  Store name.
+		 * @param string       $dest  Protected store.
+		 * @param Portal_Files $files FS.
+		 * @return void
+		 */
+		private static function migrate_legacy_store( $name, $dest, Portal_Files $files ) {
+			$legacy = self::legacy_dir( $name );
+			if ( '' === $legacy || rtrim( $legacy, '/\\' ) === rtrim( $dest, '/\\' ) || ! $files->is_dir( $legacy ) ) {
+				return;
+			}
+			foreach ( $files->list_names( $legacy ) as $entry ) {
+				$source = $files->join( $legacy, $entry );
+				if ( ! $files->is_file( $source ) ) {
+					continue;
+				}
+				$target = $files->join( $dest, $entry );
+				$bytes  = $files->read_text( $source );
+				if ( $files->exists( $target ) && $files->read_text( $target ) !== $bytes ) {
+					continue;
+				}
+				$files->write( $target, $bytes );
+				if ( $files->read_text( $target ) !== $bytes ) {
+					continue;
+				}
+				$files->remove( $source );
+			}
+			if ( empty( $files->list_names( $legacy ) ) ) {
+				$files->remove( $legacy );
+			}
+		}
+
+		/**
+		 * Legacy web-root directory for mail/log/packet stores.
+		 *
+		 * @param string $name Store name.
+		 * @return string
+		 */
+		private static function legacy_dir( $name ) {
+			if ( 'mail' === $name ) {
+				return class_exists( 'Portal_Test_Mode' )
+					? Portal_Test_Mode::artifact_dir() . DIRECTORY_SEPARATOR . Portal_Mailer::ARTIFACT_DIR_NAME
+					: '';
+			}
+			return self::basedir() . DIRECTORY_SEPARATOR . $name;
+		}
+
+		/**
+		 * Prove a parent can be created and written by writing a transient probe.
+		 *
+		 * @param string            $parent Candidate parent.
+		 * @param Portal_Files|null $files FS.
+		 * @return bool
+		 */
+		private static function probe_writable( $parent, Portal_Files $files ) {
+			try {
+				$files->mkdir( $parent );
+				$probe = $files->join( $parent, '.dg-write-probe-' . self::site_segment() );
+				$files->write( $probe, 'ok' );
+				$ok = 'ok' === $files->read_text( $probe );
+				$files->remove( $probe );
+				return $ok;
+			} catch ( Exception $e ) {
+				return false;
+			}
+		}
+
+		/**
+		 * Public reusable Apache deny + empty index so directories are not listable.
 		 *
 		 * @param Portal_Files $files Facade.
 		 * @param string       $dir   Directory.
 		 * @return void
 		 */
-		private static function write_deny( Portal_Files $files, $dir ) {
+		public static function write_deny( Portal_Files $files, $dir ) {
 			$htaccess = $files->join( $dir, self::DENY_FILENAME );
 			if ( ! $files->exists( $htaccess ) ) {
 				$files->write( $htaccess, self::deny_htaccess() );

@@ -67,15 +67,23 @@ if ( ! class_exists( 'Portal_Mailer' ) ) {
 		 * @return string Absolute path written.
 		 */
 		public function capture( array $message ) {
-			$dir = $this->files->join( $this->artifact_dir, self::ARTIFACT_DIR_NAME );
-			$this->files->mkdir( $dir );
+			$explicit         = getenv( 'DG_ARTIFACT_DIR' );
+			$protected        = class_exists( 'Portal_Upload_Store' ) && ! Portal_Upload_Store::base_is_test_injection();
+			$default_artifact = class_exists( 'Portal_Test_Mode' ) && Portal_Test_Mode::artifact_dir() === $this->artifact_dir;
+			$root             = $protected && false === $explicit && $default_artifact
+				? Portal_Upload_Store::data_dir( self::ARTIFACT_DIR_NAME, $this->files )
+				: $this->files->join( $this->artifact_dir, self::ARTIFACT_DIR_NAME );
+			$this->files->mkdir( $root );
+			if ( class_exists( 'Portal_Upload_Store' ) ) {
+				Portal_Upload_Store::write_deny( $this->files, $root );
+			}
 
 			$to      = isset( $message['to'] ) && is_string( $message['to'] ) && '' !== $message['to']
 				? $message['to']
 				: self::UNKNOWN_RECIPIENT;
 			$safe_to = preg_replace( '/[^A-Za-z0-9@._+-]+/', '_', $to );
 			$ms      = $this->now_ms ? (int) call_user_func( $this->now_ms ) : (int) round( microtime( true ) * 1000 );
-			$dest    = $this->files->join( $dir, $ms . '-' . $safe_to . self::EXTENSION );
+			$dest    = $this->files->join( $root, $ms . '-' . $safe_to . self::EXTENSION );
 
 			$payload = array_merge(
 				array(
@@ -116,7 +124,7 @@ if ( ! class_exists( 'Portal_Mailer' ) ) {
 		 * Mail failure is captured on the payload and does not throw.
 		 *
 		 * @param array<string,mixed> $message Keys: to, tokens, subject?, body?, portalId.
-		 * @return string Capture path.
+		 * @return string|null Capture path when test mode retains the message.
 		 */
 		public function send( array $message ) {
 			$result = $this->send_and_report( $message );
@@ -128,7 +136,7 @@ if ( ! class_exists( 'Portal_Mailer' ) ) {
 		 * prepare / deliver / capture path as receipts.
 		 *
 		 * @param array<string,mixed> $payload Keys: invite|tokens, portalId?, portalTitle?, to?, subject?, body?.
-		 * @return array{path:string,ok:bool,error:string|null} Capture path and send report.
+		 * @return array{path:string|null,ok:bool,error:string|null} Capture path and send report.
 		 */
 		public function send_invite( array $payload ) {
 			$payload['kind'] = self::KIND_INVITE;
@@ -154,10 +162,12 @@ if ( ! class_exists( 'Portal_Mailer' ) ) {
 		}
 
 		/**
-		 * Interpolate, deliver when live, capture always; report success.
+		 * Interpolate, deliver when live, and retain a copy only in test mode.
+		 *
+		 * Mail failure is captured on the payload and does not throw.
 		 *
 		 * @param array<string,mixed> $message Raw send() input.
-		 * @return array{path:string,ok:bool,error:string|null}
+		 * @return array{path:string|null,ok:bool,error:string|null}
 		 */
 		private function send_and_report( array $message ) {
 			try {
@@ -169,7 +179,7 @@ if ( ! class_exists( 'Portal_Mailer' ) ) {
 						$payload['error'] = 'wp_mail returned false';
 					}
 				}
-				$path  = $this->capture( $payload );
+				$path  = $this->maybe_capture( $payload );
 				$error = isset( $payload['error'] ) ? (string) $payload['error'] : null;
 				return array(
 					'path'  => $path,
@@ -178,13 +188,26 @@ if ( ! class_exists( 'Portal_Mailer' ) ) {
 				);
 			} catch ( Exception $e ) {
 				$message['error'] = $e->getMessage();
-				$path             = $this->capture( $message );
+				$path             = $this->maybe_capture( $message );
 				return array(
 					'path'  => $path,
 					'ok'    => false,
 					'error' => $e->getMessage(),
 				);
 			}
+		}
+
+		/**
+		 * Retain a mailbox copy only when test mode is explicitly enabled.
+		 *
+		 * @param array<string,mixed> $payload Prepared message.
+		 * @return string|null Capture path when retained.
+		 */
+		private function maybe_capture( array $payload ) {
+			if ( ! class_exists( 'Portal_Test_Mode' ) || ! Portal_Test_Mode::is_enabled() ) {
+				return null;
+			}
+			return $this->capture( $payload );
 		}
 
 		/**
@@ -213,7 +236,7 @@ if ( ! class_exists( 'Portal_Mailer' ) ) {
 		 * One operator notify. Fail-open is owned by send().
 		 *
 		 * @param array<string,mixed> $message Keys: to?, tokens, portalId, subject?, body?.
-		 * @return string Capture path.
+		 * @return string|null Capture path when test mode retains the message.
 		 */
 		public function send_operator_notify( array $message ) {
 			$message['kind'] = self::KIND_OPERATOR;

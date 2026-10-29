@@ -51,17 +51,21 @@ if ( ! class_exists( 'Portal_Submit_Log' ) ) {
 		}
 
 		/**
-		 * Live store under wp_upload_dir()/dg-logs.
+		 * Live store under protected data root, or explicit test base.
 		 *
 		 * @param Portal_Files|null $files Injectable FS.
 		 * @param callable|null     $now   Clock.
 		 * @return self
 		 */
 		public static function for_uploads( $files = null, $now = null ) {
-			$base = class_exists( 'Portal_Upload_Store' )
-				? Portal_Upload_Store::basedir()
-				: sys_get_temp_dir();
-			return new self( rtrim( (string) $base, '/\\' ) . DIRECTORY_SEPARATOR . self::DIR_NAME, $files, $now );
+			$files = $files instanceof Portal_Files ? $files : new Portal_Files();
+			if ( class_exists( 'Portal_Upload_Store' ) ) {
+				if ( ! Portal_Upload_Store::base_is_test_injection() ) {
+					return new self( Portal_Upload_Store::data_dir( self::DIR_NAME, $files ), $files, $now );
+				}
+				return new self( rtrim( Portal_Upload_Store::basedir(), '/\\' ) . DIRECTORY_SEPARATOR . self::DIR_NAME, $files, $now );
+			}
+			return new self( rtrim( (string) sys_get_temp_dir(), '/\\' ) . DIRECTORY_SEPARATOR . self::DIR_NAME, $files, $now );
 		}
 
 		/**
@@ -189,7 +193,11 @@ if ( ! class_exists( 'Portal_Submit_Log' ) ) {
 		private function append( $portal_id, array $row ) {
 			$dest = $this->path_for( $portal_id );
 			try {
-				$this->files->mkdir( $this->files->dirname( $dest ) );
+				$dir = $this->files->dirname( $dest );
+				$this->files->mkdir( $dir );
+				if ( class_exists( 'Portal_Upload_Store' ) ) {
+					Portal_Upload_Store::write_deny( $this->files, $dir );
+				}
 				$this->files->append( $dest, self::encode_row( $row ) . "\n" );
 				$this->trim_to_cap( $portal_id );
 			} catch ( Exception $e ) {
