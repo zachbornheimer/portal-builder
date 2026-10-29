@@ -1097,15 +1097,22 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 		private static function submitter_identity( array $validated, $portal_id ) {
 			$name      = isset( $validated['applicant']['sub_name'] ) ? trim( (string) $validated['applicant']['sub_name'] ) : '';
 			$invite_id = null;
+			$user_id   = function_exists( 'get_current_user_id' ) ? (int) get_current_user_id() : 0;
 			if ( class_exists( 'Portal_Invites' ) ) {
 				$invite = Portal_Invites::for_current_request( $portal_id );
 				if ( is_array( $invite ) && isset( $invite['id'] ) && '' !== (string) $invite['id'] ) {
-					$invite_id = (string) $invite['id'];
+					$invite_id   = (string) $invite['id'];
+					$invite_user = isset( $invite['userId'] ) ? (int) $invite['userId'] : 0;
+					// Anonymous applicant on an invited link: carry the invite's
+					// own user, but only a real one the invite actually names.
+					if ( 0 === $user_id && $invite_user > 0 && function_exists( 'get_userdata' ) && get_userdata( $invite_user ) ) {
+						$user_id = $invite_user;
+					}
 				}
 			}
 			return array(
 				'name'     => $name,
-				'userId'   => function_exists( 'get_current_user_id' ) ? (int) get_current_user_id() : 0,
+				'userId'   => $user_id,
 				'inviteId' => $invite_id,
 			);
 		}
