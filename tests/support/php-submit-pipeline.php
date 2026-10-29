@@ -489,7 +489,6 @@ function harness_attach_log_view( array &$payload, $portal_id, $log_dir, $files 
 		$payload['logPath']    = $log->path_for( $portal_id );
 		$payload['logRows']    = $log->last( $portal_id, 20 );
 		$payload['adminRows']  = $payload['logRows'];
-		$payload['adminHtml']  = $log->render_admin( $portal_id );
 	} elseif ( $files->exists( $payload['logPath'] ) ) {
 		$text = trim( $files->read_text( $payload['logPath'] ) );
 		if ( '' !== $text ) {

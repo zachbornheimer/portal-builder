@@ -1,3 +1,34 @@
+## Unreleased
+
+### Features
+
+- Show Auto when the schedule closes a portal and reserve Closed for manual switch-off
+- Rename the wizard publish step to Status and make its save actions explicit
+- Add a Records step with a merged submission feed in place of the two PHP record tables
+- Carry applicant name, user id, and invite id on submission records
+- Add an Invitations section to send, resend, revoke, and copy invitation links
+- Sign one-time invitation links that admit a submission past the deadline
+- Prefill applicant fields from a valid invitation and fall back to the closed page when the link is stale
+- Send invitation mail through Portal_Mailer with overridable subject and body
+- Expose records, invites, and invite candidates under dragongate/v1
+- Show public deadline times with the real zone abbreviation for that instant
+- Let staff view the public page as open or closed
+- Add shortcodes that render real portal dates and a truthful status chip
+
+### Fixes
+
+- Replace the hardcoded 2027 guidelines dates with the portal definition dates
+- Rename the guidelines link label to Submission guidelines
+
+### Tests
+
+- Prove schedule-driven portal status in unit tests
+
+### Documentation
+
+- Update README and the first-hour readme for the new Status and Records steps
+- Refresh site-defaults, docs-a11y, and submit-log for the new console
+
 ## 0.1.11
 
 ### Fixes

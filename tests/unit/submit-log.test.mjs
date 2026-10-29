@@ -21,6 +21,15 @@ const submission = path.join(
 const artifactDir = path.join(root, 'tests/.artifacts/submit-log');
 const portalId = 'zys-617-submit-log';
 const DEST_KEYS = ['sheet', 'drive', 'anonymize', 'mail'];
+const LOG_ROW_KEYS = [
+  'applicationId',
+  'time',
+  'dests',
+  'errorCode',
+  'name',
+  'userId',
+  'inviteId',
+];
 
 /**
  * Prefer the pretty-printed harness object, not a `{` inside error_log.
@@ -186,6 +195,19 @@ test('operator log: happy-path ok plus forced Drive failure row', () => {
   for (const row of adminRows) {
     assertNoFileBytes(row);
   }
-  const adminHtml = typeof failed.data?.adminHtml === 'string' ? failed.data.adminHtml : '';
-  assert.ok(adminHtml.includes('data-dg-submit-log'), `admin html missing: ${adminHtml}`);
+  // The documented operator-log row keys (Portal_Submit_Log::record) — the
+  // same keys the records feed folds into each wizard Records row.
+  for (const row of [okRow, driveRow]) {
+    for (const key of LOG_ROW_KEYS) {
+      assert.ok(
+        Object.hasOwn(row, key),
+        `log row missing documented key ${key}: ${JSON.stringify(row)}`,
+      );
+    }
+  }
+  assert.deepEqual(
+    Object.keys(okRow).sort(),
+    Object.keys(driveRow).sort(),
+    `happy-path and Drive-failure rows must carry the same fields: ${JSON.stringify([okRow, driveRow])}`,
+  );
 });
