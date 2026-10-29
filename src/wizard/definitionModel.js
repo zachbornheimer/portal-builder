@@ -25,7 +25,7 @@ export const DEFAULT_TIMEZONE = 'America/New_York';
 export const BUILTIN_ANONYMIZE_ENDPOINT = 'https://api.allintersections.com';
 export const BUILTIN_ANONYMIZE_ACK =
 	'I certify that my scores and recordings exclude any information that might identify the composer but do include title of work, instrumentation, and duration.';
-export const BUILTIN_GUIDELINES_LINK_LABEL = 'Link to Guidelines';
+export const BUILTIN_GUIDELINES_LINK_LABEL = 'Submission guidelines';
 
 /**
  * Dual-write enabled / forceClosed. enabled wins when both are present.
@@ -87,47 +87,153 @@ export function applyLaunchDefault(publish, now = new Date(), inheritedTimezone 
 }
 
 /**
- * Public form URL with the editor preview flag.
+ * Public form URL with a preview flag (`?preview=<value>`).
  * @param {string} [publicUrl]
+ * @param {string} [previewValue]
  */
-export function previewUrl(publicUrl) {
+export function previewUrl(publicUrl, previewValue = 'true') {
 	if (!publicUrl || typeof publicUrl !== 'string') return '';
-	return publicUrl.includes('?') ? `${publicUrl}&preview=true` : `${publicUrl}?preview=true`;
+	return publicUrl.includes('?')
+		? `${publicUrl}&preview=${previewValue}`
+		: `${publicUrl}?preview=${previewValue}`;
 }
 
 /**
- * Applicant-facing Draft / Closed / Open label.
+ * Applicant-facing status driven by the schedule.
+ *
+ * - `draft` — the portal post is not published.
+ * - `closed` — manually turned off (switch off / force-closed).
+ * - `auto` — the schedule governs: not open yet (before `launchAt`) or
+ *   automatically closed (past `deadline`).
+ * - `open` — accepting submissions inside the schedule window.
+ *
+ * Schedule values are wall times in the portal timezone (as the wizard
+ * collects them) and are compared in that timezone, matching
+ * `Portal_Open_State::is_open` on the server.
+ *
  * @param {string} postStatus
  * @param {unknown} publish
  * @param {Date} [now]
+ * @returns {{ key: 'draft'|'auto'|'open'|'closed', label: 'Draft'|'Auto'|'Open'|'Closed', detail: string }}
  */
 export function applicantFacingStatus(postStatus, publish, now = new Date()) {
-	if (postStatus !== 'publish') return 'Draft';
-	const p = dualWritePublish(publish);
-	if (!p.enabled) return 'Closed';
-	if (instantIsFuture(p.launchAt, now)) return 'Closed';
-	if (instantIsPast(p.deadline, now)) return 'Closed';
-	return 'Open';
+	if (postStatus !== 'publish') {
+		return { key: 'draft', label: 'Draft', detail: 'Not published yet' };
+	}
+	const raw = publish && typeof publish === 'object' && !Array.isArray(publish) ? publish : {};
+	// Manual override wins over the schedule (matches Portal_Open_State::is_open).
+	const manualOff = Boolean(raw.forceClosed) || (Object.hasOwn(raw, 'enabled') && !raw.enabled);
+	if (manualOff) {
+		return { key: 'closed', label: 'Closed', detail: 'Turned off manually' };
+	}
+	const p = dualWritePublish(raw);
+	const timezone = p.timezone || DEFAULT_TIMEZONE;
+	const launchAt = scheduleInstant(p.launchAt, timezone);
+	const deadline = scheduleInstant(p.deadline, timezone);
+	const ms = now.getTime();
+	if (deadline !== null && ms > deadline) {
+		return { key: 'auto', label: 'Auto', detail: `Closed ${formatScheduleDate(deadline, timezone)}` };
+	}
+	if (launchAt !== null && ms < launchAt) {
+		return { key: 'auto', label: 'Auto', detail: `Opens ${formatScheduleDate(launchAt, timezone)}` };
+	}
+	return { key: 'open', label: 'Open', detail: 'Accepting submissions' };
+}
+
+const SCHEDULE_DATE_OPTIONS = {
+	weekday: 'long',
+	month: 'long',
+	day: 'numeric',
+	year: 'numeric',
+};
+
+/**
+ * `Friday, August 15, 2026` for an instant, rendered in the portal timezone.
+ *
+ * @param {number} instantMs
+ * @param {string} timezone
+ */
+function formatScheduleDate(instantMs, timezone) {
+	try {
+		return new Intl.DateTimeFormat('en-US', { ...SCHEDULE_DATE_OPTIONS, timeZone: timezone }).format(
+			new Date(instantMs),
+		);
+	} catch {
+		return new Intl.DateTimeFormat('en-US', {
+			...SCHEDULE_DATE_OPTIONS,
+			timeZone: DEFAULT_TIMEZONE,
+		}).format(new Date(instantMs));
+	}
 }
 
 /**
+ * Resolve a schedule value to a UTC instant. Naive `YYYY-MM-DD[THH:mm[:ss]]`
+ * strings are wall times in the portal timezone; values with `Z` or an
+ * explicit offset are taken at face value. Unparseable input returns null.
+ *
  * @param {unknown} value
- * @param {Date} now
+ * @param {string} timezone
+ * @returns {number | null}
  */
-function instantIsFuture(value, now) {
-	if (!value || typeof value !== 'string') return false;
-	const t = Date.parse(value);
-	return !Number.isNaN(t) && now.getTime() < t;
+function scheduleInstant(value, timezone) {
+	if (!value || typeof value !== 'string') return null;
+	const trimmed = value.trim();
+	if (!trimmed) return null;
+	const hasZone = /(?:Z|[+-]\d{2}:?\d{2})$/i.test(trimmed);
+	const naive = /^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2})(?::(\d{2}))?)?/.exec(trimmed);
+	if (!naive || hasZone) {
+		const t = Date.parse(trimmed);
+		return Number.isNaN(t) ? null : t;
+	}
+	const wallUtc = Date.UTC(
+		Number(naive[1]),
+		Number(naive[2]) - 1,
+		Number(naive[3]),
+		Number(naive[4] || 0),
+		Number(naive[5] || 0),
+		Number(naive[6] || 0),
+	);
+	// Two passes converge on the right instant across DST transitions.
+	let instant = wallUtc - timezoneOffsetMs(wallUtc, timezone);
+	instant = wallUtc - timezoneOffsetMs(instant, timezone);
+	return instant;
 }
 
 /**
- * @param {unknown} value
- * @param {Date} now
+ * Timezone offset (ms east of UTC) at an instant. An unknown timezone falls
+ * back to the default one, then to UTC.
+ *
+ * @param {number} instantMs
+ * @param {string} timezone
  */
-function instantIsPast(value, now) {
-	if (!value || typeof value !== 'string') return false;
-	const t = Date.parse(value);
-	return !Number.isNaN(t) && now.getTime() > t;
+function timezoneOffsetMs(instantMs, timezone) {
+	for (const tz of [timezone, DEFAULT_TIMEZONE]) {
+		try {
+			const parts = new Intl.DateTimeFormat('en-US', {
+				timeZone: tz,
+				hourCycle: 'h23',
+				year: 'numeric',
+				month: '2-digit',
+				day: '2-digit',
+				hour: '2-digit',
+				minute: '2-digit',
+				second: '2-digit',
+			}).formatToParts(new Date(instantMs));
+			const part = (type) => Number(parts.find((p) => p.type === type)?.value ?? 0);
+			const wallUtc = Date.UTC(
+				part('year'),
+				part('month') - 1,
+				part('day'),
+				part('hour'),
+				part('minute'),
+				part('second'),
+			);
+			return wallUtc - instantMs;
+		} catch {
+			// Try the next timezone.
+		}
+	}
+	return 0;
 }
 
 /** @returns {object} */

@@ -1,5 +1,5 @@
 <script>
-	import GateNav from './GateNav.svelte';
+import GateNav from './GateNav.svelte';
 	import { WIZARD_STEPS } from './steps.js';
 	import {
 		applicantFacingStatus,
@@ -17,6 +17,7 @@
 	import BuildStep from './steps/BuildStep.svelte';
 	import MapStep from './steps/MapStep.svelte';
 	import PublishStep from './steps/PublishStep.svelte';
+	import RecordsStep from './steps/RecordsStep.svelte';
 
 	/**
 	 * @typedef {Object} Props
@@ -94,7 +95,7 @@
 		start: started || countLeafFields(definition.fields) > 0 ? 'chosen' : 'template',
 		build: `${countLeafFields(definition.fields)} fields`,
 		map: mapSubtitle(definition),
-		publish: applicantStatus.toLowerCase(),
+		publish: applicantStatus.key,
 	});
 
 	$effect(() => {
@@ -274,128 +275,143 @@
 </script>
 
 <div
-	class="dg-wizard"
-	class:dg-wizard--product={productMode}
-	data-dg-wizard
-	data-load-state={loadState}
-	data-product-mode={productMode ? '1' : '0'}
+  class="dg-wizard"
+  class:dg-wizard--product={productMode}
+  data-dg-wizard
+  data-load-state={loadState}
+  data-product-mode={productMode ? '1' : '0'}
 >
-	<!-- Real page header (full bleed of content column) — not a card chrome strip -->
-	<header class="dg-wizard-header" role="banner">
-		<nav class="dg-wizard-header-nav" aria-label="Portal setup">
-			{#if listUrl}
-				<a class="dg-wizard-nav-back" href={listUrl}>← All portals</a>
-			{/if}
-			<div class="dg-wizard-header-brand">
-				{#if logoUrl}
-					<img
-						class="dg-wizard-brand-logo"
-						src={logoUrl}
-						alt=""
-						width="40"
-						height="40"
-						decoding="async"
-					/>
-				{/if}
-				<span class="dg-wizard-brand-name">DragonGate</span>
-			</div>
-			<span class="dg-wizard-header-title">
-				{definition.title || 'New portal'}
-			</span>
-			<GateNav {currentStepId} onSelect={selectStep} subtitles={stepSubtitles} />
-			<div class="dg-wizard-header-meta">
-				<button
-					type="button"
-					class="dg-accepting-switch"
-					role="switch"
-					aria-checked={accepting ? 'true' : 'false'}
-					aria-label={accepting ? 'Accepting submissions' : 'Not accepting'}
-					disabled={saveState === 'saving'}
-					onclick={toggleAccepting}
-				>
-					<span class="dg-accepting-switch-track" aria-hidden="true">
-						<span class="dg-accepting-switch-thumb"></span>
-					</span>
-					<span class="dg-accepting-switch-label">
-						{accepting ? 'Accepting submissions' : 'Not accepting'}
-					</span>
-				</button>
-				<span
-					class="dg-status-pill"
-					data-status={applicantStatus.toLowerCase()}
-					title="Applicant-facing status"
-				>
-					{applicantStatus}
-				</span>
-				<span class="dg-wizard-status" aria-live="polite">
-					{#if loadState === 'loading'}
-						Loading…
-					{:else if saveState === 'saving'}
-						Saving…
-					{:else if saveState === 'saved'}
-						Saved
-					{:else if saveState === 'error'}
-						Save error
-					{/if}
-				</span>
-			</div>
-		</nav>
-	</header>
+  <!-- Real page header (full bleed of content column) — not a card chrome strip -->
+  <header class="dg-wizard-header" role="banner">
+    <nav class="dg-wizard-header-nav" aria-label="Portal setup">
+      {#if listUrl}
+        <a class="dg-wizard-nav-back" href={listUrl}>← All portals</a>
+      {/if}
+      <div class="dg-wizard-header-brand">
+        {#if logoUrl}
+          <img
+            class="dg-wizard-brand-logo"
+            src={logoUrl}
+            alt=""
+            width="40"
+            height="40"
+            decoding="async"
+          />
+        {/if}
+        <span class="dg-wizard-brand-name">DragonGate</span>
+      </div>
+      <span class="dg-wizard-header-title">
+        {definition.title || 'New portal'}
+      </span>
+      <GateNav
+        {currentStepId}
+        onSelect={selectStep}
+        subtitles={stepSubtitles}
+      />
+      <div class="dg-wizard-header-meta">
+        <button
+          type="button"
+          class="dg-accepting-switch"
+          role="switch"
+          aria-checked={accepting ? 'true' : 'false'}
+          aria-label={`${accepting ? 'Accepting submissions' : 'Not accepting'} — ${applicantStatus.label}: ${applicantStatus.detail}`}
+          title={`${applicantStatus.label} — ${applicantStatus.detail}`}
+          disabled={saveState === 'saving'}
+          onclick={toggleAccepting}
+        >
+          <span class="dg-accepting-switch-track" aria-hidden="true">
+            <span class="dg-accepting-switch-thumb"></span>
+          </span>
+          <span class="dg-accepting-switch-label">
+            {accepting ? 'Accepting submissions' : 'Not accepting'}
+          </span>
+        </button>
+        <span
+          class="dg-status-pill"
+          data-status={applicantStatus.key}
+          title={applicantStatus.detail}
+        >
+          {applicantStatus.label}
+        </span>
+        <span class="dg-wizard-status" aria-live="polite">
+          {#if loadState === 'loading'}
+            Loading…
+          {:else if saveState === 'saving'}
+            Saving…
+          {:else if saveState === 'saved'}
+            Saved
+          {:else if saveState === 'error'}
+            Save error
+          {/if}
+        </span>
+      </div>
+    </nav>
+  </header>
 
-	{#if loadError}
-		<p class="dg-wizard-alert" role="alert">{loadError}</p>
-	{/if}
+  {#if loadError}
+    <p class="dg-wizard-alert" role="alert">{loadError}</p>
+  {/if}
 
-	<!-- Open content on paper ground — no nested content box -->
-	<main class="dg-wizard-main" aria-labelledby="dg-wizard-step-title">
-		{#if logoUrl}
-			<img
-				class="dg-wizard-mark"
-				src={logoUrl}
-				alt="DragonGate"
-				width="180"
-				height="180"
-				decoding="async"
-			/>
-		{/if}
-		{#if loadState === 'loading'}
-			<p class="dg-wizard-lead">Loading portal…</p>
-		{:else if currentStepId === 'start'}
-			<StartStep
-				{definition}
-				{api}
-				onApply={applyDefinition}
-				onContinue={() => go('build')}
-			/>
-		{:else if currentStepId === 'build'}
-			<BuildStep
-				{definition}
-				onChange={changeDefinition}
-				onContinue={() => go('map')}
-				onBack={() => go('start')}
-			/>
-		{:else if currentStepId === 'map'}
-			<MapStep
-				{definition}
-				onChange={changeDefinition}
-				onContinue={() => go('publish')}
-				onBack={() => go('build')}
-			/>
-		{:else if currentStepId === 'publish'}
-			<PublishStep
-				{definition}
-				{accessCatalog}
-				{siteDefaults}
-				onChange={changeDefinition}
-				onBack={() => go('map')}
-				onSaveDraft={saveDraft}
-				onSavePortal={savePortal}
-				{saveState}
-				{saveError}
-				applicantStatus={applicantStatus}
-				publicUrl={livePublicUrl}
-				listUrl={listUrl}
-			/>
-		{/if}
-	</main>
+  <!-- Open content on paper ground — no nested content box -->
+  <main class="dg-wizard-main" aria-labelledby="dg-wizard-step-title">
+    {#if logoUrl}
+      <img
+        class="dg-wizard-mark"
+        src={logoUrl}
+        alt="DragonGate"
+        width="180"
+        height="180"
+        decoding="async"
+      />
+    {/if}
+    {#if loadState === 'loading'}
+      <p class="dg-wizard-lead">Loading portal…</p>
+    {:else if currentStepId === 'start'}
+      <StartStep
+        {definition}
+        {api}
+        onApply={applyDefinition}
+        onContinue={() => go('build')}
+      />
+    {:else if currentStepId === 'build'}
+      <BuildStep
+        {definition}
+        onChange={changeDefinition}
+        onContinue={() => go('map')}
+        onBack={() => go('start')}
+      />
+    {:else if currentStepId === 'map'}
+      <MapStep
+        {definition}
+        onChange={changeDefinition}
+        onContinue={() => go('publish')}
+        onBack={() => go('build')}
+      />
+    {:else if currentStepId === 'publish'}
+      <PublishStep
+        {definition}
+        {accessCatalog}
+        {siteDefaults}
+        onChange={changeDefinition}
+        onBack={() => go('map')}
+        onSaveDraft={saveDraft}
+        onSavePortal={savePortal}
+        {saveState}
+        {saveError}
+        applicantStatus={applicantStatus}
+        publicUrl={livePublicUrl}
+        listUrl={listUrl}
+      />
+    {:else if currentStepId === 'records'}
+      <RecordsStep {definition} {api} onBack={() => go('publish')} />
+    {/if}
+  </main>
 </div>
+
+<style>
+/* Schedule-governed "Auto" state, mirroring the open/closed pill palette. */
+.dg-status-pill[data-status="auto"] {
+  background: rgba(156, 122, 60, 0.35);
+  border-color: rgba(156, 122, 60, 0.55);
+}
+</style>
