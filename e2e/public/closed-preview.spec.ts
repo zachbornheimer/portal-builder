@@ -15,7 +15,7 @@ const baseDefinition = JSON.parse(
 	fs.readFileSync('tests/fixtures/portals/herbolzheimer.definition.json', 'utf8')
 );
 
-const PREVIEW_BANNER = /Preview\s*[—–-]\s*not a live submission/i;
+const PREVIEW_BANNER = /Preview\s*[—–-]\s*this is how applicants see the form\.?\s*Submissions are off\.?/i;
 const CLOSED_COPY = /deadline has passed|portal is closed|not currently accepting/i;
 
 /** Closed for public: forceClosed + past deadline (belt and suspenders). */

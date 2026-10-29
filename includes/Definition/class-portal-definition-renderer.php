@@ -49,15 +49,16 @@ if ( ! class_exists( 'Portal_Definition_Renderer' ) ) {
 		 *
 		 * @param array $definition Validated definition (fields required).
 		 * @param array $site       Site bag for inherit resolve (empty in CLI harness).
+		 * @param array $defaults   Prefill defaults keyed name/email (invitations).
 		 * @return string
 		 */
-		public static function render( $definition, $site = array() ) {
+		public static function render( $definition, $site = array(), $defaults = array() ) {
 			if ( ! is_array( $definition ) || empty( $definition['fields'] ) || ! is_array( $definition['fields'] ) ) {
 				return '';
 			}
 
 			$inner  = self::render_test_banner( $definition );
-			$inner .= self::render_fields( $definition['fields'] );
+			$inner .= self::render_fields( $definition['fields'], $defaults );
 			$inner .= self::render_site_disclaimers();
 			$inner .= self::render_anonymize_ack_if_needed( $definition, $site );
 
@@ -153,38 +154,40 @@ if ( ! class_exists( 'Portal_Definition_Renderer' ) ) {
 		}
 
 		/**
-		 * @param array $fields Field list.
+		 * @param array $fields   Field list.
+		 * @param array $defaults Prefill defaults keyed name/email.
 		 * @return string
 		 */
-		public static function render_fields( $fields ) {
+		public static function render_fields( $fields, $defaults = array() ) {
 			$html = '';
 			foreach ( $fields as $field ) {
 				if ( ! is_array( $field ) || empty( $field['type'] ) ) {
 					continue;
 				}
-				$html .= self::render_field( $field );
+				$html .= self::render_field( $field, $defaults );
 			}
 			return $html;
 		}
 
 		/**
-		 * @param array $field Single field.
+		 * @param array $field    Single field.
+		 * @param array $defaults Prefill defaults keyed name/email.
 		 * @return string
 		 */
-		public static function render_field( $field ) {
+		public static function render_field( $field, $defaults = array() ) {
 			$type = (string) $field['type'];
 
 			switch ( $type ) {
 				case 'applicant_pack':
-					return self::render_applicant_pack( $field );
+					return self::render_applicant_pack( $field, $defaults );
 				case 'group':
-					return self::render_group( $field );
+					return self::render_group( $field, $defaults );
 				case 'branch':
-					return self::render_branch( $field );
+					return self::render_branch( $field, $defaults );
 				case 'short_text':
 				case 'email':
 				case 'phone':
-					return self::render_text_input( $field );
+					return self::render_text_input( $field, $defaults );
 				case 'long_text':
 					return self::render_textarea( $field );
 				case 'score_file':
@@ -219,14 +222,17 @@ if ( ! class_exists( 'Portal_Definition_Renderer' ) ) {
 		}
 
 		/**
-		 * @param array $field Field.
+		 * @param array $field    Field.
+		 * @param array $defaults Prefill defaults keyed name/email.
 		 * @return string
 		 */
-		private static function render_applicant_pack( $field ) {
+		private static function render_applicant_pack( $field, $defaults = array() ) {
 			$label    = isset( $field['label'] ) ? (string) $field['label'] : 'Your Information';
 			$required = ! empty( $field['required'] );
 
-			$req = $required ? ' required aria-required="true"' : '';
+			$req        = $required ? ' required aria-required="true"' : '';
+			$name_value = ! empty( $defaults['name'] ) ? sprintf( ' value="%s"', esc_attr( (string) $defaults['name'] ) ) : '';
+			$mail_value = ! empty( $defaults['email'] ) ? sprintf( ' value="%s"', esc_attr( (string) $defaults['email'] ) ) : '';
 
 			ob_start();
 			?>
@@ -240,13 +246,13 @@ if ( ! class_exists( 'Portal_Definition_Renderer' ) ) {
 						</div>
 						<div class="dg-field">
 							<label for="sub_name" id="sub_name_label">Name<?php self::echo_required_mark( $required ); ?></label>
-							<input class="dg-control" name="sub_name" id="sub_name" type="text"<?php echo $req; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> aria-labelledby="sub_name_label" autocomplete="name" />
+							<input class="dg-control" name="sub_name" id="sub_name" type="text"<?php echo $name_value . $req; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> aria-labelledby="sub_name_label" autocomplete="name" />
 						</div>
 					</div>
 					<div class="dg-grid dg-grid-2">
 						<div class="dg-field">
 							<label for="sub_email" id="sub_email_label">Email Address<?php self::echo_required_mark( $required ); ?></label>
-							<input class="dg-control" name="sub_email" id="sub_email" type="email"<?php echo $req; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> aria-labelledby="sub_email_label" autocomplete="email" />
+							<input class="dg-control" name="sub_email" id="sub_email" type="email"<?php echo $mail_value . $req; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> aria-labelledby="sub_email_label" autocomplete="email" />
 						</div>
 						<div class="dg-field">
 							<label for="sub_inst_affil" id="sub_inst_affil_label">Institutional Affiliation <span class="caption">(optional)</span></label>
@@ -288,13 +294,14 @@ if ( ! class_exists( 'Portal_Definition_Renderer' ) ) {
 		}
 
 		/**
-		 * @param array $field Field.
+		 * @param array $field    Field.
+		 * @param array $defaults Prefill defaults keyed name/email.
 		 * @return string
 		 */
-		private static function render_group( $field ) {
+		private static function render_group( $field, $defaults = array() ) {
 			$label    = isset( $field['label'] ) ? (string) $field['label'] : '';
 			$children = isset( $field['children'] ) && is_array( $field['children'] ) ? $field['children'] : array();
-			$inner    = self::render_fields( $children );
+			$inner    = self::render_fields( $children, $defaults );
 
 			return sprintf(
 				'<div class="dg-field dg-field--group dg-section" data-dg-field-id="%1$s" data-dg-field-type="group" data-testid="dg-field-%1$s"><fieldset><legend>%2$s</legend><div class="dg-stack">%3$s</div></fieldset></div>',
@@ -305,24 +312,25 @@ if ( ! class_exists( 'Portal_Definition_Renderer' ) ) {
 		}
 
 		/**
-		 * @param array $field Field.
+		 * @param array $field    Field.
+		 * @param array $defaults Prefill defaults keyed name/email.
 		 * @return string
 		 */
-		private static function render_branch( $field ) {
+		private static function render_branch( $field, $defaults = array() ) {
 			$label   = isset( $field['label'] ) ? (string) $field['label'] : '';
 			$name    = self::input_name( $field['id'] );
 			$options = isset( $field['options'] ) && is_array( $field['options'] ) ? $field['options'] : array();
 			$req     = ! empty( $field['required'] ) ? ' required' : '';
 
-			$options_html = '';
+			$options_html  = '';
 			$children_html = '';
 			foreach ( $options as $opt ) {
 				if ( ! is_array( $opt ) || empty( $opt['id'] ) ) {
 					continue;
 				}
-				$opt_id    = (string) $opt['id'];
-				$opt_label = isset( $opt['label'] ) ? (string) $opt['label'] : $opt_id;
-				$input_id  = $name . '_' . $opt_id;
+				$opt_id        = (string) $opt['id'];
+				$opt_label     = isset( $opt['label'] ) ? (string) $opt['label'] : $opt_id;
+				$input_id      = $name . '_' . $opt_id;
 				$options_html .= sprintf(
 					'<div class="dg-branch-option"><label for="%1$s"><input type="radio" name="%2$s" id="%1$s" value="%3$s"%4$s /> %5$s</label></div>',
 					esc_attr( $input_id ),
@@ -331,12 +339,12 @@ if ( ! class_exists( 'Portal_Definition_Renderer' ) ) {
 					$req,
 					esc_html( $opt_label )
 				);
-				$kids = isset( $opt['children'] ) && is_array( $opt['children'] ) ? $opt['children'] : array();
+				$kids          = isset( $opt['children'] ) && is_array( $opt['children'] ) ? $opt['children'] : array();
 				if ( ! empty( $kids ) ) {
 					$children_html .= sprintf(
 						'<div class="dg-branch-children" data-dg-branch-option="%1$s" hidden>%2$s</div>',
 						esc_attr( $opt_id ),
-						self::render_fields( $kids )
+						self::render_fields( $kids, $defaults )
 					);
 				}
 				// Only first option needs required on radio group.
@@ -353,14 +361,15 @@ if ( ! class_exists( 'Portal_Definition_Renderer' ) ) {
 		}
 
 		/**
-		 * @param array $field Field.
+		 * @param array $field    Field.
+		 * @param array $defaults Prefill defaults keyed name/email.
 		 * @return string
 		 */
-		private static function render_text_input( $field ) {
-			$name     = self::input_name( $field['id'] );
-			$label    = self::label_text( $field );
-			$help     = self::help_html( $field );
-			$required = ! empty( $field['required'] ) ? ' required aria-required="true"' : '';
+		private static function render_text_input( $field, $defaults = array() ) {
+			$name       = self::input_name( $field['id'] );
+			$label      = self::label_text( $field );
+			$help       = self::help_html( $field );
+			$required   = ! empty( $field['required'] ) ? ' required aria-required="true"' : '';
 			$input_type = 'text';
 			if ( 'email' === $field['type'] ) {
 				$input_type = 'email';
@@ -370,8 +379,13 @@ if ( ! class_exists( 'Portal_Definition_Renderer' ) ) {
 
 			$req_mark = ! empty( $field['required'] ) ? self::required_mark_html() : '';
 
+			$default_key = (string) $field['id'];
+			$value       = ( 'name' === $default_key || 'email' === $default_key ) && ! empty( $defaults[ $default_key ] )
+				? sprintf( ' value="%s"', esc_attr( (string) $defaults[ $default_key ] ) )
+				: '';
+
 			return sprintf(
-				'<div class="dg-field dg-field--%1$s" data-dg-field-id="%2$s" data-dg-field-type="%1$s" data-testid="dg-field-%2$s"><label for="%3$s">%4$s%5$s%6$s</label><input class="dg-control" type="%7$s" id="%3$s" name="%3$s"%8$s /></div>',
+				'<div class="dg-field dg-field--%1$s" data-dg-field-id="%2$s" data-dg-field-type="%1$s" data-testid="dg-field-%2$s"><label for="%3$s">%4$s%5$s%6$s</label><input class="dg-control" type="%7$s" id="%3$s" name="%3$s"%9$s%8$s /></div>',
 				esc_attr( $field['type'] ),
 				esc_attr( $field['id'] ),
 				esc_attr( $name ),
@@ -379,7 +393,8 @@ if ( ! class_exists( 'Portal_Definition_Renderer' ) ) {
 				$req_mark,
 				$help,
 				esc_attr( $input_type ),
-				$required
+				$required,
+				$value
 			);
 		}
 

@@ -32,7 +32,7 @@ if ( ! class_exists( 'Portal_Site_Defaults' ) ) {
 		const BUILTIN_ANONYMIZE_ENDPOINT    = 'https://api.allintersections.com';
 		const BUILTIN_ANONYMIZE_ACK         = 'I certify that my scores and recordings exclude any information that might identify the composer but do include title of work, instrumentation, and duration.';
 		const BUILTIN_TIMEZONE              = 'America/New_York';
-		const BUILTIN_GUIDELINES_LINK_LABEL = 'Link to Guidelines';
+		const BUILTIN_GUIDELINES_LINK_LABEL = 'Submission guidelines';
 		const BUILTIN_LOGIN_PATH            = '/login';
 		const BUILTIN_JOIN_PATH             = '/membership';
 
@@ -123,7 +123,7 @@ if ( ! class_exists( 'Portal_Site_Defaults' ) ) {
 		 * @return string
 		 */
 		public static function login_url( $redirect = '' ) {
-			$url = self::absolute_site_url( self::stored_or_builtin( self::OPTION_LOGIN_URL, self::BUILTIN_LOGIN_PATH ) );
+			$url      = self::absolute_site_url( self::stored_or_builtin( self::OPTION_LOGIN_URL, self::BUILTIN_LOGIN_PATH ) );
 			$redirect = trim( (string) $redirect );
 			if ( '' === $redirect || '' === $url ) {
 				return $url;
