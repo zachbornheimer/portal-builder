@@ -7,8 +7,9 @@
  *
  * Renders one of: "Open now", "Opens on <date>", "Closed on <date>", or
  * "Closed", derived from the portal's own publish configuration at the moment
- * the page is rendered. The portal attribute is optional on a single portal
- * page. Unknown portals render nothing (never a PHP warning).
+ * the page is rendered. Only deadline closures include a closure date. The
+ * portal attribute is optional on a single portal page. Unknown portals render
+ * nothing (never a PHP warning).
  *
  * @package DragonGate
  */
@@ -51,10 +52,12 @@ if ( ! function_exists( 'dg_portal_status_shortcode' ) ) {
 			}
 		}
 
-		$close = Portal_Open_State::publish_instant( $portal_id, 'close' );
-		$date  = Portal_Public_Render::format_when( $close['value'], $close['timezone'], 'phrase' );
-		if ( '' !== $date ) {
-			return dg_portal_status_chip( 'closed', 'Closed on ' . $date );
+		if ( 'deadline' === $reason ) {
+			$close = Portal_Open_State::publish_instant( $portal_id, 'close' );
+			$date  = Portal_Public_Render::format_when( $close['value'], $close['timezone'], 'phrase' );
+			if ( '' !== $date ) {
+				return dg_portal_status_chip( 'closed', 'Closed on ' . $date );
+			}
 		}
 		return dg_portal_status_chip( 'closed', 'Closed' );
 	}
