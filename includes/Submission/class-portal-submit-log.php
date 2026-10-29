@@ -95,16 +95,22 @@ if ( ! class_exists( 'Portal_Submit_Log' ) ) {
 		 * @param string               $code      Error code (`ok` on happy path).
 		 * @param string               $email     Optional applicant email (hashed only).
 		 * @param bool                 $test      Per-portal testMode submit.
+		 * @param array<string,mixed>  $identity  Applicant identity: name, userId, inviteId.
 		 * @return array<string,mixed> Written row.
 		 */
-		public function record( $portal_id, $app_id, array $dests, $code, $email = '', $test = false ) {
-			$row = array(
+		public function record( $portal_id, $app_id, array $dests, $code, $email = '', $test = false, array $identity = array() ) {
+			$name      = isset( $identity['name'] ) ? trim( (string) $identity['name'] ) : '';
+			$invite_id = isset( $identity['inviteId'] ) && is_scalar( $identity['inviteId'] ) ? (string) $identity['inviteId'] : '';
+			$row       = array(
 				'applicationId' => (string) $app_id,
 				'time'          => $this->timestamp(),
 				'dests'         => self::normalize_dests( $dests ),
 				'errorCode'     => (string) $code,
+				'name'          => '' !== $name ? $name : null,
+				'userId'        => isset( $identity['userId'] ) ? (int) $identity['userId'] : 0,
+				'inviteId'      => '' !== $invite_id ? $invite_id : null,
 			);
-			$hash = self::hash_email( $email );
+			$hash      = self::hash_email( $email );
 			if ( '' !== $hash ) {
 				$row['emailHash'] = $hash;
 			}
@@ -132,39 +138,6 @@ if ( ! class_exists( 'Portal_Submit_Log' ) ) {
 				return $rows;
 			}
 			return array_values( array_slice( $rows, -$limit ) );
-		}
-
-		/**
-		 * Tiny last-N table for the portal setup page.
-		 *
-		 * @param string|int $portal_id Portal id.
-		 * @param int        $limit     Max rows.
-		 * @return string
-		 */
-		public function render_admin( $portal_id, $limit = self::DEFAULT_LAST_N ) {
-			$rows = $this->last( $portal_id, $limit );
-			$head = '<section class="dg-submit-log" data-dg-submit-log><h2>'
-				. self::escape( 'Recent submissions' )
-				. '</h2>';
-			if ( empty( $rows ) ) {
-				return $head . '<p>' . self::escape( 'No submissions recorded yet.' ) . '</p></section>';
-			}
-			$body = '';
-			foreach ( $rows as $row ) {
-				$dests = isset( $row['dests'] ) && is_array( $row['dests'] ) ? $row['dests'] : array();
-				$body .= '<tr>';
-				$body .= '<td>' . self::escape( isset( $row['time'] ) ? $row['time'] : '' ) . '</td>';
-				$body .= '<td>' . self::escape( isset( $row['applicationId'] ) ? $row['applicationId'] : '' ) . '</td>';
-				foreach ( array( self::DEST_SHEET, self::DEST_DRIVE, self::DEST_ANONYMIZE, self::DEST_MAIL ) as $dest ) {
-					$body .= '<td>' . self::escape( isset( $dests[ $dest ] ) ? $dests[ $dest ] : self::DEST_SKIP ) . '</td>';
-				}
-				$body .= '<td>' . self::escape( isset( $row['errorCode'] ) ? $row['errorCode'] : '' ) . '</td>';
-				$body .= '</tr>';
-			}
-			return $head
-				. '<table><thead><tr><th>Time</th><th>Application</th><th>Sheet</th><th>Drive</th><th>Anonymize</th><th>Mail</th><th>Status</th></tr></thead><tbody>'
-				. $body
-				. '</tbody></table></section>';
 		}
 
 		/**
@@ -307,18 +280,6 @@ if ( ! class_exists( 'Portal_Submit_Log' ) ) {
 		private static function safe_id( $portal_id ) {
 			$id = preg_replace( '/[^A-Za-z0-9_-]/', '_', (string) $portal_id );
 			return is_string( $id ) && '' !== $id ? $id : 'portal';
-		}
-
-		/**
-		 * @param mixed $text Text.
-		 * @return string
-		 */
-		private static function escape( $text ) {
-			$text = (string) $text;
-			if ( function_exists( 'esc_html' ) ) {
-				return esc_html( $text );
-			}
-			return htmlspecialchars( $text, ENT_QUOTES, 'UTF-8' );
 		}
 	}
 }

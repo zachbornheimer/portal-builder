@@ -85,6 +85,12 @@ if ( ! class_exists( 'Portal_Packet_Store' ) ) {
 		}
 
 		/**
+		 * Append one packet row.
+		 *
+		 * Identity keys on the record: name (applicant submitted name),
+		 * userId (int, 0 for anonymous), inviteId (string|null). Rows written
+		 * before these keys existed stay readable as unknown.
+		 *
 		 * @param string|int          $portal_id Portal.
 		 * @param array<string,mixed> $packet    Packet.
 		 * @return array<string,mixed>
@@ -96,6 +102,14 @@ if ( ! class_exists( 'Portal_Packet_Store' ) ) {
 			if ( empty( $packet['time'] ) ) {
 				$packet['time'] = gmdate( 'c' );
 			}
+			$name           = isset( $packet['name'] ) ? trim( (string) $packet['name'] ) : '';
+			$packet['name'] = '' !== $name ? $name : null;
+			if ( ! isset( $packet['userId'] ) ) {
+				$packet['userId'] = 0;
+			}
+			$packet['userId']   = (int) $packet['userId'];
+			$invite_id          = isset( $packet['inviteId'] ) && is_scalar( $packet['inviteId'] ) ? (string) $packet['inviteId'] : '';
+			$packet['inviteId'] = '' !== $invite_id ? $invite_id : null;
 			$this->append( $portal_id, $packet );
 			return $packet;
 		}
@@ -174,7 +188,7 @@ if ( ! class_exists( 'Portal_Packet_Store' ) ) {
 			if ( is_object( $this->drive ) && method_exists( $this->drive, 'store_file' ) ) {
 				$this->drive->store_file( $portal_id, $field_id, $buffer, $filename );
 			}
-			$packet['replacedAt']   = gmdate( 'c' );
+			$packet['replacedAt']    = gmdate( 'c' );
 			$packet['replacedField'] = (string) $field_id;
 			$this->rewrite( $portal_id, $app_id, $packet );
 			return $packet;
@@ -246,8 +260,8 @@ if ( ! class_exists( 'Portal_Packet_Store' ) ) {
 			if ( ! $this->files->exists( $path ) ) {
 				return array();
 			}
-			$raw  = (string) $this->files->read_text( $path );
-			$out  = array();
+			$raw = (string) $this->files->read_text( $path );
+			$out = array();
 			foreach ( preg_split( '/\r\n|\r|\n/', $raw ) as $line ) {
 				if ( '' === trim( $line ) ) {
 					continue;

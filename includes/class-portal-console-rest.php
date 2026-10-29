@@ -52,6 +52,74 @@ if ( ! class_exists( 'Portal_Console_Rest' ) ) {
 					'permission_callback' => array( __CLASS__, 'can_replace' ),
 				)
 			);
+			register_rest_route(
+				self::NS,
+				'/portals/(?P<id>\d+)/records',
+				array(
+					'methods'             => 'GET',
+					'callback'            => array( __CLASS__, 'portal_records' ),
+					'permission_callback' => array( __CLASS__, 'can_edit_portal' ),
+				)
+			);
+			register_rest_route(
+				self::NS,
+				'/portals/(?P<id>\d+)/invites',
+				array(
+					'methods'             => 'GET',
+					'callback'            => array( __CLASS__, 'list_invites' ),
+					'permission_callback' => array( __CLASS__, 'can_edit_portal' ),
+				)
+			);
+			register_rest_route(
+				self::NS,
+				'/portals/(?P<id>\d+)/invites',
+				array(
+					'methods'             => 'POST',
+					'callback'            => array( __CLASS__, 'create_invite' ),
+					'permission_callback' => array( __CLASS__, 'can_edit_portal' ),
+				)
+			);
+			register_rest_route(
+				self::NS,
+				'/portals/(?P<id>\d+)/invites/(?P<invite>[A-Za-z0-9._-]+)/resend',
+				array(
+					'methods'             => 'POST',
+					'callback'            => array( __CLASS__, 'resend_invite' ),
+					'permission_callback' => array( __CLASS__, 'can_edit_portal' ),
+				)
+			);
+			register_rest_route(
+				self::NS,
+				'/portals/(?P<id>\d+)/invites/(?P<invite>[A-Za-z0-9._-]+)',
+				array(
+					'methods'             => 'DELETE',
+					'callback'            => array( __CLASS__, 'revoke_invite' ),
+					'permission_callback' => array( __CLASS__, 'can_edit_portal' ),
+				)
+			);
+			register_rest_route(
+				self::NS,
+				'/portals/(?P<id>\d+)/invite-candidates',
+				array(
+					'methods'             => 'GET',
+					'callback'            => array( __CLASS__, 'invite_candidates' ),
+					'permission_callback' => array( __CLASS__, 'can_edit_portal' ),
+				)
+			);
+		}
+
+		/**
+		 * Portal managers only: edit_post on the portal itself.
+		 *
+		 * @param WP_REST_Request $request Request.
+		 * @return true|WP_Error
+		 */
+		public static function can_edit_portal( $request ) {
+			$portal = isset( $request['id'] ) ? (int) $request['id'] : 0;
+			if ( ! function_exists( 'current_user_can' ) || ! current_user_can( 'edit_post', $portal ) ) {
+				return new WP_Error( 'dg_portal_forbidden', 'You cannot manage this portal.', array( 'status' => 403 ) );
+			}
+			return true;
 		}
 
 		/**
@@ -164,6 +232,230 @@ if ( ! class_exists( 'Portal_Console_Rest' ) ) {
 				return new WP_Error( 'dg_packet_replace', 'Could not replace that file.', array( 'status' => 409 ) );
 			}
 			return rest_ensure_response( $updated );
+		}
+
+		/**
+		 * Merged records feed for the wizard Records step.
+		 *
+		 * @param WP_REST_Request $request Request.
+		 * @return WP_REST_Response
+		 */
+		public static function portal_records( $request ) {
+			$portal = (int) $request['id'];
+			$limit  = isset( $request['limit'] ) ? (int) $request['limit'] : 5;
+			return rest_ensure_response( Portal_Records::for_portal( $portal, $limit ) );
+		}
+
+		/**
+		 * All invitations for a portal, newest first.
+		 *
+		 * @param WP_REST_Request $request Request.
+		 * @return WP_REST_Response
+		 */
+		public static function list_invites( $request ) {
+			$portal = (int) $request['id'];
+			return rest_ensure_response( array( 'invites' => Portal_Invites::all( $portal ) ) );
+		}
+
+		/**
+		 * Invite one applicant; an existing pending invite for the same e-mail
+		 * is re-sent instead of duplicated.
+		 *
+		 * @param WP_REST_Request $request Request.
+		 * @return WP_REST_Response|WP_Error
+		 */
+		public static function create_invite( $request ) {
+			$portal = (int) $request['id'];
+			$email  = sanitize_text_field( (string) $request->get_param( 'email' ) );
+			if ( ! is_email( $email ) ) {
+				return new WP_Error( 'dg_invite_email', 'A valid email address is required.', array( 'status' => 400 ) );
+			}
+			$name    = sanitize_text_field( (string) $request->get_param( 'name' ) );
+			$user_id = (int) $request->get_param( 'userId' );
+			if ( $user_id > 0 && ! get_userdata( $user_id ) ) {
+				return new WP_Error( 'dg_invite_user', 'That WordPress user does not exist.', array( 'status' => 400 ) );
+			}
+			$days = $request->get_param( 'expiresInDays' );
+			$days = null === $days || '' === $days ? Portal_Invites::DEFAULT_DAYS : (int) $days;
+			if ( $days < 1 ) {
+				$days = 1;
+			}
+			if ( $days > 90 ) {
+				$days = 90;
+			}
+
+			$pending = self::pending_invite_for_email( $portal, $email );
+			if ( null !== $pending ) {
+				$report = self::send_existing_invite( $portal, $pending );
+				$fresh  = Portal_Invites::find( $portal, $pending['id'] );
+				$fresh  = is_array( $fresh ) ? $fresh : $pending;
+				if ( is_array( $report ) && empty( $report['ok'] ) && isset( $report['error'] ) ) {
+					$fresh['sendError'] = (string) $report['error'];
+				}
+				return rest_ensure_response(
+					array(
+						'invite' => $fresh,
+						'resent' => true,
+					)
+				);
+			}
+
+			$invite = Portal_Invites::create(
+				$portal,
+				array(
+					'email'         => $email,
+					'name'          => $name,
+					'userId'        => $user_id,
+					'expiresInDays' => $days,
+				)
+			);
+			if ( is_wp_error( $invite ) ) {
+				return $invite;
+			}
+			return rest_ensure_response( array( 'invite' => $invite ) );
+		}
+
+		/**
+		 * Re-send one pending invitation.
+		 *
+		 * @param WP_REST_Request $request Request.
+		 * @return WP_REST_Response|WP_Error
+		 */
+		public static function resend_invite( $request ) {
+			$portal = (int) $request['id'];
+			$invite = Portal_Invites::find( $portal, (string) $request['invite'] );
+			if ( ! is_array( $invite ) ) {
+				return new WP_Error( 'dg_invite_missing', 'Invitation not found.', array( 'status' => 404 ) );
+			}
+			if ( Portal_Invites::STATUS_SENT !== Portal_Invites::status( $invite ) ) {
+				return new WP_Error( 'dg_invite_terminal', 'Only a pending invitation can be re-sent.', array( 'status' => 409 ) );
+			}
+			$report = self::send_existing_invite( $portal, $invite );
+			$fresh  = Portal_Invites::find( $portal, (string) $invite['id'] );
+			$fresh  = is_array( $fresh ) ? $fresh : $invite;
+			if ( is_array( $report ) && empty( $report['ok'] ) && isset( $report['error'] ) ) {
+				$fresh['sendError'] = (string) $report['error'];
+			}
+			return rest_ensure_response( array( 'invite' => $fresh ) );
+		}
+
+		/**
+		 * Revoke one invitation.
+		 *
+		 * @param WP_REST_Request $request Request.
+		 * @return WP_REST_Response|WP_Error
+		 */
+		public static function revoke_invite( $request ) {
+			$portal = (int) $request['id'];
+			$invite = Portal_Invites::find( $portal, (string) $request['invite'] );
+			if ( ! is_array( $invite ) ) {
+				return new WP_Error( 'dg_invite_missing', 'Invitation not found.', array( 'status' => 404 ) );
+			}
+			Portal_Invites::revoke( $portal, (string) $invite['id'] );
+			return rest_ensure_response( array( 'revoked' => true ) );
+		}
+
+		/**
+		 * User picker for invitations. Needs list_users on top of edit_post;
+		 * without it the candidates list is simply empty.
+		 *
+		 * @param WP_REST_Request $request Request.
+		 * @return WP_REST_Response
+		 */
+		public static function invite_candidates( $request ) {
+			if ( ! function_exists( 'current_user_can' ) || ! current_user_can( 'list_users' ) ) {
+				return rest_ensure_response( array( 'candidates' => array() ) );
+			}
+			$portal = (int) $request['id'];
+			$search = sanitize_text_field( (string) $request->get_param( 'search' ) );
+			$limit  = isset( $request['limit'] ) ? (int) $request['limit'] : 20;
+			if ( $limit < 1 ) {
+				$limit = 20;
+			}
+			if ( $limit > 50 ) {
+				$limit = 50;
+			}
+
+			$query = array(
+				'number'  => $limit,
+				'orderby' => 'display_name',
+				'order'   => 'ASC',
+			);
+			if ( '' !== $search ) {
+				$query['search']         = '*' . $search . '*';
+				$query['search_columns'] = array( 'user_login', 'user_email', 'display_name' );
+			}
+			$users = function_exists( 'get_users' ) ? get_users( $query ) : array();
+
+			$store      = class_exists( 'Portal_Packet_Store' ) ? Portal_Packet_Store::for_uploads() : null;
+			$candidates = array();
+			foreach ( $users as $user ) {
+				$email = isset( $user->user_email ) ? (string) $user->user_email : '';
+				$has   = false;
+				if ( $store instanceof Portal_Packet_Store && '' !== $email ) {
+					foreach ( $store->list_for_email( $portal, $email ) as $packet ) {
+						if ( ! class_exists( 'Portal_Packet_Policy' ) || Portal_Packet_Policy::is_current( $packet ) ) {
+							$has = true;
+							break;
+						}
+					}
+				}
+				$candidates[] = array(
+					'userId'        => isset( $user->ID ) ? (int) $user->ID : 0,
+					'name'          => isset( $user->display_name ) ? (string) $user->display_name : '',
+					'login'         => isset( $user->user_login ) ? (string) $user->user_login : '',
+					'email'         => $email,
+					'hasSubmission' => $has,
+				);
+			}
+			return rest_ensure_response( array( 'candidates' => $candidates ) );
+		}
+
+		/**
+		 * Pending (non-terminal) invite for an e-mail on a portal.
+		 *
+		 * @param int    $portal_id Portal post id.
+		 * @param string $email     Applicant e-mail.
+		 * @return array<string,mixed>|null
+		 */
+		private static function pending_invite_for_email( $portal_id, $email ) {
+			$email = strtolower( trim( (string) $email ) );
+			foreach ( Portal_Invites::all( $portal_id ) as $invite ) {
+				if ( Portal_Invites::STATUS_SENT !== Portal_Invites::status( $invite ) ) {
+					continue;
+				}
+				if ( isset( $invite['email'] ) && strtolower( trim( (string) $invite['email'] ) ) === $email ) {
+					return $invite;
+				}
+			}
+			return null;
+		}
+
+		/**
+		 * Re-send an existing invite's mail and record the send.
+		 *
+		 * @param int                 $portal_id Portal post id.
+		 * @param array<string,mixed> $invite    Invite array.
+		 * @return array<string,mixed>|null Mailer report, or null without a mailer.
+		 */
+		private static function send_existing_invite( $portal_id, array $invite ) {
+			if ( ! class_exists( 'Portal_Mailer' ) ) {
+				return null;
+			}
+			$artifact = class_exists( 'Portal_Test_Mode' )
+				? Portal_Test_Mode::artifact_dir()
+				: sys_get_temp_dir();
+			$mailer   = new Portal_Mailer( $artifact );
+			$report   = $mailer->send_invite(
+				array(
+					'invite'   => $invite,
+					'portalId' => $portal_id,
+				)
+			);
+			if ( is_array( $report ) && ! empty( $report['ok'] ) ) {
+				Portal_Invites::mark_sent( $portal_id, (string) $invite['id'] );
+			}
+			return $report;
 		}
 
 		/**
