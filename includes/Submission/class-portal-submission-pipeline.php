@@ -274,8 +274,8 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 		/**
 		 * Prefer staged tokens from POST (sub_{field}_staged) over raw $_FILES.
 		 *
-		 * @param array                  $post    $_POST-like map.
-		 * @param array                  $files   Normalized file meta.
+		 * @param array                   $post    $_POST-like map.
+		 * @param array                   $files   Normalized file meta.
 		 * @param Portal_Staged_File|null $staging Injectable staging owner.
 		 * @return array<string,array>
 		 */
@@ -447,10 +447,10 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 		 * @return self
 		 */
 		public static function for_artifacts( $artifact_dir, $files = null, $now_ms = null ) {
-			$files  = $files instanceof Portal_Files ? $files : new Portal_Files();
-			$sheets = new Portal_Sheet_Store( $artifact_dir, $files );
-			$drive  = new Portal_Drive_Store( $artifact_dir, $files );
-			$mailer = new Portal_Mailer( $artifact_dir, $files, $now_ms );
+			$files    = $files instanceof Portal_Files ? $files : new Portal_Files();
+			$sheets   = new Portal_Sheet_Store( $artifact_dir, $files );
+			$drive    = new Portal_Drive_Store( $artifact_dir, $files );
+			$mailer   = new Portal_Mailer( $artifact_dir, $files, $now_ms );
 			$pipeline = new self( $sheets, $drive, $mailer, $files );
 			return self::attach_default_log( $pipeline, $files, $artifact_dir );
 		}
@@ -491,8 +491,8 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 			if ( null === $file_store ) {
 				$file_store = Portal_Google_Store::file_store_from_options();
 			}
-			$google = new Portal_Google_Store( $file_store, $definition, $files );
-			$mailer = new Portal_Mailer( Portal_Test_Mode::artifact_dir(), $files, $now_ms );
+			$google   = new Portal_Google_Store( $file_store, $definition, $files );
+			$mailer   = new Portal_Mailer( Portal_Test_Mode::artifact_dir(), $files, $now_ms );
 			$pipeline = new self( $google, $google, $mailer, $files, $open_state );
 			return self::attach_default_log( $pipeline, $files, null );
 		}
@@ -593,6 +593,7 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 					'mail'      => 'skip',
 				);
 			$to          = self::applicant_email( $validated );
+			$identity    = self::submitter_identity( $validated, $portal_id );
 			$drive_paths = array();
 			$file_meta   = array();
 			$phase       = 'drive';
@@ -620,10 +621,10 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 					$decision           = $this->anonymize_judge_bytes( $definition, $buffer, $filename, $meta );
 					$dests['anonymize'] = $decision->dest;
 					if ( $decision->blocks_store() ) {
-						return $this->fail_anonymize( $portal_id, $submission_id, $dests, $decision, $to ? $to : '' );
+						return $this->fail_anonymize( $portal_id, $submission_id, $dests, $decision, $to ? $to : '', $identity );
 					}
-					$buffer = $decision->bytes;
-					$path   = $this->drive->store_file( $portal_id, $field_id, $buffer, $filename );
+					$buffer                   = $decision->bytes;
+					$path                     = $this->drive->store_file( $portal_id, $field_id, $buffer, $filename );
 					$drive_paths[ $field_id ] = $path;
 					$file_meta[ $field_id ]   = array(
 						'fieldId'  => $field_id,
@@ -677,10 +678,10 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 					);
 				}
 
-				$phase          = 'sheet';
-				$sheet_path     = $this->sheets->append_row( $portal_id, $row );
-				$dests['sheet'] = 'ok';
-				$tokens         = array(
+				$phase              = 'sheet';
+				$sheet_path         = $this->sheets->append_row( $portal_id, $row );
+				$dests['sheet']     = 'ok';
+				$tokens             = array(
 					'application_id'    => $submission_id,
 					'applicant_name'    => $applicant,
 					'applicant_email'   => $to ? $to : '',
@@ -705,12 +706,15 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 				$dests[ $phase ] = 'fail';
 				$code            = $phase . '_fail';
 				$is_test         = class_exists( 'Portal_Definition' ) && Portal_Definition::test_mode_on( $definition );
-				return $this->fail_after_dests( $portal_id, $submission_id, $dests, $code, $e, $to ? $to : '', $is_test );
+				return $this->fail_after_dests( $portal_id, $submission_id, $dests, $code, $e, $to ? $to : '', $is_test, $identity );
 			}
 
 			$is_test = class_exists( 'Portal_Definition' ) && Portal_Definition::test_mode_on( $definition );
-			$this->write_operator_log( $portal_id, $submission_id, $dests, 'ok', $to ? $to : '', $is_test );
-			$this->write_packet( $portal_id, $submission_id, $to ? $to : '', $dests );
+			$this->write_operator_log( $portal_id, $submission_id, $dests, 'ok', $to ? $to : '', $is_test, $identity );
+			$this->write_packet( $portal_id, $submission_id, $to ? $to : '', $dests, $identity );
+			if ( null !== $identity['inviteId'] && class_exists( 'Portal_Invites' ) ) {
+				Portal_Invites::mark_used( $portal_id, $identity['inviteId'], $submission_id );
+			}
 
 			return array(
 				'ok'               => true,
@@ -777,18 +781,21 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 
 		/**
 		 * Reject preview / closed before the first write. Skip when WP is absent
-		 * and no open-state was injected (CLI harness).
+		 * and no open-state was injected (CLI harness). A valid invitation
+		 * overrides the closed rule; preview and view-as still refuse.
 		 *
 		 * @param string|int $portal_id Portal id.
 		 * @return WP_Error|null
 		 */
 		private function admission_error( $portal_id ) {
-			$view_as = class_exists( 'Portal_View_As' ) && Portal_View_As::is_active( $portal_id );
+			$view_as    = class_exists( 'Portal_View_As' ) && Portal_View_As::is_active( $portal_id );
+			$has_invite = class_exists( 'Portal_Invites' ) ? Portal_Invites::grants_admission( $portal_id ) : false;
 			if ( is_array( $this->open_state ) ) {
 				return Portal_Submit_Admission::decide(
 					! empty( $this->open_state['preview'] ),
 					! empty( $this->open_state['open'] ),
-					$view_as
+					$view_as,
+					$has_invite
 				);
 			}
 			if ( is_object( $this->open_state ) ) {
@@ -798,7 +805,7 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 				$open    = method_exists( $this->open_state, 'is_open' )
 					? (bool) $this->open_state->is_open( $portal_id )
 					: true;
-				return Portal_Submit_Admission::decide( $preview, $open, $view_as );
+				return Portal_Submit_Admission::decide( $preview, $open, $view_as, $has_invite );
 			}
 			if ( ! function_exists( 'get_post' ) || ! class_exists( 'Portal_Open_State' ) ) {
 				return $view_as
@@ -812,7 +819,8 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 			return Portal_Submit_Admission::decide(
 				Portal_Open_State::is_preview_request( $id ),
 				Portal_Open_State::is_open( $id ),
-				$view_as
+				$view_as,
+				$has_invite
 			);
 		}
 
@@ -868,16 +876,17 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 		/**
 		 * Missing config is a validation error; fail-closed refuse is a dest failure.
 		 *
-		 * @param string                     $portal_id  Portal id.
-		 * @param string                     $app_id     Application id.
-		 * @param array<string,string>       $dests      Dest results.
-		 * @param Portal_Anonymize_Decision  $decision   Anonymize decision.
-		 * @param string                     $email      Applicant email.
+		 * @param string                    $portal_id  Portal id.
+		 * @param string                    $app_id     Application id.
+		 * @param array<string,string>      $dests      Dest results.
+		 * @param Portal_Anonymize_Decision $decision   Anonymize decision.
+		 * @param string                    $email      Applicant email.
+		 * @param array<string,mixed>       $identity   Applicant identity.
 		 * @return WP_Error
 		 */
-		private function fail_anonymize( $portal_id, $app_id, array $dests, $decision, $email ) {
+		private function fail_anonymize( $portal_id, $app_id, array $dests, $decision, $email, array $identity = array() ) {
 			$code = '' !== $decision->code ? $decision->code : Portal_Anonymize_Decision::CODE_REFUSED;
-			$this->write_operator_log( $portal_id, $app_id, $dests, $code, $email );
+			$this->write_operator_log( $portal_id, $app_id, $dests, $code, $email, false, $identity );
 			if ( Portal_Anonymize_Decision::ACTION_BLOCK === $decision->action ) {
 				return new WP_Error( 'dg_submission_invalid', $decision->message );
 			}
@@ -989,9 +998,9 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 		/**
 		 * Attach the default JSONL log (artifact dg-logs or uploads/dg-logs).
 		 *
-		 * @param self              $pipeline     Pipeline.
-		 * @param Portal_Files      $files        FS facade.
-		 * @param string|null       $artifact_dir Artifact root in test mode.
+		 * @param self         $pipeline     Pipeline.
+		 * @param Portal_Files $files        FS facade.
+		 * @param string|null  $artifact_dir Artifact root in test mode.
 		 * @return self
 		 */
 		private static function attach_default_log( $pipeline, $files, $artifact_dir ) {
@@ -1030,14 +1039,15 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 		 * @param string               $code      Error code.
 		 * @param string               $email     Applicant email (hashed only).
 		 * @param bool                 $test      Per-portal testMode submit.
+		 * @param array<string,mixed>  $identity  Applicant identity.
 		 * @return void
 		 */
-		private function write_operator_log( $portal_id, $app_id, array $dests, $code, $email, $test = false ) {
+		private function write_operator_log( $portal_id, $app_id, array $dests, $code, $email, $test = false, array $identity = array() ) {
 			$log = $this->submit_log();
 			if ( null === $log ) {
 				return;
 			}
-			$log->record( $portal_id, $app_id, $dests, $code, $email, $test );
+			$log->record( $portal_id, $app_id, $dests, $code, $email, $test, $identity );
 		}
 
 		/**
@@ -1047,16 +1057,19 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 		 * @param string               $app_id    Application id.
 		 * @param string               $email     Applicant email.
 		 * @param array<string,string> $dests     Dest results.
+		 * @param array<string,mixed>  $identity  Applicant identity.
 		 * @return void
 		 */
-		private function write_packet( $portal_id, $app_id, $email, array $dests ) {
+		private function write_packet( $portal_id, $app_id, $email, array $dests, array $identity = array() ) {
 			if ( ! class_exists( 'Portal_Packet_Store' ) ) {
 				return;
 			}
-			$hash = class_exists( 'Portal_Submit_Log' )
+			$hash      = class_exists( 'Portal_Submit_Log' )
 				? Portal_Submit_Log::hash_email( $email )
 				: '';
-			$store = Portal_Packet_Store::for_uploads( $this->files );
+			$name      = isset( $identity['name'] ) ? trim( (string) $identity['name'] ) : '';
+			$invite_id = isset( $identity['inviteId'] ) && is_scalar( $identity['inviteId'] ) ? (string) $identity['inviteId'] : '';
+			$store     = Portal_Packet_Store::for_uploads( $this->files );
 			$store->record(
 				$portal_id,
 				array(
@@ -1064,10 +1077,43 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 					'portalId'      => (string) $portal_id,
 					'emailHash'     => $hash,
 					'dests'         => $dests,
+					'name'          => '' !== $name ? $name : null,
+					'userId'        => isset( $identity['userId'] ) ? (int) $identity['userId'] : 0,
+					'inviteId'      => '' !== $invite_id ? $invite_id : null,
 					'status'        => class_exists( 'Portal_Packet_Policy' )
 						? Portal_Packet_Policy::STATUS_CURRENT
 						: 'current',
 				)
+			);
+		}
+
+		/**
+		 * Applicant identity for the operator log and packet rows.
+		 *
+		 * @param array      $validated Validator output.
+		 * @param string|int $portal_id  Portal id.
+		 * @return array{name:string,userId:int,inviteId:string|null}
+		 */
+		private static function submitter_identity( array $validated, $portal_id ) {
+			$name      = isset( $validated['applicant']['sub_name'] ) ? trim( (string) $validated['applicant']['sub_name'] ) : '';
+			$invite_id = null;
+			$user_id   = function_exists( 'get_current_user_id' ) ? (int) get_current_user_id() : 0;
+			if ( class_exists( 'Portal_Invites' ) ) {
+				$invite = Portal_Invites::for_current_request( $portal_id );
+				if ( is_array( $invite ) && isset( $invite['id'] ) && '' !== (string) $invite['id'] ) {
+					$invite_id   = (string) $invite['id'];
+					$invite_user = isset( $invite['userId'] ) ? (int) $invite['userId'] : 0;
+					// Anonymous applicant on an invited link: carry the invite's
+					// own user, but only a real one the invite actually names.
+					if ( 0 === $user_id && $invite_user > 0 && function_exists( 'get_userdata' ) && get_userdata( $invite_user ) ) {
+						$user_id = $invite_user;
+					}
+				}
+			}
+			return array(
+				'name'     => $name,
+				'userId'   => $user_id,
+				'inviteId' => $invite_id,
 			);
 		}
 
@@ -1081,10 +1127,11 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 		 * @param Exception            $exception  Dest failure.
 		 * @param string               $email      Applicant email.
 		 * @param bool                 $test       Per-portal testMode submit.
+		 * @param array<string,mixed>  $identity   Applicant identity.
 		 * @return WP_Error
 		 */
-		private function fail_after_dests( $portal_id, $app_id, array $dests, $code, $exception, $email, $test = false ) {
-			$this->write_operator_log( $portal_id, $app_id, $dests, $code, $email, $test );
+		private function fail_after_dests( $portal_id, $app_id, array $dests, $code, $exception, $email, $test = false, array $identity = array() ) {
+			$this->write_operator_log( $portal_id, $app_id, $dests, $code, $email, $test, $identity );
 			self::record_public_failure( $exception );
 			return new WP_Error( 'dg_submission_dest', self::PUBLIC_FAILURE_COPY );
 		}

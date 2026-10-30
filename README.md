@@ -51,11 +51,11 @@ Every control named below is a label that exists in this plugin.
 
 8. **Map dests.** On **Map data**, paste each Google Sheet URL and Drive folder. Name each dest. Map every form field to a dest. Sheet column headers = dest names.
 
-9. **Publish.** On **Publish**, set a deadline if you need one, turn on **Accepting submissions**, then click **Save Portal**. The **Public form** URL appears on this step — use **Copy link** or **View public form**.
+9. **Status.** On **Status**, set the launch date and deadline, then click **Save portal** to publish. The submission switch reflects actual availability: it stays off and disabled while unpublished or outside the submission window. Inside the window, use it to pause or resume submissions. Send an invitation from **Records** to accept a late submission. The **Public form** URL appears on this step — use **Copy link** or **View portal**.
 
 10. **Send a test submit** through the public form. The row and files appear in the mapped Google Sheet and Google Drive folder.
 
-11. **Staff console.** Open the portal in the wizard. Below the wizard, **Recent submissions** and **Submission packets** list dest outcomes and application ids. An administrator (or a user with the `dg_edit_submissions` capability) can replace a file; that write goes through the Drive dest adapter. Sheet and Drive remain the packet of record — this is an operator console, not a second store.
+11. **Staff console.** Open the portal in the wizard. The **Records** step shows the merged submission records — applicant name, WordPress user, submitted time, application id, status, and per-destination results — and an **Invitations** section for inviting someone to submit after the portal closes. An administrator (or a user with the `dg_edit_submissions` capability) can replace a file; that write goes through the Drive dest adapter. Google Sheet and Drive remain the packet of record for **Submission packets** — this is an operator console, not a second store.
 
 12. **Applicant packets.** A signed-in applicant sees **Your submissions for this portal** on the public form. They can **Replace file** on a current packet (same Drive dest adapter) or **Recall** it so staff no longer treat it as current.
 
@@ -77,7 +77,7 @@ Rolling / prerelease tags are ignored. Manual ZIP replace still works:
 
 ## Features
 
-- Definition wizard: **Start** → **Build form** → **Map data** → **Publish**
+- Definition wizard: **Start** → **Build form** → **Map data** → **Status** → **Records**
 - Google Sheets for answers, Google Drive for files
 - One **Public form** URL per portal
 - Site-wide defaults under **Portals → Default Settings**
@@ -104,16 +104,20 @@ Contributor path only. Strangers installing from a ZIP should follow [First hour
 2. **Install Dependencies:**
 
    - For production:
+
      ```sh
      make install-prod
      ```
+
    - For development:
+
      ```sh
      make install-dev
      ```
 
 3. **Build the Plugin:**
    - To create a ZIP file for distribution:
+
      ```sh
      make release
      ```

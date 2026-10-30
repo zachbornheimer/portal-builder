@@ -17,6 +17,10 @@ if ( ! class_exists( 'Portal_Open_State' ) ) {
 
 		const DEFAULT_TIMEZONE = 'America/New_York';
 
+		const PREVIEW_TRUE   = 'true';
+		const PREVIEW_OPEN   = 'open';
+		const PREVIEW_CLOSED = 'closed';
+
 		/**
 		 * Pure open check from already-resolved publish config.
 		 *
@@ -77,7 +81,7 @@ if ( ! class_exists( 'Portal_Open_State' ) ) {
 		 * @return array{deadline: mixed, timezone: string, forceClosed: bool, enabled: bool, launchAt: mixed, source: string}
 		 */
 		public static function resolve_publish_config( $post_id ) {
-			$post_id = (int) $post_id;
+			$post_id    = (int) $post_id;
 			$definition = class_exists( 'Portal_Definition' )
 				? Portal_Definition::load_for_post( $post_id )
 				: null;
@@ -105,9 +109,9 @@ if ( ! class_exists( 'Portal_Open_State' ) ) {
 		 * @return array{deadline: mixed, timezone: string, forceClosed: bool, enabled: bool, launchAt: mixed, source: string}
 		 */
 		public static function legacy_publish_config( $post_id ) {
-			$deadline       = get_post_meta( $post_id, '_portal_deadline', true );
-			$timezone_index = get_post_meta( $post_id, '_portal_timezone', true );
-			$timezones      = timezone_identifiers_list();
+			$deadline        = get_post_meta( $post_id, '_portal_deadline', true );
+			$timezone_index  = get_post_meta( $post_id, '_portal_timezone', true );
+			$timezones       = timezone_identifiers_list();
 			$timezone_string = isset( $timezones[ $timezone_index ] )
 				? $timezones[ $timezone_index ]
 				: self::DEFAULT_TIMEZONE;
@@ -139,40 +143,144 @@ if ( ! class_exists( 'Portal_Open_State' ) ) {
 		}
 
 		/**
-		 * Editor preview: capability + (?preview=true|1 or WP is_preview()).
+		 * Editor preview mode for this request: 'true' | 'open' | 'closed' | null.
+		 *
+		 * ?preview=true|1 keeps its historical meaning (render the form, refuse
+		 * submission). ?preview=open forces the open rendering; ?preview=closed
+		 * forces the closed rendering. Every variant is capability-gated.
+		 *
+		 * @param int $post_id Portal post ID.
+		 * @return string|null
+		 */
+		public static function preview_mode( $post_id ) {
+			$post_id = (int) $post_id;
+			if ( $post_id <= 0 || ! current_user_can( 'edit_post', $post_id ) ) {
+				return null;
+			}
+
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- public preview flag, gated by capability.
+			if ( isset( $_GET['preview'] ) ) {
+				// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+				$flag = strtolower( trim( (string) wp_unslash( $_GET['preview'] ) ) );
+				if ( 'true' === $flag || '1' === $flag ) {
+					return self::PREVIEW_TRUE;
+				}
+				if ( self::PREVIEW_OPEN === $flag ) {
+					return self::PREVIEW_OPEN;
+				}
+				if ( self::PREVIEW_CLOSED === $flag ) {
+					return self::PREVIEW_CLOSED;
+				}
+			}
+
+			// WP's is_preview() is truthy for any non-empty preview value, so it
+			// only backs values without explicit meaning above.
+			if ( function_exists( 'is_preview' ) && is_preview() ) {
+				return self::PREVIEW_TRUE;
+			}
+			return null;
+		}
+
+		/**
+		 * Any editor preview rendering. Preview never accepts submissions.
 		 *
 		 * @param int $post_id Portal post ID.
 		 * @return bool
 		 */
 		public static function is_preview_request( $post_id ) {
-			$post_id = (int) $post_id;
-			if ( $post_id <= 0 || ! current_user_can( 'edit_post', $post_id ) ) {
-				return false;
-			}
-
-			if ( function_exists( 'is_preview' ) && is_preview() ) {
-				return true;
-			}
-
-			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- public preview flag, gated by capability.
-			if ( ! isset( $_GET['preview'] ) ) {
-				return false;
-			}
-
-			// phpcs:ignore WordPress.Security.NonceVerification.Recommended
-			$flag = strtolower( (string) wp_unslash( $_GET['preview'] ) );
-			return 'true' === $flag || '1' === $flag;
+			return null !== self::preview_mode( $post_id );
 		}
 
 		/**
-		 * Form UI should render when open OR editor is previewing.
+		 * A valid, unexpired, unused invitation admits a specific person to
+		 * submit past the closed gate. No-op until Portal_Invites lands.
+		 *
+		 * @param int $post_id Portal post ID.
+		 * @return bool
+		 */
+		public static function invite_admission( $post_id ) {
+			return class_exists( 'Portal_Invites' )
+				&& Portal_Invites::grants_admission( (int) $post_id );
+		}
+
+		/**
+		 * The invite behind ?dg_invite=... on this request, or null.
+		 *
+		 * @param int $post_id Portal post ID.
+		 * @return array|null
+		 */
+		public static function invite_for_request( $post_id ) {
+			if ( ! class_exists( 'Portal_Invites' ) ) {
+				return null;
+			}
+			$invite = Portal_Invites::for_current_request( (int) $post_id );
+			return is_array( $invite ) ? $invite : null;
+		}
+
+		/**
+		 * Whether the request carries a dg_invite token at all (used to explain
+		 * an unusable token instead of failing silently).
+		 *
+		 * @return bool
+		 */
+		public static function invite_token_present() {
+			if ( ! class_exists( 'Portal_Invites' ) ) {
+				return false;
+			}
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only flag.
+			if ( ! isset( $_GET[ Portal_Invites::QUERY_KEY ] ) ) {
+				return false;
+			}
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			$raw = wp_unslash( $_GET[ Portal_Invites::QUERY_KEY ] );
+			return '' !== trim( (string) $raw );
+		}
+
+		/**
+		 * Publish instant for public copy: the definition's publish block is the
+		 * source of truth; the legacy deadline meta backstops a definition that
+		 * leaves deadline unset (this codebase's established fallback shape).
+		 *
+		 * @param int    $post_id Portal post ID.
+		 * @param string $which   'open' (launchAt) or 'close' (deadline).
+		 * @return array{value: string|null, timezone: string}
+		 */
+		public static function publish_instant( $post_id, $which ) {
+			$post_id = (int) $post_id;
+			$publish = self::resolve_publish_config( $post_id );
+			$key     = 'close' === $which ? 'deadline' : 'launchAt';
+			$value   = array_key_exists( $key, $publish ) ? $publish[ $key ] : null;
+
+			if ( ( null === $value || '' === $value ) && 'deadline' === $key && 'definition' === $publish['source'] ) {
+				$legacy = get_post_meta( $post_id, '_portal_deadline', true );
+				if ( is_string( $legacy ) && '' !== $legacy ) {
+					$value = $legacy;
+				}
+			}
+
+			return array(
+				'value'    => ( null === $value || '' === $value ) ? null : (string) $value,
+				'timezone' => (string) $publish['timezone'],
+			);
+		}
+
+		/**
+		 * Form UI renders when open, when an editor previews the open form
+		 * (?preview=true|open), or when a valid invitation admits this visitor.
 		 *
 		 * @param int                    $post_id Portal post ID.
 		 * @param DateTimeInterface|null $now     Injectable clock.
 		 * @return bool
 		 */
 		public static function should_show_form( $post_id, $now = null ) {
-			return self::is_open( $post_id, $now ) || self::is_preview_request( $post_id );
+			if ( self::is_open( $post_id, $now ) ) {
+				return true;
+			}
+			$mode = self::preview_mode( $post_id );
+			if ( self::PREVIEW_TRUE === $mode || self::PREVIEW_OPEN === $mode ) {
+				return true;
+			}
+			return self::invite_admission( $post_id );
 		}
 
 		/**

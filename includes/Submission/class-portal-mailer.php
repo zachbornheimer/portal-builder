@@ -20,19 +20,25 @@ if ( ! class_exists( 'Portal_Mailer' ) ) {
 		const EXTENSION                = '.json';
 		const UNKNOWN_RECIPIENT        = 'unknown';
 		const KIND_OPERATOR            = 'operator';
+		const KIND_INVITE              = 'invite';
 		const DEFAULT_RECEIPT_SUBJECT  = 'Application receipt';
 		const DEFAULT_RECEIPT_BODY     = 'We received your application for {{portal_title}}. {{$receiptLink}}';
 		const DEFAULT_OPERATOR_SUBJECT = 'New application: {{portal_title}}';
 		const DEFAULT_OPERATOR_BODY    = "Portal: {{portal_title}}\nApplication: {{application_id}}\nApplicant: {{applicant_email}}\nReceipt: {{receipt_url}}";
+		const DEFAULT_INVITE_SUBJECT   = "You're invited to apply: {{portal_title}}";
+		const DEFAULT_INVITE_BODY      = "You have been invited to submit an application for {{portal_title}}.\n\nStart your application here: {{invite_link}}\n\nThis personal link works until {{expires_at}}.";
 		const OPTION_FROM_EMAIL        = 'dg_receipt_from_email';
 		const OPTION_FROM_NAME         = 'dg_receipt_from_name';
 		const DEFAULT_FROM_NAME        = 'Portal Submissions';
-		const OPTION_SUBJECT           = 'dg_receipt_subject';
-		const OPTION_BODY              = 'dg_receipt_body';
-		const OPTION_OPERATOR_EMAIL    = 'dg_operator_notify_email';
+		// Mail templates, one WP option per kind; empty option falls back to the default.
+		const OPTION_SUBJECT        = 'dg_receipt_subject';
+		const OPTION_BODY           = 'dg_receipt_body';
+		const OPTION_INVITE_SUBJECT = 'dg_invite_subject';
+		const OPTION_INVITE_BODY    = 'dg_invite_body';
+		const OPTION_OPERATOR_EMAIL = 'dg_operator_notify_email';
 		// CLI / test-mode fallback when WordPress options are absent.
-		const TEST_OPERATOR_EMAIL      = 'operator@example.com';
-		const HTML_CONTENT_TYPE        = 'Content-Type: text/html; charset=UTF-8';
+		const TEST_OPERATOR_EMAIL = 'operator@example.com';
+		const HTML_CONTENT_TYPE   = 'Content-Type: text/html; charset=UTF-8';
 
 		/** @var Portal_Files */
 		private $files;
@@ -61,15 +67,23 @@ if ( ! class_exists( 'Portal_Mailer' ) ) {
 		 * @return string Absolute path written.
 		 */
 		public function capture( array $message ) {
-			$dir = $this->files->join( $this->artifact_dir, self::ARTIFACT_DIR_NAME );
-			$this->files->mkdir( $dir );
+			$explicit         = getenv( 'DG_ARTIFACT_DIR' );
+			$protected        = class_exists( 'Portal_Upload_Store' ) && ! Portal_Upload_Store::base_is_test_injection();
+			$default_artifact = class_exists( 'Portal_Test_Mode' ) && Portal_Test_Mode::artifact_dir() === $this->artifact_dir;
+			$root             = $protected && false === $explicit && $default_artifact
+				? Portal_Upload_Store::data_dir( self::ARTIFACT_DIR_NAME, $this->files )
+				: $this->files->join( $this->artifact_dir, self::ARTIFACT_DIR_NAME );
+			$this->files->mkdir( $root );
+			if ( class_exists( 'Portal_Upload_Store' ) ) {
+				Portal_Upload_Store::write_deny( $this->files, $root );
+			}
 
 			$to      = isset( $message['to'] ) && is_string( $message['to'] ) && '' !== $message['to']
 				? $message['to']
 				: self::UNKNOWN_RECIPIENT;
 			$safe_to = preg_replace( '/[^A-Za-z0-9@._+-]+/', '_', $to );
 			$ms      = $this->now_ms ? (int) call_user_func( $this->now_ms ) : (int) round( microtime( true ) * 1000 );
-			$dest    = $this->files->join( $dir, $ms . '-' . $safe_to . self::EXTENSION );
+			$dest    = $this->files->join( $root, $ms . '-' . $safe_to . self::EXTENSION );
 
 			$payload = array_merge(
 				array(
@@ -110,9 +124,52 @@ if ( ! class_exists( 'Portal_Mailer' ) ) {
 		 * Mail failure is captured on the payload and does not throw.
 		 *
 		 * @param array<string,mixed> $message Keys: to, tokens, subject?, body?, portalId.
-		 * @return string Capture path.
+		 * @return string|null Capture path when test mode retains the message.
 		 */
 		public function send( array $message ) {
+			$result = $this->send_and_report( $message );
+			return $result['path'];
+		}
+
+		/**
+		 * One invitation mail: personal link plus expiry through the same
+		 * prepare / deliver / capture path as receipts.
+		 *
+		 * @param array<string,mixed> $payload Keys: invite|tokens, portalId?, portalTitle?, to?, subject?, body?.
+		 * @return array{path:string|null,ok:bool,error:string|null} Capture path and send report.
+		 */
+		public function send_invite( array $payload ) {
+			$payload['kind'] = self::KIND_INVITE;
+			if ( empty( $payload['tokens'] ) && isset( $payload['invite'] ) && is_array( $payload['invite'] ) ) {
+				$invite    = $payload['invite'];
+				$portal_id = isset( $payload['portalId'] ) ? $payload['portalId'] : 0;
+				if ( empty( $payload['portalTitle'] ) && function_exists( 'get_the_title' ) ) {
+					$payload['portalTitle'] = (string) get_the_title( (int) $portal_id );
+				}
+				$payload['tokens'] = self::invite_tokens(
+					$portal_id,
+					$invite,
+					isset( $payload['portalTitle'] ) ? (string) $payload['portalTitle'] : ''
+				);
+				if ( empty( $payload['to'] ) && isset( $invite['email'] ) ) {
+					$payload['to'] = (string) $invite['email'];
+				}
+			}
+			if ( empty( $payload['to'] ) || ! is_string( $payload['to'] ) ) {
+				$payload['to'] = self::UNKNOWN_RECIPIENT;
+			}
+			return $this->send_and_report( $payload );
+		}
+
+		/**
+		 * Interpolate, deliver when live, and retain a copy only in test mode.
+		 *
+		 * Mail failure is captured on the payload and does not throw.
+		 *
+		 * @param array<string,mixed> $message Raw send() input.
+		 * @return array{path:string|null,ok:bool,error:string|null}
+		 */
+		private function send_and_report( array $message ) {
 			try {
 				$payload = $this->prepare( $message );
 				if ( $this->should_deliver() ) {
@@ -122,11 +179,35 @@ if ( ! class_exists( 'Portal_Mailer' ) ) {
 						$payload['error'] = 'wp_mail returned false';
 					}
 				}
-				return $this->capture( $payload );
+				$path  = $this->maybe_capture( $payload );
+				$error = isset( $payload['error'] ) ? (string) $payload['error'] : null;
+				return array(
+					'path'  => $path,
+					'ok'    => null === $error,
+					'error' => $error,
+				);
 			} catch ( Exception $e ) {
 				$message['error'] = $e->getMessage();
-				return $this->capture( $message );
+				$path             = $this->maybe_capture( $message );
+				return array(
+					'path'  => $path,
+					'ok'    => false,
+					'error' => $e->getMessage(),
+				);
 			}
+		}
+
+		/**
+		 * Retain a mailbox copy only when test mode is explicitly enabled.
+		 *
+		 * @param array<string,mixed> $payload Prepared message.
+		 * @return string|null Capture path when retained.
+		 */
+		private function maybe_capture( array $payload ) {
+			if ( ! class_exists( 'Portal_Test_Mode' ) || ! Portal_Test_Mode::is_enabled() ) {
+				return null;
+			}
+			return $this->capture( $payload );
 		}
 
 		/**
@@ -155,7 +236,7 @@ if ( ! class_exists( 'Portal_Mailer' ) ) {
 		 * One operator notify. Fail-open is owned by send().
 		 *
 		 * @param array<string,mixed> $message Keys: to?, tokens, portalId, subject?, body?.
-		 * @return string Capture path.
+		 * @return string|null Capture path when test mode retains the message.
 		 */
 		public function send_operator_notify( array $message ) {
 			$message['kind'] = self::KIND_OPERATOR;
@@ -178,13 +259,24 @@ if ( ! class_exists( 'Portal_Mailer' ) ) {
 		 * @return array<string,mixed>
 		 */
 		private function prepare( array $message ) {
-			$tokens  = isset( $message['tokens'] ) && is_array( $message['tokens'] )
+			$tokens    = isset( $message['tokens'] ) && is_array( $message['tokens'] )
 				? $message['tokens']
 				: array();
-			$subject = $this->template_from( $message, 'subject', self::OPTION_SUBJECT, self::DEFAULT_RECEIPT_SUBJECT );
-			$body    = $this->template_from( $message, 'body', self::OPTION_BODY, self::DEFAULT_RECEIPT_BODY );
-			$subject = self::interpolate( $subject, $tokens );
-			$body    = self::interpolate( $body, $tokens );
+			$is_invite = isset( $message['kind'] ) && self::KIND_INVITE === $message['kind'];
+			$subject   = $this->template_from(
+				$message,
+				'subject',
+				$is_invite ? self::OPTION_INVITE_SUBJECT : self::OPTION_SUBJECT,
+				$is_invite ? self::DEFAULT_INVITE_SUBJECT : self::DEFAULT_RECEIPT_SUBJECT
+			);
+			$body      = $this->template_from(
+				$message,
+				'body',
+				$is_invite ? self::OPTION_INVITE_BODY : self::OPTION_BODY,
+				$is_invite ? self::DEFAULT_INVITE_BODY : self::DEFAULT_RECEIPT_BODY
+			);
+			$subject   = self::interpolate( $subject, $tokens );
+			$body      = self::interpolate( $body, $tokens );
 			if ( function_exists( 'wpautop' ) ) {
 				$body = wpautop( $body );
 			}
@@ -299,15 +391,23 @@ if ( ! class_exists( 'Portal_Mailer' ) ) {
 			$title   = self::token_string( $tokens, array( 'portal_title', 'portalName', 'portal_name' ) );
 			$notify  = self::token_string( $tokens, array( 'notification_date', 'application_notification_date' ) );
 			$when    = self::token_string( $tokens, array( 'submitted_at', 'date_received' ) );
+			$invite  = self::token_string( $tokens, array( 'invite_link', 'invite_url', '$inviteLink' ) );
+			$expires = self::token_string( $tokens, array( 'expires_at', 'expiresAt' ) );
 			return array(
 				'$receiptLink'                   => $receipt,
 				'$application_notification_date' => $notify,
 				'$date_received'                 => $when,
+				'$inviteLink'                    => $invite,
+				'$expiresAt'                     => $expires,
 				'$portalName'                    => $title,
 				'$portal_name'                   => $title,
 				'$link'                          => $receipt,
 				'receiptLink'                    => $receipt,
 				'receipt_url'                    => $receipt,
+				'invite_link'                    => $invite,
+				'invite_url'                     => $invite,
+				'expires_at'                     => $expires,
+				'expiresAt'                      => $expires,
 				'application_id'                 => self::token_string( $tokens, array( 'application_id' ) ),
 				'applicant_name'                 => self::token_string( $tokens, array( 'applicant_name' ) ),
 				'applicant_email'                => self::token_string( $tokens, array( 'applicant_email', 'email' ) ),
@@ -317,6 +417,28 @@ if ( ! class_exists( 'Portal_Mailer' ) ) {
 				'selection'                      => self::token_string( $tokens, array( 'selection' ) ),
 				'submitted_at'                   => $when,
 				'notification_date'              => $notify,
+			);
+		}
+
+		/**
+		 * Closed token set for an invite e-mail.
+		 *
+		 * @param int|string          $portal_id Portal post id.
+		 * @param array<string,mixed> $invite    Invite array.
+		 * @param string              $title     Portal title.
+		 * @return array<string,string>
+		 */
+		private static function invite_tokens( $portal_id, array $invite, $title = '' ) {
+			$link = class_exists( 'Portal_Invites' )
+				? (string) Portal_Invites::url( $portal_id, $invite )
+				: '';
+			return array(
+				'portal_title'    => (string) $title,
+				'invite_link'     => $link,
+				'invite_url'      => $link,
+				'expires_at'      => isset( $invite['expiresAt'] ) ? (string) $invite['expiresAt'] : '',
+				'applicant_name'  => isset( $invite['name'] ) ? (string) $invite['name'] : '',
+				'applicant_email' => isset( $invite['email'] ) ? (string) $invite['email'] : '',
 			);
 		}
 

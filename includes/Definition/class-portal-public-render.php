@@ -15,11 +15,16 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 		const ATTR_RENDER_DEFINITION = 'definition';
 		const ATTR_RENDER_LEGACY     = 'legacy';
 
-		const PREVIEW_BANNER_TEXT = 'Preview — not a live submission';
-		const MSG_DEADLINE        = 'The application deadline has passed.';
-		const MSG_CLOSED          = 'This portal is closed.';
-		const MSG_NOT_ACCEPTING   = 'This portal is not currently accepting applications.';
-		const MSG_RECEIPT_INVALID = 'This receipt link is invalid or has expired.';
+		const PREVIEW_BANNER_TEXT   = 'Preview — this is how applicants see the form. Submissions are off.';
+		const PREVIEW_BANNER_OPEN   = 'Preview as open — this is how applicants see the form. Submissions are off.';
+		const PREVIEW_BANNER_CLOSED = 'Preview as closed — this is how applicants see the portal once it has closed. Submissions are off.';
+		const INVITE_BANNER_FORMAT  = 'You are submitting with an invitation. This invitation link stops working after %s';
+		const INVITE_BANNER_NODATE  = 'You are submitting with an invitation. This invitation link stops working once it has expired.';
+		const MSG_INVITE_INVALID    = 'This invitation link is no longer valid.';
+		const MSG_DEADLINE          = 'The application deadline has passed.';
+		const MSG_CLOSED            = 'This portal is closed.';
+		const MSG_NOT_ACCEPTING     = 'This portal is not currently accepting applications.';
+		const MSG_RECEIPT_INVALID   = 'This receipt link is invalid or has expired.';
 
 		const ACCESS_EYEBROW            = 'Members only';
 		const ACCESS_HEADING_LOGIN      = 'Sign in to apply.';
@@ -145,7 +150,8 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 				return $content;
 			}
 
-			$is_preview = Portal_Open_State::is_preview_request( $post_id );
+			$mode       = Portal_Open_State::preview_mode( $post_id );
+			$is_preview = null !== $mode;
 			$show_form  = Portal_Open_State::should_show_form( $post_id );
 
 			if ( ! $show_form ) {
@@ -154,6 +160,7 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 			}
 
 			$definition = Portal_Definition::load_for_post( $post_id );
+			$staff_bar  = self::render_staff_bar( $post_id );
 			if ( is_array( $definition ) && ! $is_preview && class_exists( 'Portal_Access' ) ) {
 				$access   = isset( $definition['access'] ) && is_array( $definition['access'] )
 					? $definition['access']
@@ -169,7 +176,12 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 				}
 			}
 
-			$banner = $is_preview ? self::render_preview_banner() : self::render_view_as_banner( $post_id );
+			$banner = $is_preview
+				? self::render_preview_banner( $mode )
+				: self::render_view_as_banner( $post_id );
+			if ( '' === $banner && Portal_Open_State::invite_admission( $post_id ) ) {
+				$banner = self::render_invite_banner( $post_id );
+			}
 
 			if ( is_array( $definition ) ) {
 				$errors_html = '';
@@ -184,18 +196,44 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 					? Portal_Site_Defaults::read_site()
 					: array();
 				return self::wrap_packet(
-					$banner
+					$staff_bar
+					. $banner
 					. self::render_packet_head( $title )
 					. self::render_packet_meta( $definition, $site )
 					. $errors_html
 					. self::render_applicant_packets( $post_id )
-					. Portal_Definition_Renderer::render( $definition, $site )
+					. Portal_Definition_Renderer::render( $definition, $site, self::applicant_defaults( $post_id ) )
 					. self::preview_root_markup()
 					. self::render_spam_widget( $definition )
 				);
 			}
 
-			return $banner . self::wrap_legacy( $content );
+			return $staff_bar . $banner . self::wrap_legacy( $content );
+		}
+
+		/**
+		 * Invite-provided applicant defaults. Prefill only; the applicant still
+		 * confirms each value before submitting.
+		 *
+		 * @param int $post_id Portal ID.
+		 * @return array{name?: string, email?: string}
+		 */
+		private static function applicant_defaults( $post_id ) {
+			if ( ! Portal_Open_State::invite_admission( $post_id ) ) {
+				return array();
+			}
+			$invite = Portal_Open_State::invite_for_request( $post_id );
+			if ( ! is_array( $invite ) ) {
+				return array();
+			}
+			$defaults = array();
+			if ( ! empty( $invite['name'] ) ) {
+				$defaults['name'] = (string) $invite['name'];
+			}
+			if ( ! empty( $invite['email'] ) ) {
+				$defaults['email'] = (string) $invite['email'];
+			}
+			return $defaults;
 		}
 
 		/**
@@ -250,7 +288,13 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 		 * @return string
 		 */
 		public static function render_closed_message( $post_id ) {
-			$reason  = Portal_Open_State::closed_reason( $post_id );
+			$mode   = Portal_Open_State::preview_mode( $post_id );
+			$reason = Portal_Open_State::closed_reason( $post_id );
+			if ( null === $reason && Portal_Open_State::PREVIEW_CLOSED === $mode ) {
+				// View-as-closed: show the closed rendering applicants will see.
+				$instant = Portal_Open_State::publish_instant( $post_id, 'close' );
+				$reason  = null !== $instant['value'] ? 'deadline' : 'force';
+			}
 			$message = self::MSG_NOT_ACCEPTING;
 			if ( 'deadline' === $reason ) {
 				$message = self::MSG_DEADLINE;
@@ -258,18 +302,33 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 				$message = self::MSG_CLOSED;
 			}
 
+			$extra = '';
+			if ( Portal_Open_State::invite_token_present() && ! Portal_Open_State::invite_admission( $post_id ) ) {
+				$extra = sprintf(
+					'<p class="dg-invite-invalid" data-dg-invite-invalid="true">%s</p>',
+					esc_html( self::MSG_INVITE_INVALID )
+				);
+			}
+
 			$closed = sprintf(
-				'<div class="dg-portal-closed" data-dg-portal-state="closed" data-dg-closed-reason="%s"><p>%s</p></div>',
+				'<div class="dg-portal-closed" data-dg-portal-state="closed" data-dg-closed-reason="%s"><p>%s</p>%s</div>',
 				esc_attr( (string) $reason ),
-				esc_html( $message )
+				esc_html( $message ),
+				$extra
 			);
 
 			$definition = class_exists( 'Portal_Definition' )
 				? Portal_Definition::load_for_post( $post_id )
 				: null;
 
+			$banner = Portal_Open_State::PREVIEW_CLOSED === $mode
+				? self::render_preview_banner( $mode )
+				: '';
+
 			return self::wrap_packet(
-				self::render_packet_head( get_the_title( $post_id ) )
+				self::render_staff_bar( $post_id )
+				. $banner
+				. self::render_packet_head( get_the_title( $post_id ) )
 				. self::render_packet_meta( $definition )
 				. $closed
 			);
@@ -303,7 +362,8 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 				$action
 			);
 			return self::wrap_packet(
-				self::render_packet_head( get_the_title( $post_id ) )
+				self::render_staff_bar( $post_id )
+				. self::render_packet_head( get_the_title( $post_id ) )
 				. self::render_packet_meta( $definition )
 				. $body
 			);
@@ -384,15 +444,121 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 		}
 
 		/**
-		 * Preview banner for editors.
+		 * Honest preview banner for editors. The attribute is a public contract.
 		 *
+		 * @param string|null $mode Portal_Open_State::preview_mode value.
 		 * @return string
 		 */
-		public static function render_preview_banner() {
+		public static function render_preview_banner( $mode = null ) {
+			$text = self::PREVIEW_BANNER_TEXT;
+			if ( Portal_Open_State::PREVIEW_OPEN === $mode ) {
+				$text = self::PREVIEW_BANNER_OPEN;
+			} elseif ( Portal_Open_State::PREVIEW_CLOSED === $mode ) {
+				$text = self::PREVIEW_BANNER_CLOSED;
+			}
 			return sprintf(
 				'<div class="dg-preview-banner" data-dg-preview="true" role="status"><strong>%s</strong></div>',
-				esc_html( self::PREVIEW_BANNER_TEXT )
+				esc_html( $text )
 			);
+		}
+
+		/**
+		 * Calm banner for an invited applicant on a closed portal.
+		 *
+		 * @param int $post_id Portal post ID.
+		 * @return string
+		 */
+		public static function render_invite_banner( $post_id ) {
+			$invite = Portal_Open_State::invite_for_request( $post_id );
+			$text   = self::INVITE_BANNER_NODATE;
+			if ( is_array( $invite ) && ! empty( $invite['expiresAt'] ) ) {
+				$instant = Portal_Open_State::publish_instant( $post_id, 'close' );
+				$expires = self::format_when( $invite['expiresAt'], $instant['timezone'], 'date' );
+				$text    = '' !== $expires
+					? sprintf( self::INVITE_BANNER_FORMAT, $expires )
+					: self::INVITE_BANNER_NODATE;
+			}
+			return sprintf(
+				'<div class="dg-preview-banner dg-invite-banner" data-dg-invite-banner="true" role="status"><strong>%s</strong></div>',
+				esc_html( $text )
+			);
+		}
+
+		/**
+		 * Staff bar: view-as-open / view-as-closed links for anyone who can edit
+		 * this portal. Never rendered for anyone else (no unpublished leak).
+		 *
+		 * @param int $post_id Portal post ID.
+		 * @return string
+		 */
+		public static function render_staff_bar( $post_id ) {
+			$post_id = (int) $post_id;
+			if ( $post_id <= 0 || ! current_user_can( 'edit_post', $post_id ) ) {
+				return '';
+			}
+			$mode     = Portal_Open_State::preview_mode( $post_id );
+			$mode_txt = 'live';
+			$mode_key = 'live';
+			if ( Portal_Open_State::PREVIEW_OPEN === $mode ) {
+				$mode_txt = 'preview as open';
+				$mode_key = 'preview-open';
+			} elseif ( Portal_Open_State::PREVIEW_CLOSED === $mode ) {
+				$mode_txt = 'preview as closed';
+				$mode_key = 'preview-closed';
+			} elseif ( null !== $mode ) {
+				$mode_txt = 'preview';
+				$mode_key = 'preview';
+			}
+
+			$style = 'display:flex;flex-wrap:wrap;gap:.35rem .9rem;align-items:center;font:500 .8125rem/1.4 system-ui,sans-serif;color:#3b3b3b;background:#f6f4ef;border:1px solid #d9d2c2;border-radius:.375rem;padding:.4rem .65rem;margin:0 0 .75rem;';
+			$link  = 'color:#5b4a2f;text-decoration:underline;';
+
+			$open_url   = esc_url( self::preview_url( Portal_Open_State::PREVIEW_OPEN ) );
+			$closed_url = esc_url( self::preview_url( Portal_Open_State::PREVIEW_CLOSED ) );
+			$open_cur   = Portal_Open_State::PREVIEW_OPEN === $mode ? ' aria-current="true"' : '';
+			$closed_cur = Portal_Open_State::PREVIEW_CLOSED === $mode ? ' aria-current="true"' : '';
+
+			return sprintf(
+				'<div class="dg-staff-bar" data-dg-staff-bar="true" data-dg-staff-mode="%1$s" data-testid="dg-staff-bar" role="status" style="%2$s"><strong>Staff view</strong><span>Mode: %3$s</span><a style="%4$s" href="%5$s"%6$s>View as open</a><a style="%4$s" href="%7$s"%8$s>View as closed</a></div>',
+				esc_attr( $mode_key ),
+				esc_attr( $style ),
+				esc_html( $mode_txt ),
+				esc_attr( $link ),
+				$open_url,
+				$open_cur,
+				$closed_url,
+				$closed_cur
+			);
+		}
+
+		/**
+		 * Current URL with ?preview=<mode>. Uses WP's add_query_arg when present;
+		 * CLI render harnesses have no URL helpers.
+		 *
+		 * @param string $mode open|closed|true.
+		 * @return string
+		 */
+		private static function preview_url( $mode ) {
+			if ( function_exists( 'add_query_arg' ) ) {
+				return add_query_arg( 'preview', $mode );
+			}
+			$uri   = isset( $_SERVER['REQUEST_URI'] ) ? (string) $_SERVER['REQUEST_URI'] : '';
+			$path  = $uri;
+			$query = '';
+			$pos   = strpos( $uri, '?' );
+			if ( false !== $pos ) {
+				$path  = substr( $uri, 0, $pos );
+				$query = substr( $uri, $pos + 1 );
+			}
+			$pairs = array();
+			foreach ( explode( '&', $query ) as $pair ) {
+				if ( '' === $pair || 0 === strpos( $pair, 'preview=' ) ) {
+					continue;
+				}
+				$pairs[] = $pair;
+			}
+			$pairs[] = 'preview=' . rawurlencode( $mode );
+			return $path . '?' . implode( '&', $pairs );
 		}
 
 		/**
@@ -507,7 +673,7 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 						$seal_src = $logo;
 					}
 				}
-				$seal       = sprintf(
+				$seal = sprintf(
 					'<img class="dg-seal" src="%s" alt="" width="56" height="56" />',
 					esc_url( $seal_src )
 				);
@@ -577,7 +743,7 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 		 */
 		private static function guidelines_link_label( array $definition, $site ) {
 			if ( ! class_exists( 'Portal_Site_Defaults' ) ) {
-				return 'Link to Guidelines';
+				return 'Submission guidelines';
 			}
 			$site_bag = is_array( $site ) ? $site : Portal_Site_Defaults::read_site();
 			$resolved = Portal_Site_Defaults::resolve( $definition, $site_bag );
@@ -586,20 +752,31 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 		}
 
 		/**
-		 * @param array $publish Publish block.
+		 * Deadline item for the applicant meta bar.
+		 *
+		 * @param array    $publish  Publish block.
+		 * @param int|null $post_id  Portal ID for the legacy deadline backstop.
 		 * @return string
 		 */
-		private static function meta_deadline_item( $publish ) {
+		private static function meta_deadline_item( $publish, $post_id = null ) {
 			$deadline = array_key_exists( 'deadline', $publish ) ? $publish['deadline'] : null;
-			if ( null === $deadline || '' === $deadline ) {
-				return '';
-			}
-
 			$timezone = isset( $publish['timezone'] ) && is_string( $publish['timezone'] ) && '' !== $publish['timezone']
 				? $publish['timezone']
 				: 'America/New_York';
 
-			$formatted = self::format_deadline( $deadline, $timezone );
+			if ( null === $deadline || '' === $deadline ) {
+				$post_id = null === $post_id && function_exists( 'get_the_ID' ) ? (int) get_the_ID() : (int) $post_id;
+				if ( $post_id > 0 && class_exists( 'Portal_Open_State' ) ) {
+					$instant  = Portal_Open_State::publish_instant( $post_id, 'close' );
+					$deadline = $instant['value'];
+					$timezone = $instant['timezone'];
+				}
+			}
+			if ( null === $deadline || '' === $deadline ) {
+				return '';
+			}
+
+			$formatted = self::format_when( $deadline, $timezone, 'date' );
 			if ( '' === $formatted ) {
 				return '';
 			}
@@ -616,7 +793,7 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 				'<div class="dg-meta-item">%1$s<div><span class="dg-meta-when">%2$s</span><span class="dg-meta-tz">%3$s</span></div></div>',
 				$icon,
 				esc_html( $when ),
-				esc_html( $timezone )
+				esc_html( self::timezone_label( $deadline, $timezone ) )
 			);
 		}
 
@@ -652,22 +829,77 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 		}
 
 		/**
-		 * @param mixed  $deadline Deadline string.
+		 * The one applicant-facing date formatter. Shortcodes reuse it.
+		 *
+		 * Styles: 'date'   → 24 October 2026, 4:00 a.m. (meta bar clock, house a.m./p.m.)
+		 *         'phrase' → Monday, August 17, 2026 (prose)
+		 *         'ymd'    → 2026-08-17
+		 *
+		 * @param mixed  $value    Datetime string or empty.
 		 * @param string $timezone IANA timezone.
+		 * @param string $style    One of date|phrase|ymd.
 		 * @return string Empty when unparseable.
 		 */
-		private static function format_deadline( $deadline, $timezone ) {
+		public static function format_when( $value, $timezone, $style = 'date' ) {
+			$dt = self::parse_moment( $value, $timezone );
+			if ( ! $dt ) {
+				return '';
+			}
+			if ( 'phrase' === $style ) {
+				return $dt->format( 'l, F j, Y' );
+			}
+			if ( 'ymd' === $style ) {
+				return $dt->format( 'Y-m-d' );
+			}
+			$meridiem = 'am' === $dt->format( 'a' ) ? 'a.m.' : 'p.m.';
+			return $dt->format( 'j F Y, g:i ' ) . $meridiem;
+		}
+
+		/**
+		 * Real-world timezone abbreviation for the instant (EST in winter, EDT
+		 * in daylight time), falling back to the IANA name when the zone has no
+		 * meaningful abbreviation instead of printing a raw offset.
+		 *
+		 * @param mixed  $value    Datetime string or empty.
+		 * @param string $timezone IANA timezone.
+		 * @return string
+		 */
+		public static function timezone_label( $value, $timezone ) {
+			$timezone = (string) $timezone;
+			$dt       = self::parse_moment( $value, $timezone );
+			if ( ! $dt ) {
+				return $timezone;
+			}
+			$abbr = $dt->format( 'T' );
+			if ( '' === $abbr || preg_match( '/^[+-]?\d/', $abbr ) ) {
+				return $timezone;
+			}
+			return $abbr;
+		}
+
+		/**
+		 * Parse a datetime string and pin it to the portal timezone.
+		 *
+		 * @param mixed  $value    Datetime string or empty.
+		 * @param string $timezone IANA timezone.
+		 * @return DateTime|null Pinned to the portal timezone, so offset-bearing
+		 *                       strings render at the portal's wall clock.
+		 */
+		private static function parse_moment( $value, $timezone ) {
+			if ( null === $value || '' === $value ) {
+				return null;
+			}
 			try {
-				$tz = new DateTimeZone( $timezone );
+				$tz = new DateTimeZone( (string) $timezone );
 			} catch ( Exception $e ) {
 				$tz = new DateTimeZone( 'America/New_York' );
 			}
 			try {
-				$dt = new DateTime( (string) $deadline, $tz );
+				$dt = new DateTime( (string) $value, $tz );
 			} catch ( Exception $e ) {
-				return '';
+				return null;
 			}
-			return $dt->format( 'j F Y, g:i a' );
+			return $dt->setTimezone( $tz );
 		}
 
 		/**
@@ -718,7 +950,7 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 			if ( empty( $rows ) ) {
 				return '';
 			}
-			$html = '<section class="dg-applicant-packets" data-dg-applicant-packets aria-labelledby="dg-applicant-packets-title">';
+			$html  = '<section class="dg-applicant-packets" data-dg-applicant-packets aria-labelledby="dg-applicant-packets-title">';
 			$html .= '<h2 id="dg-applicant-packets-title">Your submissions for this portal</h2>';
 			$html .= '<ul>';
 			foreach ( $rows as $row ) {
@@ -847,8 +1079,8 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 				true
 			);
 
-			$post_id   = (int) get_the_ID();
-			$anonymize = false;
+			$post_id    = (int) get_the_ID();
+			$anonymize  = false;
 			$definition = class_exists( 'Portal_Definition' )
 				? Portal_Definition::load_for_post( $post_id )
 				: null;

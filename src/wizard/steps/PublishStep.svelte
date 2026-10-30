@@ -1,5 +1,5 @@
 <script>
-	import { Label, RadioGroup } from 'bits-ui';
+import { Label, RadioGroup } from 'bits-ui';
 	import Field from '../../ui/Field.svelte';
 	import CheckField from '../../ui/CheckField.svelte';
 	import SelectField from '../../ui/SelectField.svelte';
@@ -26,7 +26,7 @@
 	 * @property {() => Promise<void>} onSavePortal
 	 * @property {string} saveState
 	 * @property {string} saveError
-	 * @property {string} applicantStatus
+	 * @property {{ key: 'draft'|'auto'|'open'|'closed', label: string, detail: string }} applicantStatus
 	 * @property {string} publicUrl
 	 * @property {string} [listUrl]
 	 * @property {{ membershipPlans?: {id: string, name: string}[], profileFields?: {key: string, label: string}[], roles?: {id: string, name: string}[] }} [accessCatalog]
@@ -295,438 +295,516 @@
 </script>
 
 <p class="dg-wizard-eyebrow">{definition?.title || 'Portal'}</p>
-<h2 id="dg-wizard-step-title" class="dg-wizard-title">Last details before this opens</h2>
+<h2 id="dg-wizard-step-title" class="dg-wizard-title">
+  Last details before this opens
+</h2>
 <p class="dg-wizard-lead">
-	Name the portal, set a launch date and deadline, then save. Applicants can start on the launch
-	date while the portal is accepting submissions.
+  Name the portal, set a launch date and deadline, then save. Applicants can
+  start on the launch date while the portal is accepting submissions.
 </p>
 
-<div class="dg-status-banner" data-status={applicantStatus.toLowerCase()} role="status">
-	<strong>Status for applicants:</strong>
-	{applicantStatus}
-	{#if applicantStatus === 'Draft'}
-		— not visible as an open form.
-	{:else if applicantStatus === 'Closed'}
-		— not accepting submissions.
-	{:else}
-		— accepting submissions.
-	{/if}
+<div class="dg-status-banner" data-status={applicantStatus.key} role="status">
+  <strong>Status for applicants:</strong>
+  {applicantStatus.label} — {applicantStatus.detail}.
 </div>
 
 {#if fieldCount === 0}
-	<p class="dg-wizard-alert" role="alert">Add fields in Build before saving this portal.</p>
+  <p class="dg-wizard-alert" role="alert">
+    Add fields in Build before saving this portal.
+  </p>
 {:else if unmapped.length > 0}
-	<p class="dg-wizard-alert" role="alert">
-		{unmapped.length} field{unmapped.length === 1 ? '' : 's'} still unmapped. Go back to Map
-		data.
-	</p>
+  <p class="dg-wizard-alert" role="alert">
+    {unmapped.length} field{unmapped.length === 1 ? '' : 's'} still unmapped. Go
+    back to Map data.
+  </p>
 {/if}
 
 <div class="dg-publish-card cardish">
-	<div class="dg-publish-block" style="margin-top: 0;">
-		<CheckField
-			id="dg-test-mode"
-			label="Test mode"
-			checked={Boolean(publish.testMode)}
-			onchange={(e) => setPublish('testMode', e.currentTarget.checked)}
-		/>
-		<p class="dg-field-help">
-			Applicants see “Test — not a real application.” Submissions are logged as test and do
-			not write the mapped Sheet or Drive folder.
-		</p>
-	</div>
-	<div class="dg-publish-block">
-		<Field
-			id="dg-portal-name"
-			label="Portal name"
-			value={definition?.title || ''}
-			placeholder="e.g. Herbolzheimer Prize 2026"
-			oninput={(e) => setTitle(e.currentTarget.value)}
-		/>
-		<p class="dg-field-help">Shown to applicants and in the portal list.</p>
-	</div>
-	<div class="dg-publish-grid">
-		<div>
-			<Field
-				id="dg-launch"
-				label="Launch date"
-				type="datetime-local"
-				value={launchLocalValue()}
-				oninput={onLaunch}
-			/>
-			<p class="dg-field-help">When applicants can start. Blank becomes today when you save.</p>
-		</div>
-		<div>
-			<Field
-				id="dg-deadline"
-				label="Deadline"
-				type="datetime-local"
-				value={deadlineLocalValue()}
-				oninput={onDeadline}
-			/>
-			<p class="dg-field-help">Leave empty for no deadline.</p>
-		</div>
-	</div>
-	<div class="dg-publish-block">
-		<Field
-			id="dg-tz"
-			label="Timezone"
-			value={publish.timezone || ''}
-			placeholder={timezonePlaceholder}
-			oninput={(e) => setPublish('timezone', emptyToNull(e.currentTarget.value))}
-		/>
-		{#if !publish.timezone}
-			<p class="dg-field-help">Using site default ({timezonePlaceholder})</p>
-		{/if}
-	</div>
-	<div class="dg-publish-block">
-		<Field
-			id="dg-fee"
-			label="Application fee"
-			placeholder="Leave blank if free"
-			value={publish.applicationFee ?? ''}
-			oninput={(e) => {
-				const v = e.currentTarget.value.trim();
-				setPublish('applicationFee', v === '' ? null : v);
-			}}
-		/>
-		<p class="dg-field-help">
-			Shown as a label on the public form. Not charged in this form. Hosts may
-			collect this outside DragonGate.
-		</p>
-		<CheckField
-			id="dg-free-members"
-			label="Free for members"
-			checked={freeForMembersOn}
-			onchange={(e) => setOption('freeForMembers', e.currentTarget.checked)}
-		/>
-		{#if inheritCaption(options.freeForMembers, Boolean(siteDefaults.freeForMembers))}
-			<p class="dg-field-help">{inheritCaption(options.freeForMembers, Boolean(siteDefaults.freeForMembers))}</p>
-		{:else}
-			<button
-				type="button"
-				class="dg-btn dg-btn-ghost dg-btn-sm"
-				onclick={() => setOption('freeForMembers', null)}
-			>
-				Use site default
-			</button>
-		{/if}
-		{#if freeForMembersOn && membershipPlans.length > 0}
-			<p class="dg-field-help">Leave every plan unchecked to waive the fee for any active membership.</p>
-			<div class="dg-plan-list">
-				{#each membershipPlans as plan (plan.id)}
-					<CheckField
-						id={`dg-fee-plan-${plan.id}`}
-						label={plan.name}
-						checked={(options.freeMembershipPlanIds || []).map(String).includes(String(plan.id))}
-						onchange={(e) => togglePlan(String(plan.id), e.currentTarget.checked, 'fee')}
-					/>
-				{/each}
-			</div>
-		{/if}
-	</div>
-	<div class="dg-publish-block">
-		<CheckField
-			id="dg-anonymize"
-			label="Anonymize files for adjudicators"
-			checked={anonymizeOn}
-			onchange={(e) => setOption('anonymize', e.currentTarget.checked)}
-		/>
-		{#if inheritCaption(options.anonymize, Boolean(siteDefaults.anonymize))}
-			<p class="dg-field-help">{inheritCaption(options.anonymize, Boolean(siteDefaults.anonymize))}</p>
-		{:else}
-			<button
-				type="button"
-				class="dg-btn dg-btn-ghost dg-btn-sm"
-				onclick={() => setOption('anonymize', null)}
-			>
-				Use site default
-			</button>
-		{/if}
-		{#if anonymizeOn}
-			<div class="dg-publish-grid">
-				<div>
-					<Field
-						id="dg-anonymize-endpoint"
-						label="Anonymize API URL"
-						type="url"
-						placeholder={endpointPlaceholder}
-						value={options.anonymizeEndpoint || ''}
-						oninput={(e) => setOption('anonymizeEndpoint', emptyToNull(e.currentTarget.value))}
-					/>
-				</div>
-				<div>
-					<Field
-						id="dg-anonymize-key"
-						label="API key"
-						type="password"
-						autocomplete="off"
-						placeholder={keyPlaceholder}
-						value={options.anonymizeApiKey || ''}
-						oninput={(e) => setOption('anonymizeApiKey', emptyToNull(e.currentTarget.value))}
-					/>
-				</div>
-			</div>
-			<CheckField
-				id="dg-anonymize-fail-closed"
-				label="Do not store the original if anonymize fails"
-				checked={failClosedOn}
-				onchange={(e) => setOption('anonymizeFailClosed', e.currentTarget.checked)}
-			/>
-			{#if inheritCaption(options.anonymizeFailClosed, Boolean(siteDefaults.anonymizeFailClosed))}
-				<p class="dg-field-help">{inheritCaption(options.anonymizeFailClosed, Boolean(siteDefaults.anonymizeFailClosed))}</p>
-			{:else}
-				<button
-					type="button"
-					class="dg-btn dg-btn-ghost dg-btn-sm"
-					onclick={() => setOption('anonymizeFailClosed', null)}
-				>
-					Use site default
-				</button>
-			{/if}
-			<div>
-				<Field
-					id="dg-anonymize-ack"
-					label="Anonymize certification"
-					multiline
-					rows={3}
-					placeholder={ackPlaceholder}
-					value={options.anonymizeAck || ''}
-					oninput={(e) => setOption('anonymizeAck', emptyToNull(e.currentTarget.value))}
-				/>
-				{#if !options.anonymizeAck}
-					<p class="dg-field-help">Using site default</p>
-				{:else}
-					<button
-						type="button"
-						class="dg-btn dg-btn-ghost dg-btn-sm"
-						onclick={() => setOption('anonymizeAck', null)}
-					>
-						Use site default
-					</button>
-				{/if}
-			</div>
-			<p class="dg-anonymize-help dg-field-help">
-				A custom URL is allowed. Blank URL uses the site default, then All Intersections
-				({BUILTIN_ANONYMIZE_ENDPOINT}). If the call fails we keep the original unless fail
-				closed is on. The key is never shown on the public form. Certification text appears
-				as a required checkbox on the public form. An empty key blocks submit.
-			</p>
-		{/if}
-	</div>
-	<div class="dg-publish-block">
-		<p class="dg-field-label" id="dg-access-audience-label">Who can apply</p>
-		<RadioGroup.Root
-			value={access.audience}
-			aria-labelledby="dg-access-audience-label"
-			onValueChange={(next) => {
-				if (next) setAccess({ audience: next });
-			}}
-		>
-			{#each audienceChoices as choice (choice.value)}
-				<div class="dg-check-row">
-					<RadioGroup.Item id={choice.id} value={choice.value} class="dg-radio" />
-					<Label.Root for={choice.id}>{choice.label}</Label.Root>
-				</div>
-			{/each}
-		</RadioGroup.Root>
-		{#if access.audience === 'members' && membershipPlans.length > 0}
-			<p class="dg-field-help">Leave every plan unchecked to allow any active membership.</p>
-			<div class="dg-plan-list">
-				{#each membershipPlans as plan (plan.id)}
-					<CheckField
-						id={`dg-access-plan-${plan.id}`}
-						label={plan.name}
-						checked={access.membershipPlanIds.includes(String(plan.id))}
-						onchange={(e) => togglePlan(String(plan.id), e.currentTarget.checked, 'access')}
-					/>
-				{/each}
-			</div>
-		{:else if access.audience === 'members'}
-			<p class="dg-field-help">
-				Restrict to a WordPress role. Leave every role unchecked to allow any signed-in user.
-			</p>
-			<div class="dg-plan-list">
-				{#each siteRoles as role (role.id)}
-					<CheckField
-						id={`dg-access-role-${role.id}`}
-						label={role.name}
-						checked={access.roles.includes(String(role.id))}
-						onchange={(e) => toggleRole(String(role.id), e.currentTarget.checked)}
-					/>
-				{/each}
-			</div>
-		{/if}
-	</div>
-	<div class="dg-publish-block">
-		<p class="dg-field-label">Who may use View Portal as</p>
-		<p class="dg-field-help">Leave unchecked to use Default Settings.</p>
-		<div class="dg-plan-list">
-			{#each siteRoles as role (role.id)}
-				<CheckField
-					id={`dg-view-as-role-${role.id}`}
-					label={role.name}
-					checked={access.viewAsRoles.includes(String(role.id))}
-					onchange={(e) => toggleViewAsRole(String(role.id), e.currentTarget.checked)}
-				/>
-			{/each}
-		</div>
-	</div>
-	<div class="dg-publish-block">
-		<p class="dg-field-label">Profile requirements</p>
-		<p class="dg-field-help">Optional. Limit by country, institution, occupation, age, or any profile field.</p>
-		{#each access.profileRules as rule, i (i)}
-			<div class="dg-profile-rule">
-				<SelectField
-					id={`dg-rule-key-${i}`}
-					ariaLabel="Profile field"
-					value={rule.key}
-					options={[
-						...profileFields.map((field) => ({ value: field.key, label: field.label })),
-						...(!profileFields.some((f) => f.key === rule.key)
-							? [{ value: rule.key, label: rule.key }]
-							: []),
-						{ value: 'age', label: 'Age' },
-					]}
-					onValueChange={(next) => patchProfileRule(i, { key: next })}
-				/>
-				<SelectField
-					id={`dg-rule-op-${i}`}
-					ariaLabel="Comparison"
-					value={rule.op}
-					options={[
-						{ value: 'eq', label: 'is' },
-						{ value: 'neq', label: 'is not' },
-						{ value: 'contains', label: 'contains' },
-						{ value: 'in', label: 'is one of' },
-						{ value: 'gte', label: 'at least' },
-						{ value: 'lte', label: 'at most' },
-					]}
-					onValueChange={(next) => patchProfileRule(i, { op: next })}
-				/>
-				<Field
-					id={`dg-rule-value-${i}`}
-					ariaLabel="Value"
-					placeholder={rule.op === 'in' ? 'Comma-separated values' : 'Value'}
-					value={rule.value}
-					oninput={(e) => patchProfileRule(i, { value: e.currentTarget.value })}
-				/>
-				<button
-					type="button"
-					class="dg-btn dg-btn-ghost dg-btn-sm"
-					onclick={() => removeProfileRule(i)}
-				>
-					Remove
-				</button>
-			</div>
-		{/each}
-		<button type="button" class="dg-btn dg-btn-ghost dg-btn-sm" onclick={addProfileRule}>
-			Add profile rule
-		</button>
-		<Field
-			id="dg-access-deny"
-			label="Denied message"
-			placeholder="Leave blank for a default message"
-			value={access.denyMessage}
-			oninput={(e) => setAccess({ denyMessage: e.currentTarget.value })}
-		/>
-	</div>
-	<div class="dg-publish-block">
-		<Field
-			id="dg-guidelines"
-			label="Guidelines URL"
-			type="url"
-			placeholder={emptyToNull(siteDefaults.guidelinesUrl) || 'https://…'}
-			value={options.guidelinesUrl || ''}
-			oninput={(e) => setOption('guidelinesUrl', emptyToNull(e.currentTarget.value))}
-		/>
-		{#if !options.guidelinesUrl && siteDefaults.guidelinesUrl}
-			<p class="dg-field-help">Using site default</p>
-		{/if}
-		<Field
-			id="dg-guidelines-label"
-			label="Guidelines link label"
-			placeholder={emptyToNull(siteDefaults.guidelinesLinkLabel) ||
-				BUILTIN_GUIDELINES_LINK_LABEL}
-			value={options.guidelinesLinkLabel || ''}
-			oninput={(e) => setOption('guidelinesLinkLabel', emptyToNull(e.currentTarget.value))}
-		/>
-		{#if !options.guidelinesLinkLabel && siteDefaults.guidelinesLinkLabel}
-			<p class="dg-field-help">Using site default</p>
-		{/if}
-	</div>
+  <div class="dg-publish-block" style="margin-top: 0">
+    <CheckField
+      id="dg-test-mode"
+      label="Test mode"
+      checked={Boolean(publish.testMode)}
+      onchange={(e) => setPublish('testMode', e.currentTarget.checked)}
+    />
+    <p class="dg-field-help">
+      Applicants see “Test — not a real application.” Submissions are
+      logged as test and do not write the mapped Sheet or Drive folder.
+    </p>
+  </div>
+  <div class="dg-publish-block">
+    <Field
+      id="dg-portal-name"
+      label="Portal name"
+      value={definition?.title || ''}
+      placeholder="e.g. Herbolzheimer Prize 2026"
+      oninput={(e) => setTitle(e.currentTarget.value)}
+    />
+    <p class="dg-field-help">Shown to applicants and in the portal list.</p>
+  </div>
+  <div class="dg-publish-grid">
+    <div>
+      <Field
+        id="dg-launch"
+        label="Launch date"
+        type="datetime-local"
+        value={launchLocalValue()}
+        oninput={onLaunch}
+      />
+      <p class="dg-field-help">
+        When applicants can start. Blank becomes today when you save.
+      </p>
+    </div>
+    <div>
+      <Field
+        id="dg-deadline"
+        label="Deadline"
+        type="datetime-local"
+        value={deadlineLocalValue()}
+        oninput={onDeadline}
+      />
+      <p class="dg-field-help">Leave empty for no deadline.</p>
+    </div>
+  </div>
+  <div class="dg-publish-block">
+    <Field
+      id="dg-tz"
+      label="Timezone"
+      value={publish.timezone || ''}
+      placeholder={timezonePlaceholder}
+      oninput={(e) => setPublish('timezone', emptyToNull(e.currentTarget.value))}
+    />
+    {#if !publish.timezone}
+      <p class="dg-field-help">Using site default ({timezonePlaceholder})</p>
+    {/if}
+  </div>
+  <div class="dg-publish-block">
+    <Field
+      id="dg-fee"
+      label="Application fee"
+      placeholder="Leave blank if free"
+      value={publish.applicationFee ?? ''}
+      oninput={(e) => {
+      	const v = e.currentTarget.value.trim();
+      	setPublish('applicationFee', v === '' ? null : v);
+      }}
+    />
+    <p class="dg-field-help">
+      Shown as a label on the public form. Not charged in this form. Hosts may
+      collect this outside DragonGate.
+    </p>
+    <div class="dg-default-row">
+      <CheckField
+        id="dg-free-members"
+        label="Free for members"
+        checked={freeForMembersOn}
+        onchange={(e) => setOption('freeForMembers', e.currentTarget.checked)}
+      />
+      {#if inheritCaption(options.freeForMembers, Boolean(siteDefaults.freeForMembers))}
+        <p class="dg-field-help">
+          {
+            inheritCaption(options.freeForMembers, Boolean(siteDefaults.freeForMembers))
+          }
+        </p>
+      {:else}
+        <button
+          type="button"
+          class="dg-btn dg-btn-ghost dg-btn-sm"
+          onclick={() => setOption('freeForMembers', null)}
+        >
+          Use site default
+        </button>
+      {/if}
+    </div>
+    {#if freeForMembersOn && membershipPlans.length > 0}
+      <p class="dg-field-help">
+        Leave every plan unchecked to waive the fee for any active membership.
+      </p>
+      <div class="dg-plan-list">
+        {#each membershipPlans as plan (plan.id)}
+          <CheckField
+            id={`dg-fee-plan-${plan.id}`}
+            label={plan.name}
+            checked={(options.freeMembershipPlanIds || []).map(String).includes(String(plan.id))}
+            onchange={(e) => togglePlan(String(plan.id), e.currentTarget.checked, 'fee')}
+          />
+        {/each}
+      </div>
+    {/if}
+  </div>
+  <div class="dg-publish-block">
+    <div class="dg-default-row">
+      <CheckField
+        id="dg-anonymize"
+        label="Anonymize files for adjudicators"
+        checked={anonymizeOn}
+        onchange={(e) => setOption('anonymize', e.currentTarget.checked)}
+      />
+      {#if inheritCaption(options.anonymize, Boolean(siteDefaults.anonymize))}
+        <p class="dg-field-help">
+          {inheritCaption(options.anonymize, Boolean(siteDefaults.anonymize))}
+        </p>
+      {:else}
+        <button
+          type="button"
+          class="dg-btn dg-btn-ghost dg-btn-sm"
+          onclick={() => setOption('anonymize', null)}
+        >
+          Use site default
+        </button>
+      {/if}
+    </div>
+    {#if anonymizeOn}
+      <div class="dg-publish-grid">
+        <div>
+          <Field
+            id="dg-anonymize-endpoint"
+            label="Anonymize API URL"
+            type="url"
+            placeholder={endpointPlaceholder}
+            value={options.anonymizeEndpoint || ''}
+            oninput={(e) => setOption('anonymizeEndpoint', emptyToNull(e.currentTarget.value))}
+          />
+        </div>
+        <div>
+          <Field
+            id="dg-anonymize-key"
+            label="API key"
+            type="password"
+            autocomplete="off"
+            placeholder={keyPlaceholder}
+            value={options.anonymizeApiKey || ''}
+            oninput={(e) => setOption('anonymizeApiKey', emptyToNull(e.currentTarget.value))}
+          />
+        </div>
+      </div>
+      <div class="dg-default-row">
+        <CheckField
+          id="dg-anonymize-fail-closed"
+          label="Do not store the original if anonymize fails"
+          checked={failClosedOn}
+          onchange={(e) => setOption('anonymizeFailClosed', e.currentTarget.checked)}
+        />
+        {#if inheritCaption(options.anonymizeFailClosed, Boolean(siteDefaults.anonymizeFailClosed))}
+          <p class="dg-field-help">
+            {
+              inheritCaption(options.anonymizeFailClosed, Boolean(siteDefaults.anonymizeFailClosed))
+            }
+          </p>
+        {:else}
+          <button
+            type="button"
+            class="dg-btn dg-btn-ghost dg-btn-sm"
+            onclick={() => setOption('anonymizeFailClosed', null)}
+          >
+            Use site default
+          </button>
+        {/if}
+      </div>
+      <div class="dg-default-row">
+        <div class="dg-default-field">
+          <Field
+            id="dg-anonymize-ack"
+            label="Anonymize certification"
+            multiline
+            rows={3}
+            placeholder={ackPlaceholder}
+            value={options.anonymizeAck || ''}
+            oninput={(e) => setOption('anonymizeAck', emptyToNull(e.currentTarget.value))}
+          />
+        </div>
+        {#if !options.anonymizeAck}
+          <p class="dg-field-help">Using site default</p>
+        {:else}
+          <button
+            type="button"
+            class="dg-btn dg-btn-ghost dg-btn-sm"
+            onclick={() => setOption('anonymizeAck', null)}
+          >
+            Use site default
+          </button>
+        {/if}
+      </div>
+      <p class="dg-anonymize-help dg-field-help">
+        A custom URL is allowed. Blank URL uses the site default, then All
+        Intersections ({BUILTIN_ANONYMIZE_ENDPOINT}). If the call fails we keep
+        the original unless fail closed is on. The key is never shown on the
+        public form. Certification text appears as a required checkbox on the
+        public form. An empty key blocks submit.
+      </p>
+    {/if}
+  </div>
+  <div class="dg-publish-block">
+    <p class="dg-field-label" id="dg-access-audience-label">Who can apply</p>
+    <RadioGroup.Root
+      value={access.audience}
+      aria-labelledby="dg-access-audience-label"
+      onValueChange={(next) => {
+      	if (next) setAccess({ audience: next });
+      }}
+    >
+      {#each audienceChoices as choice (choice.value)}
+        <div class="dg-check-row">
+          <RadioGroup.Item
+            id={choice.id}
+            value={choice.value}
+            class="dg-radio"
+          />
+          <Label.Root for={choice.id}>{choice.label}</Label.Root>
+        </div>
+      {/each}
+    </RadioGroup.Root>
+    {#if access.audience === 'members' && membershipPlans.length > 0}
+      <p class="dg-field-help">
+        Leave every plan unchecked to allow any active membership.
+      </p>
+      <div class="dg-plan-list">
+        {#each membershipPlans as plan (plan.id)}
+          <CheckField
+            id={`dg-access-plan-${plan.id}`}
+            label={plan.name}
+            checked={access.membershipPlanIds.includes(String(plan.id))}
+            onchange={(e) => togglePlan(String(plan.id), e.currentTarget.checked, 'access')}
+          />
+        {/each}
+      </div>
+    {:else if access.audience === 'members'}
+      <p class="dg-field-help">
+        Restrict to a WordPress role. Leave every role unchecked to allow any
+        signed-in user.
+      </p>
+      <div class="dg-plan-list">
+        {#each siteRoles as role (role.id)}
+          <CheckField
+            id={`dg-access-role-${role.id}`}
+            label={role.name}
+            checked={access.roles.includes(String(role.id))}
+            onchange={(e) => toggleRole(String(role.id), e.currentTarget.checked)}
+          />
+        {/each}
+      </div>
+    {/if}
+  </div>
+  <div class="dg-publish-block">
+    <p class="dg-field-label">Who may use View Portal as</p>
+    <p class="dg-field-help">Leave unchecked to use Default Settings.</p>
+    <div class="dg-plan-list">
+      {#each siteRoles as role (role.id)}
+        <CheckField
+          id={`dg-view-as-role-${role.id}`}
+          label={role.name}
+          checked={access.viewAsRoles.includes(String(role.id))}
+          onchange={(e) => toggleViewAsRole(String(role.id), e.currentTarget.checked)}
+        />
+      {/each}
+    </div>
+  </div>
+  <div class="dg-publish-block">
+    <p class="dg-field-label">Profile requirements</p>
+    <p class="dg-field-help">
+      Optional. Limit by country, institution, occupation, age, or any profile
+      field.
+    </p>
+    {#each access.profileRules as rule, i (i)}
+      <div class="dg-profile-rule">
+        <SelectField
+          id={`dg-rule-key-${i}`}
+          ariaLabel="Profile field"
+          value={rule.key}
+          options={[
+          	...profileFields.map((field) => ({ value: field.key, label: field.label })),
+          	...(!profileFields.some((f) => f.key === rule.key)
+          		? [{ value: rule.key, label: rule.key }]
+          		: []),
+          	{ value: 'age', label: 'Age' },
+          ]}
+          onValueChange={(next) => patchProfileRule(i, { key: next })}
+        />
+        <SelectField
+          id={`dg-rule-op-${i}`}
+          ariaLabel="Comparison"
+          value={rule.op}
+          options={[
+          	{ value: 'eq', label: 'is' },
+          	{ value: 'neq', label: 'is not' },
+          	{ value: 'contains', label: 'contains' },
+          	{ value: 'in', label: 'is one of' },
+          	{ value: 'gte', label: 'at least' },
+          	{ value: 'lte', label: 'at most' },
+          ]}
+          onValueChange={(next) => patchProfileRule(i, { op: next })}
+        />
+        <Field
+          id={`dg-rule-value-${i}`}
+          ariaLabel="Value"
+          placeholder={rule.op === 'in' ? 'Comma-separated values' : 'Value'}
+          value={rule.value}
+          oninput={(e) => patchProfileRule(i, { value: e.currentTarget.value })}
+        />
+        <button
+          type="button"
+          class="dg-btn dg-btn-ghost dg-btn-sm"
+          onclick={() => removeProfileRule(i)}
+        >
+          Remove
+        </button>
+      </div>
+    {/each}
+    <button
+      type="button"
+      class="dg-btn dg-btn-ghost dg-btn-sm"
+      onclick={addProfileRule}
+    >
+      Add profile rule
+    </button>
+    <Field
+      id="dg-access-deny"
+      label="Denied message"
+      placeholder="Leave blank for a default message"
+      value={access.denyMessage}
+      oninput={(e) => setAccess({ denyMessage: e.currentTarget.value })}
+    />
+  </div>
+  <div class="dg-publish-block">
+    <Field
+      id="dg-guidelines"
+      label="Guidelines URL"
+      type="url"
+      placeholder={emptyToNull(siteDefaults.guidelinesUrl) || 'https://…'}
+      value={options.guidelinesUrl || ''}
+      oninput={(e) => setOption('guidelinesUrl', emptyToNull(e.currentTarget.value))}
+    />
+    {#if !options.guidelinesUrl && siteDefaults.guidelinesUrl}
+      <p class="dg-field-help">Using site default</p>
+    {/if}
+    <Field
+      id="dg-guidelines-label"
+      label="Guidelines link label"
+      placeholder={emptyToNull(siteDefaults.guidelinesLinkLabel) ||
+      BUILTIN_GUIDELINES_LINK_LABEL}
+      value={options.guidelinesLinkLabel || ''}
+      oninput={(e) => setOption('guidelinesLinkLabel', emptyToNull(e.currentTarget.value))}
+    />
+    {#if !options.guidelinesLinkLabel && siteDefaults.guidelinesLinkLabel}
+      <p class="dg-field-help">Using site default</p>
+    {/if}
+  </div>
 </div>
 
 <div class="dg-publish-card cardish">
-	<p class="dg-field-label" style="margin-bottom: 8px;">Ready checklist</p>
-	<ul class="dg-checklist">
-		<li data-ok={fieldCount > 0 ? 'true' : 'false'}>
-			{fieldCount > 0 ? '✓' : '○'} {fieldCount} form field{fieldCount === 1 ? '' : 's'}
-		</li>
-		<li data-ok={unmapped.length === 0 && fieldCount > 0 ? 'true' : 'false'}>
-			{unmapped.length === 0 && fieldCount > 0 ? '✓' : '○'} Mapping complete
-		</li>
-		<li data-ok={definition?.title ? 'true' : 'false'}>
-			{definition?.title ? '✓' : '○'} Portal named
-		</li>
-	</ul>
+  <p class="dg-field-label" style="margin-bottom: 8px">Ready checklist</p>
+  <ul class="dg-checklist">
+    <li data-ok={fieldCount > 0 ? 'true' : 'false'}>
+      {fieldCount > 0 ? '✓' : '○'} {fieldCount} form field{
+        fieldCount === 1 ? '' : 's'
+      }
+    </li>
+    <li data-ok={unmapped.length === 0 && fieldCount > 0 ? 'true' : 'false'}>
+      {unmapped.length === 0 && fieldCount > 0 ? '✓' : '○'} Mapping complete
+    </li>
+    <li data-ok={definition?.title ? 'true' : 'false'}>
+      {definition?.title ? '✓' : '○'} Portal named
+    </li>
+  </ul>
 </div>
 
 {#if publicUrl}
-	<div class="dg-publish-card cardish dg-public-link-card">
-		<p class="dg-field-label">Public form</p>
-		<p class="dg-mono dg-public-url">{publicUrl}</p>
-		<div class="dg-link-actions">
-			<button type="button" class="dg-btn dg-btn-ghost dg-btn-sm" onclick={copyLink}>
-				{copyOk ? 'Copied ✓' : 'Copy link'}
-			</button>
-			<a class="dg-btn dg-btn-ghost dg-btn-sm" href={publicUrl} target="_blank" rel="noopener"
-				>View public form</a
-			>
-			<a
-				class="dg-btn dg-btn-ghost dg-btn-sm"
-				href={previewUrl(publicUrl)}
-				target="_blank"
-				rel="noopener"
-				>Preview</a
-			>
-		</div>
-	</div>
+  <div class="dg-publish-card cardish dg-public-link-card">
+    <p class="dg-field-label">Public form</p>
+    <p class="dg-mono dg-public-url">{publicUrl}</p>
+    <div class="dg-link-actions">
+      <button
+        type="button"
+        class="dg-btn dg-btn-ghost dg-btn-sm"
+        onclick={copyLink}
+      >
+        {copyOk ? 'Copied ✓' : 'Copy link'}
+      </button>
+      <a
+        class="dg-btn dg-btn-ghost dg-btn-sm"
+        href={publicUrl}
+        target="_blank"
+        rel="noopener"
+      >View portal</a>
+      <a
+        class="dg-btn dg-btn-ghost dg-btn-sm"
+        href={previewUrl(publicUrl, 'open')}
+        target="_blank"
+        rel="noopener"
+      >View as open</a>
+      <a
+        class="dg-btn dg-btn-ghost dg-btn-sm"
+        href={previewUrl(publicUrl, 'closed')}
+        target="_blank"
+        rel="noopener"
+      >View as closed</a>
+    </div>
+    <p class="dg-field-help">
+      View as open and View as closed are staff previews of the form a real
+      applicant sees — the form cannot be submitted in preview. To have
+      someone submit after the portal closes, send them an invitation on
+      Records.
+    </p>
+  </div>
 {/if}
 
 {#if saveError}
-	<p class="dg-wizard-alert" role="alert">{saveError}</p>
+  <p class="dg-wizard-alert" role="alert">{saveError}</p>
 {/if}
 
 <div class="dg-wizard-actions dg-wizard-actions--spread">
-	<button type="button" class="dg-btn dg-btn-ghost" onclick={onBack} disabled={saving}>
-		← Back to mapping
-	</button>
-	<div class="dg-wizard-actions-right">
-		<button
-			type="button"
-			class="dg-btn dg-btn-ghost"
-			disabled={saving}
-			onclick={() => onSaveDraft()}
-			data-dg-save-draft
-		>
-			{saveState === 'saving' ? 'Saving…' : saveState === 'saved' ? 'Saved ✓' : 'Save draft'}
-		</button>
-		<button
-			type="button"
-			class="dg-btn dg-btn-primary"
-			disabled={saving || !canOpen}
-			onclick={() => onSavePortal()}
-			data-dg-save-portal
-		>
-			{saveState === 'saving' ? 'Saving…' : 'Save Portal'}
-		</button>
-	</div>
+  <button
+    type="button"
+    class="dg-btn dg-btn-ghost"
+    onclick={onBack}
+    disabled={saving}
+  >
+    ← Back to mapping
+  </button>
+  <div class="dg-wizard-actions-right">
+    {#if publicUrl}
+      <a
+        class="dg-btn dg-btn-ghost"
+        href={publicUrl}
+        target="_blank"
+        rel="noopener"
+      >View portal</a>
+    {/if}
+    <button
+      type="button"
+      class="dg-btn dg-btn-ghost"
+      disabled={saving}
+      onclick={() => onSaveDraft()}
+      data-dg-save-draft
+    >
+      {
+        saveState === 'saving' ? 'Saving…' : saveState === 'saved' ? 'Saved ✓' : 'Save draft'
+      }
+    </button>
+    <button
+      type="button"
+      class="dg-btn dg-btn-primary"
+      disabled={saving || !canOpen}
+      onclick={() => onSavePortal()}
+      data-dg-save-portal
+    >
+      {saveState === 'saving' ? 'Saving…' : 'Save portal'}
+    </button>
+  </div>
 </div>
 
 <p class="dg-wizard-footnote">
-	Save Portal stores the form. If it is accepting submissions, it is also published for applicants.
-	{#if saveState === 'saved'}
-		· Changes saved.
-	{/if}
+  Save portal stores the form and its schedule. The form is published for
+  applicants only while the status is Open.
+  {#if saveState === 'saved'}
+    · Changes saved.
+  {/if}
 </p>
+
+<style>
+/* Schedule-governed "Auto" banner, mirroring the open/closed banner palette. */
+.dg-status-banner[data-status="auto"] {
+  background: var(--paper-100);
+  color: var(--ink);
+}
+</style>

@@ -10,6 +10,8 @@ import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 
+test.skip(true, 'Live integration: run manually against the seeded CFS portal; asserts real Sheet/Drive writes');
+
 const PORTAL_PATH = '/portal/2027-call-for-scores-and-papers';
 const SHEET_ID = '1w0EJ_kF2F3T4N9rr5kMCgPsVdFERc_-wGVF_8PGeH40';
 const DRIVE_BASE = '1xQnOvBcqpKqhSvAOCpsyKtZk502nM-XG';

@@ -82,6 +82,8 @@ require_once plugin_dir_path( __FILE__ ) . 'includes/class-portal-secret-field.p
 require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-spam-gate.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-packet-policy.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-packet-store.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-invites.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-records.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-portal-console-rest.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-portal-release-notes.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-portal-update.php';

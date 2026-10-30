@@ -11,6 +11,7 @@ import {
 	defaultOptions,
 	dualWritePublish,
 	normalizeLoaded,
+	BUILTIN_GUIDELINES_LINK_LABEL,
 } from '../../src/wizard/definitionModel.js';
 
 const root = process.cwd();
@@ -21,7 +22,6 @@ const artifactDir = path.join(root, 'tests/.artifacts/site-defaults');
 const BUILTIN_ENDPOINT = 'https://api.allintersections.com';
 const BUILTIN_ANONYMIZE_ACK =
 	'I certify that my scores and recordings exclude any information that might identify the composer but do include title of work, instrumentation, and duration.';
-const BUILTIN_GUIDELINES_LINK_LABEL = 'Link to Guidelines';
 const GUIDELINES_URL = 'https://example.org/call';
 
 /**
@@ -479,7 +479,7 @@ test('PHP definition normalize persists guidelinesLinkLabel and empties to inher
 	assert.equal(offData.definition.options.guidelinesLinkLabel, null);
 });
 
-test('packet-meta default label is Link to Guidelines, not Read the call, and opens in a new tab', () => {
+test('packet-meta default label is the built-in label, not Read the call, and opens in a new tab', () => {
 	const { code, html, err } = renderPacketMeta({
 		name: 'packet-meta-default',
 		definition: { options: { guidelinesUrl: GUIDELINES_URL } },
@@ -487,7 +487,7 @@ test('packet-meta default label is Link to Guidelines, not Read the call, and op
 	});
 	assert.equal(code, 0, err || html);
 	assert.match(html, /class="dg-meta-link"/);
-	assert.match(html, /Link to Guidelines/);
+	assert.ok(html.includes(BUILTIN_GUIDELINES_LINK_LABEL));
 	assert.doesNotMatch(html, /Read the call/);
 	assert.match(html, /target="_blank"/);
 	assert.match(html, /rel="noopener noreferrer"/);
@@ -516,7 +516,7 @@ test('packet-meta uses portal label over site, else site, else built-in', () => 
 	});
 	assert.equal(site.code, 0, site.err || site.html);
 	assert.match(site.html, /Site Guidelines/);
-	assert.doesNotMatch(site.html, /Link to Guidelines/);
+	assert.ok(!site.html.includes(BUILTIN_GUIDELINES_LINK_LABEL));
 
 	const builtin = renderPacketMeta({
 		name: 'packet-meta-builtin',
@@ -524,6 +524,6 @@ test('packet-meta uses portal label over site, else site, else built-in', () => 
 		site: { guidelinesLinkLabel: '' },
 	});
 	assert.equal(builtin.code, 0, builtin.err || builtin.html);
-	assert.match(builtin.html, /Link to Guidelines/);
+	assert.ok(builtin.html.includes(BUILTIN_GUIDELINES_LINK_LABEL));
 	assert.doesNotMatch(builtin.html, /Read the call/);
 });

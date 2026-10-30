@@ -1,5 +1,5 @@
 <script>
-	import {
+import {
 		FIELD_TYPE_CATALOG,
 		addBranchOption,
 		findField,
@@ -198,7 +198,7 @@
 	}
 
 	const insertHint = $derived.by(() => {
-		if (insertTarget.kind === 'root') return 'Insert at root';
+		if (insertTarget.kind === 'root') return 'Add new fields at the top level';
 		if (insertTarget.kind === 'group') {
 			const g = findField(fields, insertTarget.fieldId);
 			return `Insert into ${g?.label || insertTarget.fieldId}`;
@@ -212,116 +212,153 @@
 <p class="dg-wizard-eyebrow">{definition?.title || 'Portal'}</p>
 <h2 id="dg-wizard-step-title" class="dg-wizard-title">Build the form</h2>
 <p class="dg-wizard-lead">
-	Add fields applicants fill out. Use Branch for conditional paths (poster vs scores).
+  Add fields applicants fill out. Use Branch for conditional paths (poster vs
+  scores).
 </p>
 
 <div class="dg-build-layout">
-	<div class="dg-build-canvas">
-		{#if fields.length === 0}
-			<div class="dg-empty-hint" role="status">
-				No fields yet. Use a type below or go back to Start and pick a template.
-			</div>
-		{/if}
+  <div class="dg-build-canvas">
+    {#if fields.length === 0}
+      <div class="dg-empty-hint" role="status">
+        No fields yet. Use a type below or go back to Start and pick a template.
+      </div>
+    {/if}
 
-		<button
-			type="button"
-			class="dg-insert-target dg-insert-target--root"
-			class:dg-insert-target--active={insertTarget.kind === 'root'}
-			onclick={() => {
-				insertTarget = { kind: 'root' };
-				selectedOptionKey = null;
-			}}
-			ondragover={(e) => {
-				e.preventDefault();
-			}}
-			ondrop={(e) => {
-				e.preventDefault();
-				const type = e.dataTransfer?.getData('application/x-dg-field-type');
-				const fieldId = e.dataTransfer?.getData('application/x-dg-field-id');
-				if (type) onDropType(type, { kind: 'root' });
-				else if (fieldId) onDropField(fieldId, { kind: 'root' });
-			}}
-		>
-			Insert at root
-		</button>
+    <!-- Keep the drop target and its explanation reachable when clicking is a no-op. -->
+    <button
+      type="button"
+      class="dg-insert-target dg-insert-target--root"
+      class:dg-insert-target--active={insertTarget.kind === 'root'}
+      aria-disabled={insertTarget.kind === 'root'}
+      aria-describedby="dg-root-insert-status dg-root-drop-help"
+      onclick={() => {
+      	if (insertTarget.kind === 'root') return;
+      	insertTarget = { kind: 'root' };
+      	selectedOptionKey = null;
+      }}
+      ondragover={(e) => {
+      	e.preventDefault();
+      }}
+      ondrop={(e) => {
+      	e.preventDefault();
+      	const type = e.dataTransfer?.getData('application/x-dg-field-type');
+      	const fieldId = e.dataTransfer?.getData('application/x-dg-field-id');
+      	if (type) onDropType(type, { kind: 'root' });
+      	else if (fieldId) onDropField(fieldId, { kind: 'root' });
+      }}
+    >
+      Add next field at top level
+    </button>
+    <p
+      id="dg-root-insert-status"
+      class="dg-field-help"
+      role="status"
+      aria-atomic="true"
+    >
+      {#if insertTarget.kind === 'root'}
+        Already adding new fields at the top level. Choose a field type to add
+        one.
+      {:else}
+        Choose this to add your next field outside the selected group or branch.
+        Existing fields will not move.
+      {/if}
+    </p>
+    <p id="dg-root-drop-help" class="dg-field-help">
+      Drop a field type here to add it at the top level, or an existing field to
+      move it here.
+    </p>
 
-		<BuildFieldTree
-			{fields}
-			{selectedId}
-			{insertTarget}
-			{selectedOptionKey}
-			{expandAll}
-			onSelect={(id) => (selectedId = id)}
-			{onRemove}
-			onSetInsertTarget={(t) => (insertTarget = t)}
-			{onSelectOption}
-			{onDropType}
-			{onDropField}
-		/>
-	</div>
+    <BuildFieldTree
+      {fields}
+      {selectedId}
+      {insertTarget}
+      {selectedOptionKey}
+      {expandAll}
+      onSelect={(id) => (selectedId = id)}
+      {onRemove}
+      onSetInsertTarget={(t) => (insertTarget = t)}
+      {onSelectOption}
+      {onDropType}
+      {onDropField}
+    />
+  </div>
 
-	<aside class="dg-build-inspector" aria-label="Field inspector">
-		<p class="dg-wizard-eyebrow">Selected field</p>
-		{#if selected}
-			<BuildFieldEditor
-				field={selected}
-				{selectedOption}
-				{insertTarget}
-				onRename={(label) => setFields(renameField(fields, selected.id, label))}
-				onSetRequired={(required) =>
-					setFields(setFieldRequired(fields, selected.id, required))}
-				onSetHtml={(html) => setFields(setFieldHtml(fields, selected.id, html))}
-				onRenameOption={(optionId, label) =>
-					setFields(renameBranchOption(fields, selected.id, optionId, label))}
-				onFocusOption={(optionId) => viewOption(selected.id, optionId)}
-				onRemoveOption={(optionId) =>
-					setFields(removeBranchOption(fields, selected.id, optionId))}
-				onAddOption={() => setFields(addBranchOption(fields, selected.id))}
-				onAddNestedBranch={addNestedBranch}
-				onAddFieldToOption={() => {
-					if (!selectedOption) return;
-					viewOption(selected.id, selectedOption.id);
-					queueMicrotask(() => {
-						document.getElementById('dg-palette-first')?.focus();
-					});
-				}}
-			/>
-		{:else}
-			<p class="dg-field-help">Select a field in the tree to rename it or edit its options.</p>
-		{/if}
+  <aside class="dg-build-inspector" aria-label="Field inspector">
+    <p class="dg-wizard-eyebrow">Selected field</p>
+    {#if selected}
+      <BuildFieldEditor
+        field={selected}
+        {selectedOption}
+        {insertTarget}
+        onRename={(label) => setFields(renameField(fields, selected.id, label))}
+        onSetRequired={(required) =>
+        setFields(setFieldRequired(fields, selected.id, required))}
+        onSetHtml={(html) => setFields(setFieldHtml(fields, selected.id, html))}
+        onRenameOption={(optionId, label) =>
+        setFields(renameBranchOption(fields, selected.id, optionId, label))}
+        onFocusOption={(optionId) => viewOption(selected.id, optionId)}
+        onRemoveOption={(optionId) =>
+        setFields(removeBranchOption(fields, selected.id, optionId))}
+        onAddOption={() => setFields(addBranchOption(fields, selected.id))}
+        onAddNestedBranch={addNestedBranch}
+        onAddFieldToOption={() => {
+        	if (!selectedOption) return;
+        	viewOption(selected.id, selectedOption.id);
+        	queueMicrotask(() => {
+        		document.getElementById('dg-palette-first')?.focus();
+        	});
+        }}
+      />
+    {:else}
+      <p class="dg-field-help">
+        Select a field in the tree to rename it or edit its options.
+      </p>
+    {/if}
 
-		<div class="dg-type-palette" id="dg-type-palette">
-			<span class="dg-field-label">Add a field</span>
-			<p class="dg-field-help">{insertHint}. Click to add, or drag onto a path.</p>
-			<div class="dg-type-palette-row">
-				{#each FIELD_TYPE_CATALOG as t, i (t.type)}
-					<button
-						type="button"
-						class="dg-btn dg-btn-ghost dg-btn-sm"
-						id={i === 0 ? 'dg-palette-first' : undefined}
-						draggable="true"
-						ondragstart={(e) => onPaletteDragStart(e, t.type)}
-						onclick={() => addField(t.type)}
-					>
-						{t.label}
-					</button>
-				{/each}
-			</div>
-		</div>
-	</aside>
+    <div class="dg-type-palette" id="dg-type-palette">
+      <span class="dg-field-label">Add a field</span>
+      <p class="dg-field-help">
+        {insertHint}. Click to add, or drag onto a path.
+      </p>
+      <div class="dg-type-palette-row">
+        {#each FIELD_TYPE_CATALOG as t, i (t.type)}
+          <button
+            type="button"
+            class="dg-btn dg-btn-ghost dg-btn-sm"
+            id={i === 0 ? 'dg-palette-first' : undefined}
+            draggable="true"
+            ondragstart={(e) => onPaletteDragStart(e, t.type)}
+            onclick={() => addField(t.type)}
+          >
+            {t.label}
+          </button>
+        {/each}
+      </div>
+    </div>
+  </aside>
 </div>
 
 <div class="dg-wizard-actions">
-	<button type="button" class="dg-btn dg-btn-ghost" onclick={onBack}>← Back</button>
-	<button
-		type="button"
-		class="dg-btn dg-btn-primary"
-		disabled={flat.length === 0}
-		onclick={onContinue}
-	>
-		Continue to Map →
-	</button>
+  <button type="button" class="dg-btn dg-btn-ghost" onclick={onBack}>
+    ← Back
+  </button>
+  <button
+    type="button"
+    class="dg-btn dg-btn-primary"
+    disabled={flat.length === 0}
+    onclick={onContinue}
+  >
+    Continue to Map →
+  </button>
 </div>
 {#if flat.length === 0}
-	<p class="dg-wizard-footnote" role="status">Add at least one field before mapping.</p>
+  <p class="dg-wizard-footnote" role="status">
+    Add at least one field before mapping.
+  </p>
 {/if}
+
+<style>
+.dg-insert-target--root[aria-disabled="true"] {
+  cursor: default;
+}
+</style>

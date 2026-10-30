@@ -21,19 +21,23 @@ if ( ! class_exists( 'Portal_Submit_Admission' ) ) {
 		const MSG_VIEW_AS = 'View-as cannot accept a live submission.';
 
 		/**
-		 * Reject preview, view-as, or a closed portal.
+		 * Reject preview, view-as, or a closed portal; a valid invite admits.
 		 *
 		 * @param bool $is_preview Editor preview request.
 		 * @param bool $is_open    Portal is open for public submit.
 		 * @param bool $is_view_as Staff view-as overlay is active.
+		 * @param bool $has_invite A valid invitation grants admission past closed.
 		 * @return WP_Error|null Error to reject, or null to proceed.
 		 */
-		public static function decide( $is_preview, $is_open, $is_view_as = false ) {
+		public static function decide( $is_preview, $is_open, $is_view_as = false, $has_invite = false ) {
 			if ( $is_preview ) {
 				return new WP_Error( self::CODE_PREVIEW, self::MSG_PREVIEW );
 			}
 			if ( $is_view_as ) {
 				return new WP_Error( self::CODE_VIEW_AS, self::MSG_VIEW_AS );
+			}
+			if ( $has_invite ) {
+				return null;
 			}
 			if ( ! $is_open ) {
 				return new WP_Error( self::CODE_CLOSED, self::MSG_CLOSED );

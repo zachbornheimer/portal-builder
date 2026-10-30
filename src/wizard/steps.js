@@ -3,7 +3,8 @@ export const WIZARD_STEPS = [
 	{ id: 'start', label: 'Start', subtitle: 'template' },
 	{ id: 'build', label: 'Build form', subtitle: 'fields' },
 	{ id: 'map', label: 'Map data', subtitle: 'sheets & drive' },
-	{ id: 'publish', label: 'Publish', subtitle: 'deadline & open' },
+	{ id: 'publish', label: 'Status', subtitle: 'deadline & open state' },
+	{ id: 'records', label: 'Records', subtitle: 'submissions & invites' },
 ];
 
 /** @typedef {'open' | 'current' | 'sealed'} GateState */
