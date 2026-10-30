@@ -20,6 +20,7 @@
 - Replace the hardcoded 2027 guidelines dates with the portal definition dates
 - Store portal data outside the document root under a per-site directory and stop retaining token-bearing mail captures in the plugin tree
 - Rename the guidelines link label to Submission guidelines
+- Verify each data root can be written before use and fall back from DG_DATA_ROOT to the off-docroot directory to uploads, logging every skipped root so operator rows are never dropped silently
 
 ### Tests
 

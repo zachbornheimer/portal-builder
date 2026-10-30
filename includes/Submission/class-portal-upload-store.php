@@ -260,10 +260,18 @@ if ( ! class_exists( 'Portal_Upload_Store' ) ) {
 		}
 
 		/**
-		 * Resolve one protected operator-data directory, probing off-root first.
+		 * Resolve one protected operator-data directory, never returning an unverified path.
 		 *
-		 * Constant/fallback root DG_DATA_ROOT and filter `dg_data_dir` may override.
-		 * The off-root branch is the containment; segmented fallback remains web-visible.
+		 * Candidate roots are tried in order and one is accepted only after its store
+		 * directory exists and a probe file round-trips:
+		 *   1. DG_DATA_ROOT, the explicit operator choice.
+		 *   2. The `dg_data_dir` filter.
+		 *   3. dirname(ABSPATH)/dg-data-<segment>, off the document root.
+		 *   4. <uploads>/dg-<segment>, which is web-served.
+		 *
+		 * Each skipped candidate and the root finally used are written to error_log.
+		 * Prefer 1-3: write_deny() emits Apache stubs only, so nginx serves candidate 4
+		 * regardless of them.
 		 *
 		 * @param string            $name Store name (`dg-logs`, `dg-packets`, `mail`).
 		 * @param Portal_Files|null $files FS.
@@ -273,42 +281,90 @@ if ( ! class_exists( 'Portal_Upload_Store' ) ) {
 			$name    = (string) $name;
 			$files   = $files instanceof Portal_Files ? $files : new Portal_Files();
 			$segment = self::site_segment();
+			$skipped = false;
 
-			if ( defined( 'DG_DATA_ROOT' ) ) {
-				$root = (string) constant( 'DG_DATA_ROOT' );
-				if ( '' !== $root ) {
-					return self::prepare_data_dir( $root, $name, $files );
+			foreach ( self::data_roots( $name, $segment ) as $candidate ) {
+				$dir = self::prepare_data_dir( $candidate['root'], $name, $files );
+				if ( '' === $dir ) {
+					$skipped = true;
+					self::log_fallback( sprintf( '%s %s cannot be created or written for %s; trying the next root.', $candidate['label'], $candidate['root'], $name ) );
+					continue;
 				}
+				if ( $skipped ) {
+					$note = empty( $candidate['web'] ) ? '' : ' It is web-served and the deny stubs are Apache-only, so nginx will serve it; define DG_DATA_ROOT as a writable off-docroot path.';
+					self::log_fallback( sprintf( 'Using %s for %s.%s', $dir, $name, $note ) );
+				}
+				return $dir;
+			}
+			self::log_fallback( sprintf( 'No usable data root for %s; its rows are not being persisted.', $name ) );
+			return $files->join( self::join_basedir( 'dg-' . $segment ), $name );
+		}
+
+		/**
+		 * Ordered candidate roots for a store: label, root, and web flag.
+		 *
+		 * @param string $name    Store name.
+		 * @param string $segment Site segment.
+		 * @return array<int, array{label: string, root: string, web?: bool}>
+		 */
+		private static function data_roots( $name, $segment ) {
+			$roots = array();
+			if ( defined( 'DG_DATA_ROOT' ) && '' !== (string) constant( 'DG_DATA_ROOT' ) ) {
+				$roots[] = array(
+					'label' => 'DG_DATA_ROOT',
+					'root'  => (string) constant( 'DG_DATA_ROOT' ),
+				);
 			}
 			if ( function_exists( 'apply_filters' ) ) {
 				$filtered = apply_filters( 'dg_data_dir', null, $name, $segment );
 				if ( is_string( $filtered ) && '' !== trim( $filtered ) ) {
-					return self::prepare_data_dir( $filtered, $name, $files );
+					$roots[] = array(
+						'label' => 'dg_data_dir filter',
+						'root'  => $filtered,
+					);
 				}
 			}
 			if ( defined( 'ABSPATH' ) ) {
-				$parent = dirname( rtrim( (string) ABSPATH, '/\\' ) );
-				if ( self::probe_writable( $parent, $files ) ) {
-					return self::prepare_data_dir( $parent . DIRECTORY_SEPARATOR . 'dg-data-' . $segment, $name, $files );
-				}
+				$roots[] = array(
+					'label' => 'Off-docroot root',
+					'root'  => dirname( rtrim( (string) ABSPATH, '/\\' ) ) . DIRECTORY_SEPARATOR . 'dg-data-' . $segment,
+				);
 			}
-			return self::prepare_data_dir( self::join_basedir( 'dg-' . $segment ), $name, $files );
+			$roots[] = array(
+				'label' => 'Uploads root',
+				'root'  => self::join_basedir( 'dg-' . $segment ),
+				'web'   => true,
+			);
+			return $roots;
 		}
 
 		/**
-		 * Create and protect a store under a data root.
+		 * Create, verify, and protect a store under a data root.
 		 *
-		 * @param string            $root Data root.
-		 * @param string            $name Store name.
-		 * @param Portal_Files|null $files FS.
-		 * @return string
+		 * @param string       $root  Data root.
+		 * @param string       $name  Store name.
+		 * @param Portal_Files $files FS.
+		 * @return string Store directory, or '' when it cannot be created and written.
 		 */
 		private static function prepare_data_dir( $root, $name, Portal_Files $files ) {
 			$dir = $files->join( rtrim( (string) $root, '/\\' ), $name );
 			$files->mkdir( $dir );
+			if ( ! self::probe_writable( $dir, $files ) ) {
+				return '';
+			}
 			self::write_deny( $files, $dir );
 			self::migrate_legacy_store( $name, $dir, $files );
 			return $dir;
+		}
+
+		/**
+		 * Record a data-root decision where operators can read it.
+		 *
+		 * @param string $message Decision text.
+		 * @return void
+		 */
+		private static function log_fallback( $message ) {
+			error_log( 'Portal Data Store: ' . $message ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Operators must see why a store root was skipped.
 		}
 
 		/**
@@ -363,16 +419,16 @@ if ( ! class_exists( 'Portal_Upload_Store' ) ) {
 		}
 
 		/**
-		 * Prove a parent can be created and written by writing a transient probe.
+		 * Prove a directory can be written and read back by using a transient probe file.
 		 *
-		 * @param string            $parent Candidate parent.
+		 * @param string            $dir   Directory to probe (created when absent).
 		 * @param Portal_Files|null $files FS.
 		 * @return bool
 		 */
-		private static function probe_writable( $parent, Portal_Files $files ) {
+		private static function probe_writable( $dir, Portal_Files $files ) {
 			try {
-				$files->mkdir( $parent );
-				$probe = $files->join( $parent, '.dg-write-probe-' . self::site_segment() );
+				$files->mkdir( $dir );
+				$probe = $files->join( $dir, '.dg-write-probe-' . self::site_segment() );
 				$files->write( $probe, 'ok' );
 				$ok = 'ok' === $files->read_text( $probe );
 				$files->remove( $probe );
