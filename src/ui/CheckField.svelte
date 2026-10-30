@@ -1,5 +1,5 @@
 <script>
-	import { Label } from 'bits-ui';
+import { Label } from 'bits-ui';
 
 	/**
 	 * @typedef {Object} Props
@@ -10,7 +10,6 @@
 	 * @property {string} [value]
 	 * @property {boolean} [required]
 	 * @property {string} [rowClass]
-	 * @property {string} [inputValue]
 	 * @property {(e: Event) => void} [onchange]
 	 */
 
@@ -22,22 +21,22 @@
 		checked = false,
 		value = '1',
 		required = false,
-		rowClass = 'dg-check-row',
+		rowClass = '',
 		onchange,
 	} = $props();
 
 	let controlId = $derived(id || `dg-check-${name || label || 'box'}`);
 </script>
 
-<div class={rowClass}>
-	<input
-		type="checkbox"
-		id={controlId}
-		{name}
-		{value}
-		{checked}
-		{required}
-		{onchange}
-	/>
-	<Label.Root for={controlId}>{label}</Label.Root>
+<div class={`dg-check-row ${rowClass}`.trim()}>
+  <input
+    type="checkbox"
+    id={controlId}
+    name={name || undefined}
+    {value}
+    {checked}
+    {required}
+    {onchange}
+  />
+  <Label.Root for={controlId}>{label}</Label.Root>
 </div>

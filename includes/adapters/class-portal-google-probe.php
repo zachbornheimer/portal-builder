@@ -160,14 +160,14 @@ if ( ! class_exists( 'Portal_Google_Probe' ) ) {
 		public static function render_admin() {
 			$last = function_exists( 'get_option' ) ? (string) get_option( self::SUCCESS_OPTION, '' ) : '';
 			echo '<div id="dg-google-probe">';
-			echo '<p><label for="dg-google-probe-folder-id">' . esc_html__( 'Drive folder ID (optional)', 'dragongate-portals' ) . '</label><br />';
+			echo '<p class="dg-settings-control-row"><label for="dg-google-probe-folder-id">' . esc_html__( 'Drive folder ID (optional)', 'dragongate-portals' ) . '</label>';
 			echo '<input type="text" class="regular-text" id="dg-google-probe-folder-id" name="' . esc_attr( self::FOLDER_FIELD ) . '" value="" autocomplete="off" /></p>';
-			echo '<p><label for="dg-google-probe-sheet-id">' . esc_html__( 'Sheet ID (required to append a test row)', 'dragongate-portals' ) . '</label><br />';
+			echo '<p class="dg-settings-control-row"><label for="dg-google-probe-sheet-id">' . esc_html__( 'Sheet ID (required to append a test row)', 'dragongate-portals' ) . '</label>';
 			echo '<input type="text" class="regular-text" id="dg-google-probe-sheet-id" name="' . esc_attr( self::SHEET_FIELD ) . '" value="" autocomplete="off" /></p>';
 			if ( function_exists( 'wp_nonce_field' ) ) {
 				wp_nonce_field( self::NONCE_ACTION, self::NONCE_FIELD );
 			}
-			echo '<p><button type="button" class="button" id="dg-google-probe-submit">' . esc_html__( 'Test Google connection', 'dragongate-portals' ) . '</button></p>';
+			echo '<p class="dg-settings-control-row"><button type="button" class="button" id="dg-google-probe-submit">' . esc_html__( 'Test Google connection', 'dragongate-portals' ) . '</button></p>';
 			echo '<p class="description">' . esc_html__( 'This appends one row labeled DRAGONGATE_TEST plus a timestamp. Delete this row after the test.', 'dragongate-portals' ) . '</p>';
 			echo '<div id="dg-google-probe-result" class="notice inline" hidden></div>';
 			if ( '' !== $last ) {

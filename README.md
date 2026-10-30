@@ -51,7 +51,7 @@ Every control named below is a label that exists in this plugin.
 
 8. **Map dests.** On **Map data**, paste each Google Sheet URL and Drive folder. Name each dest. Map every form field to a dest. Sheet column headers = dest names.
 
-9. **Status.** On **Status**, set a deadline if you need one, turn on **Accepting submissions**, then click **Save portal**. The **Public form** URL appears on this step — use **Copy link** or **View portal**.
+9. **Status.** On **Status**, set the launch date and deadline, then click **Save portal** to publish. The submission switch reflects actual availability: it stays off and disabled while unpublished or outside the submission window. Inside the window, use it to pause or resume submissions. Send an invitation from **Records** to accept a late submission. The **Public form** URL appears on this step — use **Copy link** or **View portal**.
 
 10. **Send a test submit** through the public form. The row and files appear in the mapped Google Sheet and Google Drive folder.
 

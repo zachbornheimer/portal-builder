@@ -11,7 +11,10 @@ const iso = (s) => new Date(s);
 
 test('draft post status is draft regardless of schedule', () => {
 	const status = applicantFacingStatus('draft', { enabled: true }, iso('2026-06-01T12:00:00Z'));
-	assert.deepEqual(status, { key: 'draft', label: 'Draft', detail: 'Not published yet' });
+	assert.deepEqual(status, {
+		key: 'draft', label: 'Draft', detail: 'Not published yet',
+		canToggle: false, title: 'Not published yet',
+	});
 	assert.equal(
 		applicantFacingStatus('pending', { enabled: true }, iso('2026-06-01T12:00:00Z')).key,
 		'draft',
@@ -24,7 +27,10 @@ test('published + disabled is closed (manual override)', () => {
 		{ enabled: false },
 		iso('2026-06-01T12:00:00Z'),
 	);
-	assert.deepEqual(status, { key: 'closed', label: 'Closed', detail: 'Turned off manually' });
+	assert.deepEqual(status, {
+		key: 'closed', label: 'Closed', detail: 'Turned off manually',
+		canToggle: true, title: 'Turned off manually',
+	});
 });
 
 test('published + forceClosed is closed even when enabled is true', () => {
@@ -33,7 +39,10 @@ test('published + forceClosed is closed even when enabled is true', () => {
 		{ enabled: true, forceClosed: true },
 		iso('2026-06-01T12:00:00Z'),
 	);
-	assert.deepEqual(status, { key: 'closed', label: 'Closed', detail: 'Turned off manually' });
+	assert.deepEqual(status, {
+		key: 'closed', label: 'Closed', detail: 'Turned off manually',
+		canToggle: true, title: 'Turned off manually',
+	});
 });
 
 test('legacy forceClosed-only publish is closed; forceClosed false is not', () => {
@@ -47,13 +56,17 @@ test('legacy forceClosed-only publish is closed; forceClosed false is not', () =
 	);
 });
 
-test('manual override wins over the schedule', () => {
+test('manual label wins while the closed schedule still disables the switch', () => {
 	const status = applicantFacingStatus(
 		'publish',
 		{ enabled: true, forceClosed: true, deadline: '2020-01-01T00:00:00' },
 		iso('2026-06-01T12:00:00Z'),
 	);
-	assert.deepEqual(status, { key: 'closed', label: 'Closed', detail: 'Turned off manually' });
+	assert.deepEqual(status, {
+		key: 'closed', label: 'Closed', detail: 'Turned off manually',
+		canToggle: false,
+		title: 'Turned off manually. Automatically closed after the deadline on Wednesday, January 1, 2020. To accept a late submission, send an invitation from Records.',
+	});
 });
 
 test('published + enabled + future launchAt is auto (not yet open)', () => {
@@ -66,6 +79,8 @@ test('published + enabled + future launchAt is auto (not yet open)', () => {
 		key: 'auto',
 		label: 'Auto',
 		detail: 'Opens Saturday, August 15, 2026',
+		canToggle: false,
+		title: 'Not accepting submissions until the launch date on Saturday, August 15, 2026. To accept a submission outside the schedule, send an invitation from Records.',
 	});
 });
 
@@ -79,6 +94,8 @@ test('published + enabled + past deadline is auto (closed by schedule)', () => {
 		key: 'auto',
 		label: 'Auto',
 		detail: 'Closed Tuesday, October 20, 2026',
+		canToggle: false,
+		title: 'Automatically closed after the deadline on Tuesday, October 20, 2026. To accept a late submission, send an invitation from Records.',
 	});
 });
 
@@ -93,7 +110,10 @@ test('published + enabled + inside the window is open', () => {
 		},
 		iso('2026-09-01T12:00:00Z'),
 	);
-	assert.deepEqual(status, { key: 'open', label: 'Open', detail: 'Accepting submissions' });
+	assert.deepEqual(status, {
+		key: 'open', label: 'Open', detail: 'Accepting submissions',
+		canToggle: true, title: 'Accepting submissions',
+	});
 });
 
 test('window across the DST fall-back, both bounds set', () => {
@@ -108,6 +128,8 @@ test('window across the DST fall-back, both bounds set', () => {
 		key: 'auto',
 		label: 'Auto',
 		detail: 'Opens Friday, October 30, 2026',
+		canToggle: false,
+		title: 'Not accepting submissions until the launch date on Friday, October 30, 2026. To accept a submission outside the schedule, send an invitation from Records.',
 	});
 	// Launch is inclusive.
 	assert.equal(
@@ -129,6 +151,8 @@ test('window across the DST fall-back, both bounds set', () => {
 		key: 'auto',
 		label: 'Auto',
 		detail: 'Closed Monday, November 2, 2026',
+		canToggle: false,
+		title: 'Automatically closed after the deadline on Monday, November 2, 2026. To accept a late submission, send an invitation from Records.',
 	});
 });
 

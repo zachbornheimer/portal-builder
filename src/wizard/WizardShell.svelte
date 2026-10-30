@@ -89,7 +89,7 @@ import GateNav from './GateNav.svelte';
 	});
 
 	const applicantStatus = $derived(applicantFacingStatus(liveStatus, definition.publish));
-	const accepting = $derived(dualWritePublish(definition.publish).enabled);
+	const accepting = $derived(applicantStatus.key === 'open');
 
 	const stepSubtitles = $derived({
 		start: started || countLeafFields(definition.fields) > 0 ? 'chosen' : 'template',
@@ -245,12 +245,7 @@ import GateNav from './GateNav.svelte';
 	}
 
 	async function savePortal() {
-		const enabled = dualWritePublish(definition.publish).enabled;
-		if (enabled) {
-			await persist({ status: 'publish' });
-			return;
-		}
-		await persist();
+		await persist({ status: 'publish' });
 	}
 
 	async function saveDraft() {
@@ -258,7 +253,10 @@ import GateNav from './GateNav.svelte';
 	}
 
 	async function toggleAccepting() {
-		const nextEnabled = !dualWritePublish(definition.publish).enabled;
+		// Recheck the clock at the mutation boundary, not just when rendering.
+		const status = applicantFacingStatus(liveStatus, definition.publish);
+		if (saveState === 'saving' || !status.canToggle) return;
+		const nextEnabled = status.key !== 'open';
 		definition = {
 			...definition,
 			publish: dualWritePublish({
@@ -315,8 +313,8 @@ import GateNav from './GateNav.svelte';
           role="switch"
           aria-checked={accepting ? 'true' : 'false'}
           aria-label={`${accepting ? 'Accepting submissions' : 'Not accepting'} — ${applicantStatus.label}: ${applicantStatus.detail}`}
-          title={`${applicantStatus.label} — ${applicantStatus.detail}`}
-          disabled={saveState === 'saving'}
+          title={applicantStatus.title}
+          disabled={saveState === 'saving' || !applicantStatus.canToggle}
           onclick={toggleAccepting}
         >
           <span class="dg-accepting-switch-track" aria-hidden="true">
@@ -329,7 +327,7 @@ import GateNav from './GateNav.svelte';
         <span
           class="dg-status-pill"
           data-status={applicantStatus.key}
-          title={applicantStatus.detail}
+          title={applicantStatus.title}
         >
           {applicantStatus.label}
         </span>

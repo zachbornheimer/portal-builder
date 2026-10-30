@@ -393,27 +393,29 @@ import { Label, RadioGroup } from 'bits-ui';
       Shown as a label on the public form. Not charged in this form. Hosts may
       collect this outside DragonGate.
     </p>
-    <CheckField
-      id="dg-free-members"
-      label="Free for members"
-      checked={freeForMembersOn}
-      onchange={(e) => setOption('freeForMembers', e.currentTarget.checked)}
-    />
-    {#if inheritCaption(options.freeForMembers, Boolean(siteDefaults.freeForMembers))}
-      <p class="dg-field-help">
-        {
-          inheritCaption(options.freeForMembers, Boolean(siteDefaults.freeForMembers))
-        }
-      </p>
-    {:else}
-      <button
-        type="button"
-        class="dg-btn dg-btn-ghost dg-btn-sm"
-        onclick={() => setOption('freeForMembers', null)}
-      >
-        Use site default
-      </button>
-    {/if}
+    <div class="dg-default-row">
+      <CheckField
+        id="dg-free-members"
+        label="Free for members"
+        checked={freeForMembersOn}
+        onchange={(e) => setOption('freeForMembers', e.currentTarget.checked)}
+      />
+      {#if inheritCaption(options.freeForMembers, Boolean(siteDefaults.freeForMembers))}
+        <p class="dg-field-help">
+          {
+            inheritCaption(options.freeForMembers, Boolean(siteDefaults.freeForMembers))
+          }
+        </p>
+      {:else}
+        <button
+          type="button"
+          class="dg-btn dg-btn-ghost dg-btn-sm"
+          onclick={() => setOption('freeForMembers', null)}
+        >
+          Use site default
+        </button>
+      {/if}
+    </div>
     {#if freeForMembersOn && membershipPlans.length > 0}
       <p class="dg-field-help">
         Leave every plan unchecked to waive the fee for any active membership.
@@ -431,25 +433,27 @@ import { Label, RadioGroup } from 'bits-ui';
     {/if}
   </div>
   <div class="dg-publish-block">
-    <CheckField
-      id="dg-anonymize"
-      label="Anonymize files for adjudicators"
-      checked={anonymizeOn}
-      onchange={(e) => setOption('anonymize', e.currentTarget.checked)}
-    />
-    {#if inheritCaption(options.anonymize, Boolean(siteDefaults.anonymize))}
-      <p class="dg-field-help">
-        {inheritCaption(options.anonymize, Boolean(siteDefaults.anonymize))}
-      </p>
-    {:else}
-      <button
-        type="button"
-        class="dg-btn dg-btn-ghost dg-btn-sm"
-        onclick={() => setOption('anonymize', null)}
-      >
-        Use site default
-      </button>
-    {/if}
+    <div class="dg-default-row">
+      <CheckField
+        id="dg-anonymize"
+        label="Anonymize files for adjudicators"
+        checked={anonymizeOn}
+        onchange={(e) => setOption('anonymize', e.currentTarget.checked)}
+      />
+      {#if inheritCaption(options.anonymize, Boolean(siteDefaults.anonymize))}
+        <p class="dg-field-help">
+          {inheritCaption(options.anonymize, Boolean(siteDefaults.anonymize))}
+        </p>
+      {:else}
+        <button
+          type="button"
+          class="dg-btn dg-btn-ghost dg-btn-sm"
+          onclick={() => setOption('anonymize', null)}
+        >
+          Use site default
+        </button>
+      {/if}
+    </div>
     {#if anonymizeOn}
       <div class="dg-publish-grid">
         <div>
@@ -474,37 +478,41 @@ import { Label, RadioGroup } from 'bits-ui';
           />
         </div>
       </div>
-      <CheckField
-        id="dg-anonymize-fail-closed"
-        label="Do not store the original if anonymize fails"
-        checked={failClosedOn}
-        onchange={(e) => setOption('anonymizeFailClosed', e.currentTarget.checked)}
-      />
-      {#if inheritCaption(options.anonymizeFailClosed, Boolean(siteDefaults.anonymizeFailClosed))}
-        <p class="dg-field-help">
-          {
-            inheritCaption(options.anonymizeFailClosed, Boolean(siteDefaults.anonymizeFailClosed))
-          }
-        </p>
-      {:else}
-        <button
-          type="button"
-          class="dg-btn dg-btn-ghost dg-btn-sm"
-          onclick={() => setOption('anonymizeFailClosed', null)}
-        >
-          Use site default
-        </button>
-      {/if}
-      <div>
-        <Field
-          id="dg-anonymize-ack"
-          label="Anonymize certification"
-          multiline
-          rows={3}
-          placeholder={ackPlaceholder}
-          value={options.anonymizeAck || ''}
-          oninput={(e) => setOption('anonymizeAck', emptyToNull(e.currentTarget.value))}
+      <div class="dg-default-row">
+        <CheckField
+          id="dg-anonymize-fail-closed"
+          label="Do not store the original if anonymize fails"
+          checked={failClosedOn}
+          onchange={(e) => setOption('anonymizeFailClosed', e.currentTarget.checked)}
         />
+        {#if inheritCaption(options.anonymizeFailClosed, Boolean(siteDefaults.anonymizeFailClosed))}
+          <p class="dg-field-help">
+            {
+              inheritCaption(options.anonymizeFailClosed, Boolean(siteDefaults.anonymizeFailClosed))
+            }
+          </p>
+        {:else}
+          <button
+            type="button"
+            class="dg-btn dg-btn-ghost dg-btn-sm"
+            onclick={() => setOption('anonymizeFailClosed', null)}
+          >
+            Use site default
+          </button>
+        {/if}
+      </div>
+      <div class="dg-default-row">
+        <div class="dg-default-field">
+          <Field
+            id="dg-anonymize-ack"
+            label="Anonymize certification"
+            multiline
+            rows={3}
+            placeholder={ackPlaceholder}
+            value={options.anonymizeAck || ''}
+            oninput={(e) => setOption('anonymizeAck', emptyToNull(e.currentTarget.value))}
+          />
+        </div>
         {#if !options.anonymizeAck}
           <p class="dg-field-help">Using site default</p>
         {:else}

@@ -111,33 +111,69 @@ export function previewUrl(publicUrl, previewValue = 'true') {
  * collects them) and are compared in that timezone, matching
  * `Portal_Open_State::is_open` on the server.
  *
+ * Switch availability is independent of the manual-status label: neither a
+ * draft nor a closed schedule can be reopened by changing the enabled flag.
+ * `canToggle` and `title` are presentation state, never persisted publish fields.
+ *
  * @param {string} postStatus
  * @param {unknown} publish
  * @param {Date} [now]
- * @returns {{ key: 'draft'|'auto'|'open'|'closed', label: 'Draft'|'Auto'|'Open'|'Closed', detail: string }}
+ * @returns {{ key: 'draft'|'auto'|'open'|'closed', label: 'Draft'|'Auto'|'Open'|'Closed', detail: string, canToggle: boolean, title: string }}
  */
 export function applicantFacingStatus(postStatus, publish, now = new Date()) {
 	if (postStatus !== 'publish') {
-		return { key: 'draft', label: 'Draft', detail: 'Not published yet' };
+		return {
+			key: 'draft',
+			label: 'Draft',
+			detail: 'Not published yet',
+			canToggle: false,
+			title: 'Not published yet',
+		};
 	}
 	const raw = publish && typeof publish === 'object' && !Array.isArray(publish) ? publish : {};
-	// Manual override wins over the schedule (matches Portal_Open_State::is_open).
+	// The manual-status label wins; the schedule still determines switch availability.
 	const manualOff = Boolean(raw.forceClosed) || (Object.hasOwn(raw, 'enabled') && !raw.enabled);
-	if (manualOff) {
-		return { key: 'closed', label: 'Closed', detail: 'Turned off manually' };
-	}
 	const p = dualWritePublish(raw);
 	const timezone = p.timezone || DEFAULT_TIMEZONE;
 	const launchAt = scheduleInstant(p.launchAt, timezone);
 	const deadline = scheduleInstant(p.deadline, timezone);
 	const ms = now.getTime();
+	let scheduleDetail = '';
+	let scheduleTitle = '';
 	if (deadline !== null && ms > deadline) {
-		return { key: 'auto', label: 'Auto', detail: `Closed ${formatScheduleDate(deadline, timezone)}` };
+		const date = formatScheduleDate(deadline, timezone);
+		scheduleDetail = `Closed ${date}`;
+		scheduleTitle = `Automatically closed after the deadline on ${date}. To accept a late submission, send an invitation from Records.`;
+	} else if (launchAt !== null && ms < launchAt) {
+		const date = formatScheduleDate(launchAt, timezone);
+		scheduleDetail = `Opens ${date}`;
+		scheduleTitle = `Not accepting submissions until the launch date on ${date}. To accept a submission outside the schedule, send an invitation from Records.`;
 	}
-	if (launchAt !== null && ms < launchAt) {
-		return { key: 'auto', label: 'Auto', detail: `Opens ${formatScheduleDate(launchAt, timezone)}` };
+	if (manualOff) {
+		return {
+			key: 'closed',
+			label: 'Closed',
+			detail: 'Turned off manually',
+			canToggle: !scheduleDetail,
+			title: scheduleTitle ? `Turned off manually. ${scheduleTitle}` : 'Turned off manually',
+		};
 	}
-	return { key: 'open', label: 'Open', detail: 'Accepting submissions' };
+	if (scheduleDetail) {
+		return {
+			key: 'auto',
+			label: 'Auto',
+			detail: scheduleDetail,
+			canToggle: false,
+			title: scheduleTitle,
+		};
+	}
+	return {
+		key: 'open',
+		label: 'Open',
+		detail: 'Accepting submissions',
+		canToggle: true,
+		title: 'Accepting submissions',
+	};
 }
 
 const SCHEDULE_DATE_OPTIONS = {

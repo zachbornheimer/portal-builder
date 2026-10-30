@@ -1,6 +1,7 @@
 <script>
-import Field from '../../ui/Field.svelte';
-	import SelectField from '../../ui/SelectField.svelte';
+import { untrack } from 'svelte';
+	import { Combobox, Label } from 'bits-ui';
+	import Field from '../../ui/Field.svelte';
 	import {
 		createInvite,
 		getRecords,
@@ -58,66 +59,72 @@ import Field from '../../ui/Field.svelte';
 	let candidates = $state(/** @type {object[]} */ ([]));
 	let searchState = $state(/** @type {'idle'|'loading'|'ready'|'error'} */ ('idle'));
 	let searchError = $state('');
+	let searchOpen = $state(false);
 
 	let rowBusyId = $state(/** @type {number|string|null} */ (null));
 	let rowActionError = $state('');
 	let copyInviteId = $state(/** @type {number|string|null} */ (null));
 
-	// Plain (non-reactive) bookkeeping for the debounced search and one-shot load.
+	// Request generations keep responses from an old portal or search out of this view.
 	let searchTimer = 0;
 	let searchSeq = 0;
-	let loadedFor = 0;
+	let recordsRequest = 0;
+	let invitesRequest = 0;
 
 	$effect(() => {
-		const portalId = api?.portalId || 0;
-		if (!portalId || loadedFor === portalId) return;
-		loadedFor = portalId;
-		loadRecords();
-		loadInvites();
-		return () => window.clearTimeout(searchTimer);
+		const config = cfg();
+		// Only credentials are dependencies; paging and request state must not
+		// tear down the initial load or the pending candidate search.
+		untrack(() => {
+			loadRecords(PAGE_SIZE, config);
+			loadInvites(config);
+		});
+		return () => {
+			recordsRequest++;
+			invitesRequest++;
+			searchSeq++;
+			window.clearTimeout(searchTimer);
+		};
 	});
 
 	function cfg() {
 		return {
-			restRoot: api.restRoot,
-			nonce: api.nonce,
-			portalId: api.portalId,
+			restRoot: api?.restRoot,
+			nonce: api?.nonce,
+			portalId: api?.portalId,
 		};
 	}
 
-	async function loadRecords(limit = recordsLimit) {
-		if (!api?.portalId || !api?.restRoot || !api?.nonce) {
-			recordsState = 'error';
-			recordsError = 'Missing portal id or REST credentials.';
-			return;
-		}
+	async function loadRecords(limit = recordsLimit, config = cfg()) {
+		const request = ++recordsRequest;
 		recordsState = 'loading';
 		try {
-			const data = await getRecords({ ...cfg(), limit });
+			const data = await getRecords({ ...config, limit });
+			if (request !== recordsRequest) return;
 			records = data.records;
 			recordsTotal = data.total;
 			recordsLimit = limit;
 			recordsState = 'ready';
 			recordsError = '';
 		} catch (e) {
+			if (request !== recordsRequest) return;
 			records = [];
 			recordsState = 'error';
 			recordsError = e instanceof Error ? e.message : 'Records load failed';
 		}
 	}
 
-	async function loadInvites() {
-		if (!api?.portalId || !api?.restRoot || !api?.nonce) {
-			invitesState = 'error';
-			invitesError = 'Missing portal id or REST credentials.';
-			return;
-		}
+	async function loadInvites(config = cfg()) {
+		const request = ++invitesRequest;
 		invitesState = 'loading';
 		try {
-			invites = await listInvites(cfg());
+			const rows = await listInvites(config);
+			if (request !== invitesRequest) return;
+			invites = rows;
 			invitesState = 'ready';
 			invitesError = '';
 		} catch (e) {
+			if (request !== invitesRequest) return;
 			invites = [];
 			invitesState = 'error';
 			invitesError = e instanceof Error ? e.message : 'Invitations load failed';
@@ -180,14 +187,15 @@ import Field from '../../ui/Field.svelte';
 		searchQuery = value;
 		const seq = ++searchSeq;
 		window.clearTimeout(searchTimer);
+		candidates = [];
+		searchError = '';
+		searchOpen = value.trim() !== '';
 		if (value.trim() === '') {
-			candidates = [];
 			searchState = 'idle';
-			searchError = '';
 			return;
 		}
+		searchState = 'loading';
 		searchTimer = window.setTimeout(async () => {
-			searchState = 'loading';
 			try {
 				const rows = await searchInviteCandidates({
 					...cfg(),
@@ -207,10 +215,18 @@ import Field from '../../ui/Field.svelte';
 		}, 250);
 	}
 
+	function selectCandidate(value) {
+		const candidate = candidates.find((row) => String(row.userId) === value);
+		if (candidate) pickCandidate(candidate);
+	}
+
 	/**
 	 * @param {object} c
 	 */
 	function pickCandidate(c) {
+		searchSeq++;
+		window.clearTimeout(searchTimer);
+		searchOpen = false;
 		inviteEmail = c.email || '';
 		inviteUserId = Number(c.userId) || 0;
 		selectedUser = {
@@ -496,38 +512,47 @@ import Field from '../../ui/Field.svelte';
     Invite an applicant to submit after the portal closes.
   </p>
 
-  <div class="dg-publish-block">
-    <Field
-      id="dg-invite-search"
-      label="Find a WordPress user"
-      placeholder="Search by name, login, or email"
-      value={searchQuery}
-      oninput={onSearchInput}
-    />
+  <div class="dg-publish-block dg-invite-search">
+    <Label.Root for="dg-invite-search" class="dg-field-label"
+    >Find a WordPress user</Label.Root>
+    <Combobox.Root
+      type="single"
+      value={inviteUserId ? String(inviteUserId) : ''}
+      bind:open={searchOpen}
+      onValueChange={selectCandidate}
+    >
+      <Combobox.Input
+        id="dg-invite-search"
+        class="dg-input"
+        placeholder="Search by name, login, or email"
+        value={searchQuery}
+        oninput={onSearchInput}
+      />
+      <Combobox.Content
+        class="dg-invite-candidates"
+        aria-label="WordPress users"
+      >
+        {#each candidates as c (c.userId)}
+          <Combobox.Item
+            class="dg-invite-candidate"
+            value={String(c.userId)}
+            label={`${c.name || c.login} (${c.login}) — ${c.email}`}
+          >
+            {c.name || c.login} ({c.login}) — {c.email}{
+              c.hasSubmission ? ' · has a submission' : ''
+            }
+          </Combobox.Item>
+        {/each}
+        {#if searchState === 'ready' && candidates.length === 0}
+          <p class="dg-field-help">No matching WordPress users.</p>
+        {/if}
+      </Combobox.Content>
+    </Combobox.Root>
     {#if searchState === 'loading'}
-      <p class="dg-field-help">Searching…</p>
+      <p class="dg-field-help" role="status">Searching…</p>
     {/if}
     {#if searchState === 'error'}
       <p class="dg-wizard-alert" role="alert">{searchError}</p>
-    {/if}
-    {#if candidates.length > 0}
-      <ul class="dg-clone-list">
-        {#each candidates as c (c.userId)}
-          <li>
-            <button
-              type="button"
-              class="dg-btn dg-btn-ghost dg-btn-block"
-              onclick={() => pickCandidate(c)}
-            >
-              {c.name || c.login} ({c.login}) — {c.email}{
-                c.hasSubmission
-                ? ' · has a submission'
-                : ''
-              }
-            </button>
-          </li>
-        {/each}
-      </ul>
     {/if}
     {#if selectedUser}
       <p class="dg-field-help">
@@ -567,14 +592,14 @@ import Field from '../../ui/Field.svelte';
     </p>
   </div>
 
-  <div class="dg-publish-block">
-    <SelectField
-      id="dg-invite-expires"
-      label="Invite expires in"
-      value={expiresInDays}
-      options={EXPIRY_OPTIONS}
-      onValueChange={(next) => (expiresInDays = next)}
-    />
+  <div class="dg-publish-block dg-invite-expiry">
+    <label for="dg-invite-expires" class="dg-field-label"
+    >Invite expires in</label>
+    <select id="dg-invite-expires" bind:value={expiresInDays}>
+      {#each EXPIRY_OPTIONS as option}
+        <option value={option.value}>{option.label}</option>
+      {/each}
+    </select>
   </div>
 
   <div class="dg-publish-block">
@@ -630,7 +655,7 @@ import Field from '../../ui/Field.svelte';
                 <div class="dg-link-actions">
                   <button
                     type="button"
-                    class="dg-btn dg-btn-ghost dg-btn-sm"
+                    class="dg-invite-action"
                     aria-label={`Copy invite link for ${row.email || 'invitation'}`}
                     onclick={() => copyInviteLink(row)}
                   >
@@ -638,7 +663,7 @@ import Field from '../../ui/Field.svelte';
                   </button>
                   <button
                     type="button"
-                    class="dg-btn dg-btn-ghost dg-btn-sm"
+                    class="dg-invite-action"
                     aria-label={`Resend invite to ${row.email || 'invitation'}`}
                     disabled={rowBusyId === row.id}
                     onclick={() => resendRow(row)}
@@ -647,7 +672,7 @@ import Field from '../../ui/Field.svelte';
                   </button>
                   <button
                     type="button"
-                    class="dg-btn dg-btn-ghost dg-btn-sm"
+                    class="dg-invite-action"
                     aria-label={`Revoke invite for ${row.email || 'invitation'}`}
                     disabled={rowBusyId === row.id}
                     onclick={() => revokeRow(row)}
@@ -698,5 +723,68 @@ import Field from '../../ui/Field.svelte';
 }
 .dg-records-table td.dg-mono {
   font-size: 11.5px;
+}
+.dg-invite-expiry select {
+  appearance: auto;
+  width: auto;
+  max-width: 100%;
+  min-height: 36px;
+  padding: 6px 10px;
+  border: 1px solid var(--rule-strong);
+  border-radius: 4px;
+  background-color: var(--paper-50);
+  background-image: none;
+  color: var(--ink);
+  font: inherit;
+}
+.dg-invite-search :global(.dg-invite-candidates) {
+  z-index: 50;
+  width: var(--bits-combobox-anchor-width);
+  max-height: 240px;
+  overflow-y: auto;
+  padding: var(--s-1);
+  border: 1px solid var(--rule-strong);
+  border-radius: 4px;
+  background: var(--paper-50);
+  color: var(--ink);
+}
+.dg-invite-search :global(.dg-invite-candidate) {
+  padding: 8px 12px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: var(--t-body);
+  line-height: var(--lh-snug);
+}
+.dg-invite-search :global(.dg-invite-candidate:hover),
+.dg-invite-search :global(.dg-invite-candidate[data-highlighted]),
+.dg-invite-search :global(.dg-invite-candidate[data-selected]) {
+  background: var(--paper-200);
+}
+.dg-invite-search :global(.dg-invite-candidate[data-highlighted]) {
+  outline: 2px solid var(--ember);
+  outline-offset: -2px;
+}
+.dg-invite-action {
+  padding: 2px 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink-600);
+  font: inherit;
+  font-size: var(--t-small);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.dg-invite-action:hover {
+  color: var(--ember);
+}
+.dg-invite-action:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.dg-invite-action:focus-visible,
+.dg-invite-expiry select:focus-visible {
+  outline: 2px solid var(--ember);
+  outline-offset: 2px;
 }
 </style>

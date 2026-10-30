@@ -21,10 +21,18 @@
 - Store portal data outside the document root under a per-site directory and stop retaining token-bearing mail captures in the plugin tree
 - Rename the guidelines link label to Submission guidelines
 - Verify each data root can be written before use and fall back from DG_DATA_ROOT to the off-docroot directory to uploads, logging every skipped root so operator rows are never dropped silently
+- Reflect effective submission availability in the admin switch: unpublished or schedule-closed portals stay off and disabled with an explanation; manual toggling remains available inside the submission window
+- Let Save portal publish a manually closed draft without changing its manual closure, while Save draft remains the explicit unpublished action
+- Clarify that the form builder's top-level control changes where the next field is added, explain the already-selected state, and preserve drag-to-top-level behavior
+- Restore visible checked and focus states for admin checkboxes and radios, retain checkbox state updates, and remove empty input names
+- Align inherited-setting reset buttons and other admin defaults controls in consistently spaced, vertically centered rows
+- Reject malformed Records responses with safe type/count diagnostics instead of silently presenting them as an empty submission list, and keep request failures separate from a successful empty response
+- Make invitation expiry compact with a visible dropdown affordance, provide keyboard-accessible candidate options, and reduce invitation row actions to quiet links
 
 ### Tests
 
 - Prove schedule-driven portal status in unit tests
+- Cover effective switch availability, top-level insertion behavior, admin control styling, Records error handling, and invitation accessibility
 
 ### Documentation
 
