@@ -18,10 +18,10 @@ fi
 rsync -az --omit-dir-times \
 	--exclude '.git/' \
 	--exclude 'node_modules/' \
-	--exclude 'tests/' \
-	--exclude 'e2e/' \
-	--exclude 'src/' \
-	--exclude 'docs/' \
+	--exclude '/tests/' \
+	--exclude '/e2e/' \
+	--exclude '/src/' \
+	--exclude '/docs/' \
 	--exclude 'suggested-refactoring.md' \
 	--exclude 'playwright.config.ts' \
 	--exclude 'package.json' \
