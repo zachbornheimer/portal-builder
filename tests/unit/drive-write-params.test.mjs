@@ -11,8 +11,6 @@ import path from 'node:path';
 
 const root = process.cwd();
 const harness = path.join(root, 'tests/support/php-drive-write-params.php');
-const rootAutoload = path.join(root, 'vendor/autoload.php');
-
 function runHarness() {
 	const r = spawnSync('php', [harness], { encoding: 'utf8' });
 	const out = (r.stdout || '') + (r.stderr || '');
@@ -53,7 +51,11 @@ test('gsuite-filestore submodule is replaced by root composer google/apiclient a
 		composerJson.require && typeof composerJson.require['google/apiclient'] === 'string',
 		'composer.json require must include google/apiclient',
 	);
-	assert.equal(fs.existsSync(rootAutoload), true, 'root vendor/autoload.php must exist');
+	const composerLock = JSON.parse(fs.readFileSync(path.join(root, 'composer.lock'), 'utf8'));
+	const lockedNames = Array.isArray(composerLock.packages)
+		? composerLock.packages.map((pkg) => pkg && pkg.name)
+		: [];
+	assert.equal(lockedNames.includes('google/apiclient'), true, 'composer.lock must include google/apiclient');
 });
 
 test('every FileStore files->create on submit sends supportsAllDrives and uploads bytes in memory', () => {

@@ -16,7 +16,88 @@ if ( ! function_exists( 'wp_json_encode' ) ) {
 }
 
 $repo_root = dirname( __DIR__, 2 );
-require_once $repo_root . '/vendor/autoload.php';
+$autoload  = $repo_root . '/vendor/autoload.php';
+if ( is_readable( $autoload ) ) {
+	require_once $autoload;
+}
+if ( ! class_exists( 'Google_Client' ) ) {
+	class Google_Client {
+		/** @var array<string,mixed> */
+		protected $token = array();
+
+		public function __construct() {}
+
+		public function setApplicationName( $name ) {
+			unset( $name );
+		}
+
+		public function setScopes( $scopes ) {
+			unset( $scopes );
+		}
+
+		public function setAccessType( $type ) {
+			unset( $type );
+		}
+
+		public function setAuthConfig( $config ) {
+			unset( $config );
+		}
+
+		public function setAccessToken( $token ) {
+			$decoded     = is_string( $token ) ? json_decode( $token, true ) : $token;
+			$this->token = is_array( $decoded ) ? $decoded : array( 'access_token' => (string) $token );
+		}
+
+		public function getAccessToken() {
+			return $this->token;
+		}
+
+		public function getRefreshToken() {
+			return isset( $this->token['refresh_token'] ) ? (string) $this->token['refresh_token'] : null;
+		}
+
+		public function isAccessTokenExpired() {
+			return true;
+		}
+
+		public function fetchAccessTokenWithRefreshToken( $refresh_token = null ) {
+			unset( $refresh_token );
+			return $this->token;
+		}
+	}
+}
+if ( ! class_exists( 'Google_Service_Sheets' ) ) {
+	class Google_Service_Sheets {
+		const SPREADSHEETS = 'https://www.googleapis.com/auth/spreadsheets';
+
+		public function __construct( $client = null ) {
+			unset( $client );
+		}
+	}
+}
+if ( ! class_exists( 'Google_Service_Drive' ) ) {
+	class Google_Service_Drive {
+		const DRIVE = 'https://www.googleapis.com/auth/drive';
+
+		public function __construct( $client = null ) {
+			unset( $client );
+		}
+	}
+}
+if ( ! class_exists( 'Google_Service_Drive_DriveFile' ) ) {
+	class Google_Service_Drive_DriveFile {
+		/** @var array<string,mixed> */
+		private $meta;
+
+		public function __construct( array $meta = array() ) {
+			$this->meta = $meta;
+		}
+
+		public function getName() {
+			return isset( $this->meta['name'] ) ? (string) $this->meta['name'] : null;
+		}
+	}
+}
 require_once $repo_root . '/includes/adapters/class-zysys-file-store.php';
 require_once $repo_root . '/includes/Submission/class-portal-files.php';
 require_once $repo_root . '/includes/Submission/class-portal-submission-destinations.php';
