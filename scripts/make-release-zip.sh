@@ -75,14 +75,6 @@ if [[ -f CHANGELOG.md ]]; then
 	cp CHANGELOG.md "${TMP}/${PREFIX}/CHANGELOG.md"
 fi
 
-# The class loads its own Composer tree when constructed. git archive
-# includes it when it is tracked; copy a checkout vendor the archive missed
-# so a plugin update does not delete the libraries production already has.
-if [[ -f gsuite-filestore/vendor/autoload.php && ! -f "${TMP}/${PREFIX}/gsuite-filestore/vendor/autoload.php" ]]; then
-	mkdir -p "${TMP}/${PREFIX}/gsuite-filestore/vendor"
-	cp -R gsuite-filestore/vendor/. "${TMP}/${PREFIX}/gsuite-filestore/vendor/"
-fi
-
 rm -f "${OUT}"
 (
 	cd "${TMP}"
@@ -101,9 +93,9 @@ require_zip_member() {
 	fi
 }
 
-require_zip_member "gsuite-filestore/zysys-file-store.class.php"
+require_zip_member "includes/adapters/class-zysys-file-store.php"
 require_zip_member "vendor/autoload.php"
-require_zip_member "gsuite-filestore/vendor/autoload.php"
+require_zip_member "vendor/google/apiclient/src/Client.php"
 while IFS= read -r rel; do
 	[[ -z "${rel}" ]] && continue
 	require_zip_member "${rel}"
@@ -111,9 +103,9 @@ done < <(grep -E '^require(_once)?[[:space:]]+' portal-builder.php | sed -nE "s/
 
 echo "make-release-zip: required zip members:" >&2
 unzip -l "${OUT}" | awk -v prefix="${PREFIX}/" '
-  $NF == prefix "gsuite-filestore/zysys-file-store.class.php" ||
+  $NF == prefix "includes/adapters/class-zysys-file-store.php" ||
   $NF == prefix "vendor/autoload.php" ||
-  $NF == prefix "gsuite-filestore/vendor/autoload.php" {
+  $NF == prefix "vendor/google/apiclient/src/Client.php" {
     print
   }
 ' >&2

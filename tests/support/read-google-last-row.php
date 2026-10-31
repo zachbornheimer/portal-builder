@@ -9,8 +9,7 @@
 
 $repo_root = dirname( __DIR__, 2 );
 require_once $repo_root . '/vendor/autoload.php';
-require_once $repo_root . '/gsuite-filestore/vendor/autoload.php';
-require_once $repo_root . '/gsuite-filestore/zysys-file-store.class.php';
+require_once $repo_root . '/includes/adapters/class-zysys-file-store.php';
 
 $sheet_id  = '';
 $folder_id = '';
@@ -45,7 +44,7 @@ echo wp_json_encode( last_named_row( $store, $sheet_id ), JSON_UNESCAPED_SLASHES
 /**
  * First stored option among $names.
  *
- * @param mysqli         $m     Live WP connection.
+ * @param mysqli            $m     Live WP connection.
  * @param array<int,string> $names Canonical then legacy keys.
  * @return string
  */
@@ -129,8 +128,8 @@ function last_named_row( $store, $sid ) {
  * @return array{id:string,names:string[],folders:string[],files:string[]}
  */
 function drive_children( $store, $id ) {
-	$drive = $store->__get( 'driveAgent' );
-	$resp  = $drive->files->listFiles(
+	$drive   = $store->__get( 'driveAgent' );
+	$resp    = $drive->files->listFiles(
 		array(
 			'q'                         => sprintf( '"%s" in parents and trashed = false', $id ),
 			'fields'                    => 'files(id,name,mimeType)',
@@ -145,9 +144,9 @@ function drive_children( $store, $id ) {
 	$files   = array();
 	$entries = array();
 	foreach ( $items as $item ) {
-		$name = (string) $item->getName();
-		$fid  = (string) $item->getId();
-		$names[] = $name;
+		$name      = (string) $item->getName();
+		$fid       = (string) $item->getId();
+		$names[]   = $name;
 		$entries[] = array(
 			'id'   => $fid,
 			'name' => $name,

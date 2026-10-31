@@ -20,25 +20,51 @@ if ( ! class_exists( 'Portal_Google_Store' ) ) {
 		const OPTION_SECRET_KEY = 'dg_google_secret_key';
 		const TEMP_DIR_NAME     = 'dg-google-store';
 
-		/** @var object FileStore (Zysys_FileStore or test fake). */
+		/**
+		 * FileStore instance (Zysys_FileStore or test fake).
+		 *
+		 * @var object
+		 */
 		private $file_store;
 
-		/** @var array */
+		/**
+		 * Portal definition array.
+		 *
+		 * @var array
+		 */
 		private $definition;
 
-		/** @var Portal_Files */
+		/**
+		 * Filesystem helper for temp upload bytes.
+		 *
+		 * @var Portal_Files
+		 */
 		private $files;
 
-		/** @var string */
+		/**
+		 * Active submission ID.
+		 *
+		 * @var string
+		 */
 		private $submission_id = '';
 
-		/** @var array<string,string> parent folderId => subfolder id */
+		/**
+		 * Cached subfolder IDs keyed by parent folderId and submission ID.
+		 *
+		 * @var array<string,string>
+		 */
 		private $subfolders = array();
 
-		/** @var string Last application folder id. */
+		/**
+		 * Last application folder ID.
+		 *
+		 * @var string
+		 */
 		private $last_folder_id = '';
 
 		/**
+		 * Construct the Google Store adapter.
+		 *
 		 * @param object            $file_store Injected FileStore.
 		 * @param array             $definition Validated definition (mapping + options).
 		 * @param Portal_Files|null $files      Filesystem for temp upload bytes.
@@ -57,9 +83,15 @@ if ( ! class_exists( 'Portal_Google_Store' ) ) {
 		 * @return Zysys_FileStore
 		 */
 		public static function file_store_from_options() {
-			$autoload = dirname( __DIR__, 2 ) . '/gsuite-filestore/vendor/autoload.php';
+			$autoload = dirname( __DIR__, 2 ) . '/vendor/autoload.php';
 			if ( is_readable( $autoload ) ) {
 				require_once $autoload;
+			}
+			if ( ! class_exists( 'Zysys_FileStore' ) ) {
+				$filestore_path = __DIR__ . '/class-zysys-file-store.php';
+				if ( is_readable( $filestore_path ) ) {
+					require_once $filestore_path;
+				}
 			}
 			$credentials = array(
 				'access_key'    => (string) Portal_Options::get( self::OPTION_ACCESS_KEY, '' ),
@@ -73,6 +105,8 @@ if ( ! class_exists( 'Portal_Google_Store' ) ) {
 		}
 
 		/**
+		 * Set the active submission ID and reset the cached last folder ID.
+		 *
 		 * @param string $id File-handler app id or minted submission id.
 		 * @return void
 		 */
@@ -144,9 +178,12 @@ if ( ! class_exists( 'Portal_Google_Store' ) ) {
 				return '';
 			}
 
-			$app_id  = '' !== $this->submission_id ? $this->submission_id : (string) $portal_id;
-			$tmp     = $this->write_temp( $buffer, $filename, $field_id );
-			$last_id = '';
+			$app_id    = '' !== $this->submission_id ? $this->submission_id : (string) $portal_id;
+			$use_bytes = method_exists( $this->file_store, 'store_drive_bytes' );
+			$safe_name = self::sanitize_filename( $filename );
+			$mime_type = $use_bytes ? self::detect_mime( (string) $buffer, $safe_name ) : '';
+			$tmp       = $use_bytes ? '' : $this->write_temp( $buffer, $filename, $field_id );
+			$last_id   = '';
 			foreach ( $names as $name ) {
 				$folder_id = Portal_Submission_Destinations::folder_id_for_name( $mapping, $name );
 				if ( '' === $folder_id ) {
@@ -155,9 +192,10 @@ if ( ! class_exists( 'Portal_Google_Store' ) ) {
 				$sub                  = $this->ensure_subfolder( $folder_id, $app_id );
 				$this->last_folder_id = $sub;
 				$this->file_store->drive_parent( $sub );
-				$last_id = (string) $this->file_store->store_drive_file( $tmp );
+				$last_id = $use_bytes
+					? (string) $this->file_store->store_drive_bytes( $safe_name, (string) $buffer, $mime_type )
+					: (string) $this->file_store->store_drive_file( $tmp );
 			}
-
 			if ( '' === $last_id ) {
 				return '';
 			}
@@ -253,6 +291,8 @@ if ( ! class_exists( 'Portal_Google_Store' ) ) {
 		}
 
 		/**
+		 * Ensure the application subfolder exists under the parent Drive folder.
+		 *
 		 * @param string $parent_id Drive folder id.
 		 * @param string $app_id    Submission id.
 		 * @return string Subfolder id.
@@ -269,6 +309,8 @@ if ( ! class_exists( 'Portal_Google_Store' ) ) {
 		}
 
 		/**
+		 * Write upload bytes to a temporary file for legacy FileStore doubles.
+		 *
 		 * @param string $buffer   Bytes.
 		 * @param string $filename Basename.
 		 * @param string $field_id Field id.
@@ -285,6 +327,40 @@ if ( ! class_exists( 'Portal_Google_Store' ) ) {
 		}
 
 		/**
+		 * Detect the MIME type of an in-memory upload buffer with filename fallback.
+		 *
+		 * @param string $buffer   Raw file bytes.
+		 * @param string $filename Sanitized filename.
+		 * @return string
+		 */
+		private static function detect_mime( $buffer, $filename ) {
+			if ( class_exists( 'finfo' ) ) {
+				$finfo = new finfo( FILEINFO_MIME_TYPE );
+				$mime  = $finfo->buffer( (string) $buffer );
+				if ( is_string( $mime ) && '' !== $mime && 'application/octet-stream' !== $mime ) {
+					return $mime;
+				}
+			}
+			$ext = strtolower( (string) pathinfo( (string) $filename, PATHINFO_EXTENSION ) );
+			$map = array(
+				'pdf'  => 'application/pdf',
+				'mp3'  => 'audio/mpeg',
+				'wav'  => 'audio/wav',
+				'm4a'  => 'audio/mp4',
+				'ogg'  => 'audio/ogg',
+				'flac' => 'audio/flac',
+				'png'  => 'image/png',
+				'jpg'  => 'image/jpeg',
+				'jpeg' => 'image/jpeg',
+				'txt'  => 'text/plain',
+				'json' => 'application/json',
+			);
+			return isset( $map[ $ext ] ) ? $map[ $ext ] : 'application/octet-stream';
+		}
+
+		/**
+		 * Sanitize a raw filename into a safe Drive basename.
+		 *
 		 * @param string $filename Raw filename.
 		 * @return string
 		 */

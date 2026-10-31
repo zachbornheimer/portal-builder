@@ -91,7 +91,7 @@ require_once plugin_dir_path( __FILE__ ) . 'includes/class-portal-definition-res
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-portal-staged-file-rest.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-portal-setup-screen.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/templates.php';
-require_once plugin_dir_path( __FILE__ ) . 'gsuite-filestore/zysys-file-store.class.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/adapters/class-zysys-file-store.php';
 
 // Include Composer's autoload file.
 require_once plugin_dir_path( __FILE__ ) . 'vendor/autoload.php';
