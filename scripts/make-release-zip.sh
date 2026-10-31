@@ -69,6 +69,10 @@ if [[ -d assets/dist ]]; then
 	mkdir -p "${TMP}/${PREFIX}/assets/dist"
 	cp -R assets/dist/. "${TMP}/${PREFIX}/assets/dist/"
 fi
+if [[ -f "${ROOT}/src/tokens.css" ]]; then
+	mkdir -p "${TMP}/${PREFIX}/assets"
+	cp "${ROOT}/src/tokens.css" "${TMP}/${PREFIX}/assets/tokens.css"
+fi
 # git archive honors export-ignore; the plugin still needs the notes for
 # the Updates "View details" changelog when GitHub's API is blocked.
 if [[ -f CHANGELOG.md ]]; then
@@ -94,6 +98,7 @@ require_zip_member() {
 }
 
 require_zip_member "includes/adapters/class-zysys-file-store.php"
+require_zip_member "assets/tokens.css"
 require_zip_member "vendor/autoload.php"
 require_zip_member "vendor/google/apiclient/src/Client.php"
 while IFS= read -r rel; do

@@ -609,9 +609,9 @@ if ( ! class_exists( 'Portal_Setup_Screen' ) ) {
 
 			wp_enqueue_style(
 				'dg-tokens',
-				plugins_url( 'src/tokens.css', $plugin_file ),
+				plugins_url( 'assets/tokens.css', $plugin_file ),
 				array(),
-				$asset_ver( 'src/tokens.css' )
+				$asset_ver( 'assets/tokens.css' )
 			);
 			wp_enqueue_style(
 				'dragongate-portal-css',

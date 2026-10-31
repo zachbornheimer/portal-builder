@@ -15,7 +15,7 @@ export default defineConfig({
 			},
 			output: {
 				entryFileNames: '[name].js',
-				chunkFileNames: '[name].js',
+				chunkFileNames: '[name]-[hash].js',
 				assetFileNames: (assetInfo) => {
 					if (assetInfo.name === 'styles.css') {
 						return 'dragongate-portal.css';
