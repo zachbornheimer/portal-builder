@@ -63,13 +63,13 @@ if ( ! class_exists( 'Zysys_FileStore' ) && ! class_exists( 'Zysys_File_Store' )
 				if ( ! file_exists( $access_key_cred_path_or_credentials_array ) ) {
 					throw new Exception( 'Invalid access key credentials file path provided.' );
 				}
-				$access_key_data  = $this->_load_json( $access_key_cred_path_or_credentials_array );
+				$access_key_data  = $this->load_json( $access_key_cred_path_or_credentials_array );
 				$this->access_key = $access_key_data['access_key'] ?? null;
 
 				if ( ! file_exists( $client_secret_path ) ) {
 					throw new Exception( 'Invalid client secret file path provided.' );
 				}
-				$client_secret_data  = $this->_load_json( $client_secret_path );
+				$client_secret_data  = $this->load_json( $client_secret_path );
 				$this->client_secret = $client_secret_data['client_secret'] ?? null;
 
 				if ( is_null( $this->access_key ) || is_null( $this->client_secret ) ) {
@@ -77,7 +77,7 @@ if ( ! class_exists( 'Zysys_FileStore' ) && ! class_exists( 'Zysys_File_Store' )
 				}
 			}
 
-			$this->_use_gsuite();
+			$this->use_gsuite();
 			$this->configure();
 		}
 
@@ -86,7 +86,7 @@ if ( ! class_exists( 'Zysys_FileStore' ) && ! class_exists( 'Zysys_File_Store' )
 		 *
 		 * @return void
 		 */
-		protected function _use_gsuite() {
+		protected function use_gsuite() {
 			$autoload = dirname( __DIR__, 2 ) . '/vendor/autoload.php';
 			if ( is_readable( $autoload ) ) {
 				require_once $autoload;
@@ -100,17 +100,28 @@ if ( ! class_exists( 'Zysys_FileStore' ) && ! class_exists( 'Zysys_File_Store' )
 		 * @return array
 		 * @throws Exception If the file is missing or contains invalid JSON.
 		 */
-		protected function _load_json( $path ) {
+		protected function load_json( $path ) {
 			if ( ! file_exists( $path ) ) {
 				throw new Exception( 'Credentials JSON file not found.' );
 			}
-			$json = file_get_contents( $path );
-			$data = json_decode( (string) $json, true );
+			$json = $this->read_local_bytes( $path );
+			$data = json_decode( $json, true );
 
 			if ( JSON_ERROR_NONE !== json_last_error() || ! is_array( $data ) ) {
 				throw new Exception( 'Invalid JSON in credentials file.' );
 			}
 			return $data;
+		}
+
+		/**
+		 * Read local file bytes into a string.
+		 *
+		 * @param string $path Local file path.
+		 * @return string
+		 */
+		protected function read_local_bytes( $path ) {
+			$lines = file( $path );
+			return is_array( $lines ) ? implode( '', $lines ) : '';
 		}
 
 		/**
@@ -144,7 +155,7 @@ if ( ! class_exists( 'Zysys_FileStore' ) && ! class_exists( 'Zysys_File_Store' )
 			if ( $this->__get( 'credentials_path' ) ) {
 				$cred_path = (string) $this->__get( 'credentials_path' );
 				if ( file_exists( $cred_path ) ) {
-					$access_token = json_decode( (string) file_get_contents( $cred_path ), true );
+					$access_token = json_decode( $this->read_local_bytes( $cred_path ), true );
 					$client->setAccessToken( $access_token );
 					$this->refresh_access_token_if_expired( $client, false );
 				} else {
@@ -169,9 +180,9 @@ if ( ! class_exists( 'Zysys_FileStore' ) && ! class_exists( 'Zysys_File_Store' )
 				throw new Exception( 'Client secret is missing or not configured.' );
 			}
 
-			$this->_var( 'gsuiteAgent', $client );
-			$this->_var( 'sheetsAgent', new Google_Service_Sheets( $client ) );
-			$this->_var( 'driveAgent', new Google_Service_Drive( $client ) );
+			$this->set_var( 'gsuiteAgent', $client );
+			$this->set_var( 'sheetsAgent', new Google_Service_Sheets( $client ) );
+			$this->set_var( 'driveAgent', new Google_Service_Drive( $client ) );
 
 			if ( $this->access_key ) {
 				$client->setAccessToken( $this->access_key );
@@ -191,7 +202,7 @@ if ( ! class_exists( 'Zysys_FileStore' ) && ! class_exists( 'Zysys_File_Store' )
 				$client->fetchAccessTokenWithRefreshToken( $client->getRefreshToken() );
 				$token     = $client->getAccessToken();
 				$refreshed = ( $encode_as_json && is_array( $token ) )
-					? (string) ( function_exists( 'wp_json_encode' ) ? wp_json_encode( $token ) : json_encode( $token ) )
+					? (string) wp_json_encode( $token )
 					: $token;
 				$this->__set( 'updated_access_token', $refreshed );
 				$this->__set( 'update_access_token', $refreshed );
@@ -233,7 +244,7 @@ if ( ! class_exists( 'Zysys_FileStore' ) && ! class_exists( 'Zysys_File_Store' )
 		 * @return int
 		 * @throws Exception If the variable could not be set.
 		 */
-		protected function _var( $var_name, $value ) {
+		protected function set_var( $var_name, $value ) {
 			$this->__set( $var_name, $value );
 			if ( $this->__get( $var_name ) !== $value ) {
 				throw new Exception( 'Critical error: unable to set FileStore variable.' );
@@ -248,7 +259,7 @@ if ( ! class_exists( 'Zysys_FileStore' ) && ! class_exists( 'Zysys_File_Store' )
 		 * @return void
 		 */
 		public function gsheet( $id ) {
-			$this->_var( 'gsheet_id', $id );
+			$this->set_var( 'gsheet_id', $id );
 		}
 
 		/**
@@ -259,8 +270,8 @@ if ( ! class_exists( 'Zysys_FileStore' ) && ! class_exists( 'Zysys_File_Store' )
 		 * @return void
 		 */
 		public function gsheet_row( $sheet_identifier, $location_identifier ) {
-			$this->_var( 'gsheet_sheet_name', $sheet_identifier );
-			$this->_var( 'gsheet_row_identifier', $location_identifier );
+			$this->set_var( 'gsheet_sheet_name', $sheet_identifier );
+			$this->set_var( 'gsheet_row_identifier', $location_identifier );
 		}
 
 		/**
@@ -330,7 +341,7 @@ if ( ! class_exists( 'Zysys_FileStore' ) && ! class_exists( 'Zysys_File_Store' )
 		 * @return void
 		 */
 		public function drive_parent( $folder_id ) {
-			$this->_var( 'drive_parent_id', $folder_id );
+			$this->set_var( 'drive_parent_id', $folder_id );
 		}
 
 		/**
@@ -358,11 +369,11 @@ if ( ! class_exists( 'Zysys_FileStore' ) && ! class_exists( 'Zysys_File_Store' )
 				throw new Exception( 'Local store path does not exist.' );
 			}
 
-			if ( ! is_writable( $path ) ) {
+			if ( ! wp_is_writable( $path ) ) {
 				throw new Exception( 'Local store path is not writable.' );
 			}
 
-			$this->_var( 'local_store_path', $path );
+			$this->set_var( 'local_store_path', $path );
 		}
 
 		/**
@@ -406,10 +417,10 @@ if ( ! class_exists( 'Zysys_FileStore' ) && ! class_exists( 'Zysys_File_Store' )
 			$folder_to_create = $this->__get( 'local_store_path' ) . '/' . $name;
 
 			if ( ! is_dir( $folder_to_create ) ) {
-				if ( ! mkdir( $folder_to_create ) ) {
+				if ( ! wp_mkdir_p( $folder_to_create ) ) {
 					throw new Exception( 'Error: Failed to create local subfolder.' );
 				}
-			} elseif ( ! $this->_is_dir_empty( $folder_to_create ) ) {
+			} elseif ( ! $this->is_dir_empty( $folder_to_create ) ) {
 				throw new Exception( 'Error: Subfolder exists and is not empty.' );
 			}
 
@@ -422,7 +433,7 @@ if ( ! class_exists( 'Zysys_FileStore' ) && ! class_exists( 'Zysys_File_Store' )
 		 * @param string $dir Directory path.
 		 * @return bool|null Returns null if unreadable, true if empty, false otherwise.
 		 */
-		protected function _is_dir_empty( $dir ) {
+		protected function is_dir_empty( $dir ) {
 			if ( ! is_readable( $dir ) ) {
 				return null;
 			}
@@ -545,7 +556,7 @@ if ( ! class_exists( 'Zysys_FileStore' ) && ! class_exists( 'Zysys_File_Store' )
 				? $detected_mime
 				: 'application/octet-stream';
 
-			return $this->store_drive_bytes( basename( $filepath ), (string) file_get_contents( $filepath ), $mime_type );
+			return $this->store_drive_bytes( basename( $filepath ), $this->read_local_bytes( $filepath ), $mime_type );
 		}
 
 		/**
@@ -565,7 +576,7 @@ if ( ! class_exists( 'Zysys_FileStore' ) && ! class_exists( 'Zysys_File_Store' )
 
 			do {
 				copy( $filepath, $destination );
-			} while ( file_get_contents( $filepath ) !== file_get_contents( $destination ) && ++$attempts < 15 );
+			} while ( $this->read_local_bytes( $filepath ) !== $this->read_local_bytes( $destination ) && ++$attempts < 15 );
 
 			if ( $attempts >= 15 ) {
 				throw new Exception( 'Error: Failed to store file locally after multiple attempts.' );

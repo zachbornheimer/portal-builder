@@ -28,7 +28,6 @@
 - Align inherited-setting reset buttons and other admin defaults controls in consistently spaced, vertically centered rows
 - Reject malformed Records responses with safe type/count diagnostics instead of silently presenting them as an empty submission list, and keep request failures separate from a successful empty response
 - Make invitation expiry compact with a visible dropdown affordance, provide keyboard-accessible candidate options, and reduce invitation row actions to quiet links
-- Replace the `gsuite-filestore` git submodule with a root Composer `google/apiclient` dependency and `includes/adapters/class-zysys-file-store.php`, refresh expired OAuth access tokens on array credentials, and upload Drive files directly from memory without temporary files
 
 ### Tests
 

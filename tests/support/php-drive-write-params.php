@@ -9,6 +9,12 @@
  * a capturing Drive agent.
  */
 
+if ( ! function_exists( 'wp_json_encode' ) ) {
+	function wp_json_encode( $data ) {
+		return json_encode( $data );
+	}
+}
+
 $repo_root = dirname( __DIR__, 2 );
 require_once $repo_root . '/vendor/autoload.php';
 require_once $repo_root . '/includes/adapters/class-zysys-file-store.php';
