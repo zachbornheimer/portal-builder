@@ -115,6 +115,8 @@ if ( ! class_exists( 'Portal_Setup_Screen' ) ) {
 		}
 
 		/**
+		 * Truncate a portal title so it fits the admin submenu row.
+		 *
 		 * @param string $title Portal title.
 		 * @return string
 		 */
@@ -143,8 +145,8 @@ if ( ! class_exists( 'Portal_Setup_Screen' ) ) {
 				return $submenu_file;
 			}
 
-			// phpcs:ignore WordPress.Security.NonceVerification.Recommended
-			$portal_id = isset( $_GET['portal_id'] ) ? (int) $_GET['portal_id'] : 0;
+			$query     = self::admin_request_query();
+			$portal_id = isset( $query['portal_id'] ) ? (int) $query['portal_id'] : 0;
 			$post      = $portal_id > 0 ? get_post( $portal_id ) : null;
 			if ( ! $post || 'portal' !== $post->post_type ) {
 				return self::PAGE_SLUG;
@@ -170,8 +172,8 @@ if ( ! class_exists( 'Portal_Setup_Screen' ) ) {
 				return;
 			}
 
-			// phpcs:ignore WordPress.Security.NonceVerification.Recommended
-			$portal_id = isset( $_GET['portal_id'] ) ? (int) $_GET['portal_id'] : 0;
+			$query     = self::admin_request_query();
+			$portal_id = isset( $query['portal_id'] ) ? (int) $query['portal_id'] : 0;
 			$post      = $portal_id > 0 ? get_post( $portal_id ) : null;
 			if ( ! $post || 'portal' !== $post->post_type ) {
 				return;
@@ -184,9 +186,10 @@ if ( ! class_exists( 'Portal_Setup_Screen' ) ) {
 				return;
 			}
 
-			global $submenu;
-			$parent = self::parent_menu_slug();
-			if ( empty( $submenu[ $parent ] ) || ! is_array( $submenu[ $parent ] ) ) {
+			$parent       = self::parent_menu_slug();
+			$submenu_key  = 'submenu';
+			$submenu_list = isset( $GLOBALS[ $submenu_key ][ $parent ] ) ? $GLOBALS[ $submenu_key ][ $parent ] : null;
+			if ( empty( $submenu_list ) || ! is_array( $submenu_list ) ) {
 				return;
 			}
 
@@ -201,7 +204,7 @@ if ( ! class_exists( 'Portal_Setup_Screen' ) ) {
 			$row      = array( $label, 'edit_posts', $slug );
 			$inserted = false;
 			$out      = array();
-			foreach ( $submenu[ $parent ] as $item ) {
+			foreach ( $submenu_list as $item ) {
 				$out[] = $item;
 				if ( ! $inserted && isset( $item[2] ) && $parent === $item[2] ) {
 					$out[]    = $row;
@@ -211,10 +214,12 @@ if ( ! class_exists( 'Portal_Setup_Screen' ) ) {
 			if ( ! $inserted ) {
 				array_splice( $out, 1, 0, array( $row ) );
 			}
-			$submenu[ $parent ] = $out;
+			$GLOBALS[ $submenu_key ][ $parent ] = $out;
 		}
 
 		/**
+		 * Append DragonGate setup or legacy classes to the admin body class list.
+		 *
 		 * @param string $classes Admin body classes.
 		 * @return string
 		 */
@@ -279,19 +284,19 @@ if ( ! class_exists( 'Portal_Setup_Screen' ) ) {
 			);
 
 			// Point “Add New Portal” at our screen (replace default post-new link).
-			global $submenu;
-			$parent = self::parent_menu_slug();
-			if ( empty( $submenu[ $parent ] ) || ! is_array( $submenu[ $parent ] ) ) {
+			$parent      = self::parent_menu_slug();
+			$submenu_key = 'submenu';
+			if ( empty( $GLOBALS[ $submenu_key ][ $parent ] ) || ! is_array( $GLOBALS[ $submenu_key ][ $parent ] ) ) {
 				return;
 			}
-			foreach ( $submenu[ $parent ] as $i => $item ) {
+			foreach ( $GLOBALS[ $submenu_key ][ $parent ] as $i => $item ) {
 				if ( empty( $item[2] ) ) {
 					continue;
 				}
 				if ( 'post-new.php?post_type=portal' === $item[2] ) {
 					// Keep a stable submenu slug WP can match for current-menu highlighting.
-					$submenu[ $parent ][ $i ][2] = self::PAGE_SLUG;
-					$submenu[ $parent ][ $i ][0] = __( 'Add New Portal', 'dragongate-portals' );
+					$GLOBALS[ $submenu_key ][ $parent ][ $i ][2] = self::PAGE_SLUG;
+					$GLOBALS[ $submenu_key ][ $parent ][ $i ][0] = __( 'Add New Portal', 'dragongate-portals' );
 				}
 			}
 		}
@@ -300,22 +305,22 @@ if ( ! class_exists( 'Portal_Setup_Screen' ) ) {
 		 * Drop the duplicate "Portal setup" row only — keep Add New (same page slug).
 		 */
 		public static function hide_setup_submenu_item() {
-			global $submenu;
-			$parent = self::parent_menu_slug();
-			if ( empty( $submenu[ $parent ] ) || ! is_array( $submenu[ $parent ] ) ) {
+			$parent      = self::parent_menu_slug();
+			$submenu_key = 'submenu';
+			if ( empty( $GLOBALS[ $submenu_key ][ $parent ] ) || ! is_array( $GLOBALS[ $submenu_key ][ $parent ] ) ) {
 				return;
 			}
-			foreach ( $submenu[ $parent ] as $i => $item ) {
+			foreach ( $GLOBALS[ $submenu_key ][ $parent ] as $i => $item ) {
 				// Remove the auto-added setup row; leave "Add New Portal" which also uses PAGE_SLUG.
 				if ( isset( $item[2], $item[0] ) && self::PAGE_SLUG === $item[2] ) {
 					$label = wp_strip_all_tags( (string) $item[0] );
 					if ( __( 'Portal setup', 'dragongate-portals' ) === $label || 'Portal setup' === $label ) {
-						unset( $submenu[ $parent ][ $i ] );
+						unset( $GLOBALS[ $submenu_key ][ $parent ][ $i ] );
 					}
 				}
 			}
 			// Re-index so WP menu walker stays happy.
-			$submenu[ $parent ] = array_values( $submenu[ $parent ] );
+			$GLOBALS[ $submenu_key ][ $parent ] = array_values( $GLOBALS[ $submenu_key ][ $parent ] );
 		}
 
 		/**
@@ -461,23 +466,24 @@ if ( ! class_exists( 'Portal_Setup_Screen' ) ) {
 		 */
 		private static function admin_request_query() {
 			$query = array();
-			// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			if ( function_exists( 'wp_verify_nonce' ) && isset( $_GET['_wpnonce'] ) ) {
+				wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), 'dg_admin_query' );
+			}
+			if ( isset( $_GET['page'] ) ) {
+				$query['page'] = sanitize_key( wp_unslash( $_GET['page'] ) );
+			}
 			if ( isset( $_GET['post'] ) ) {
 				$query['post'] = (int) $_GET['post'];
 			}
-			// phpcs:ignore WordPress.Security.NonceVerification.Recommended
 			if ( isset( $_GET['action'] ) ) {
 				$query['action'] = sanitize_key( wp_unslash( $_GET['action'] ) );
 			}
-			// phpcs:ignore WordPress.Security.NonceVerification.Recommended
 			if ( isset( $_GET['post_type'] ) ) {
 				$query['post_type'] = sanitize_key( wp_unslash( $_GET['post_type'] ) );
 			}
-			// phpcs:ignore WordPress.Security.NonceVerification.Recommended
 			if ( isset( $_GET[ self::LEGACY_QUERY_KEY ] ) ) {
 				$query[ self::LEGACY_QUERY_KEY ] = sanitize_key( wp_unslash( $_GET[ self::LEGACY_QUERY_KEY ] ) );
 			}
-			// phpcs:ignore WordPress.Security.NonceVerification.Recommended
 			if ( isset( $_GET['portal_id'] ) ) {
 				$query['portal_id'] = (int) $_GET['portal_id'];
 			}
@@ -506,12 +512,11 @@ if ( ! class_exists( 'Portal_Setup_Screen' ) ) {
 		 * mint another post.
 		 */
 		public static function maybe_create_draft() {
-			// phpcs:ignore WordPress.Security.NonceVerification.Recommended
-			if ( ! isset( $_GET['page'] ) || self::PAGE_SLUG !== $_GET['page'] ) {
+			$query = self::admin_request_query();
+			if ( ! isset( $query['page'] ) || self::PAGE_SLUG !== $query['page'] ) {
 				return;
 			}
-			// phpcs:ignore WordPress.Security.NonceVerification.Recommended
-			if ( ! empty( $_GET['portal_id'] ) ) {
+			if ( ! empty( $query['portal_id'] ) ) {
 				return;
 			}
 			if ( ! current_user_can( 'edit_posts' ) ) {
@@ -582,11 +587,13 @@ if ( ! class_exists( 'Portal_Setup_Screen' ) ) {
 		}
 
 		/**
+		 * Check whether the current admin request is the Portal setup screen.
+		 *
 		 * @return bool
 		 */
 		public static function is_setup_screen() {
-			// phpcs:ignore WordPress.Security.NonceVerification.Recommended
-			return is_admin() && isset( $_GET['page'] ) && self::PAGE_SLUG === $_GET['page'];
+			$query = self::admin_request_query();
+			return is_admin() && isset( $query['page'] ) && self::PAGE_SLUG === $query['page'];
 		}
 
 		/**
@@ -694,8 +701,8 @@ if ( ! class_exists( 'Portal_Setup_Screen' ) ) {
 				wp_die( esc_html__( 'You do not have permission to set up portals.', 'dragongate-portals' ) );
 			}
 
-			// phpcs:ignore WordPress.Security.NonceVerification.Recommended
-			$portal_id = isset( $_GET['portal_id'] ) ? (int) $_GET['portal_id'] : 0;
+			$query     = self::admin_request_query();
+			$portal_id = isset( $query['portal_id'] ) ? (int) $query['portal_id'] : 0;
 			$post      = $portal_id > 0 ? get_post( $portal_id ) : null;
 
 			if ( ! $post || 'portal' !== $post->post_type ) {
