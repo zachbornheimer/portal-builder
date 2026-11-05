@@ -22,7 +22,7 @@ if ( ! class_exists( 'Portal_Update' ) ) {
 		const AUTHOR       = 'Z. Bornheimer (ZYSYS)';
 		const AUTHOR_URI   = 'https://zysys.org/';
 		const REQUIRES_WP  = '6.4';
-		const REQUIRES_PHP = '8.0';
+		const REQUIRES_PHP = '8.1';
 		const TESTED_FALLBACK = '6.8';
 		const DESCRIPTION  = 'A plugin to build portals for accepting applications and managing submissions with Google Sheets and Google Drive integration.';
 		const MAIN_FILE    = 'portal-builder.php';

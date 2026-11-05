@@ -7,7 +7,7 @@ Learn more at [allintersections.com](https://allintersections.com) or [zysys.org
 
 ## Requirements
 
-- **Requires PHP:** 8.0 or higher
+- **Requires PHP:** 8.1 or higher
 - **Requires WordPress:** 6.4 or higher (Requires at least: 6.4)
 
 ## Development
@@ -88,7 +88,7 @@ Contributor path only. Strangers installing from a ZIP should follow [First hour
 
 ### Requirements
 
-- **PHP 8.0 or higher**
+- **PHP 8.1 or higher**
 - **Composer**
 - **Node.js** (optional, for asset building)
 

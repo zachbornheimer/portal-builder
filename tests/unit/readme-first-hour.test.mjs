@@ -18,7 +18,7 @@ const FORBIDDEN = [
 ];
 
 const REQUIRED = [
-	{ name: 'Requires PHP 8.0', re: /requires php 8\.0|php 8\.0/i },
+	{ name: 'Requires PHP 8.1', re: /requires php 8\.1|php 8\.1/i },
 	{ name: 'Requires WordPress 6.4', re: /wordpress 6\.4|requires at least:?\s*6\.4/i },
 	{ name: 'OAuth client JSON', re: /oauth client json/i },
 	{ name: 'access token', re: /access token/i },
