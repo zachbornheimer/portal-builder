@@ -23,7 +23,9 @@ jobs:
       - name: Set up PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: "8.0"
+          # composer.lock production deps (google/apiclient, google/auth) need
+          # PHP >=8.1; keep in step with composer.json config.platform.
+          php-version: "8.1"
 
       - name: Install Composer dependencies
         run: composer install --no-dev --optimize-autoloader
