@@ -33,11 +33,11 @@ update-submodules:
 
 # Install Node.js dependencies
 install-node:
-	@if ! command -v node &> /dev/null; then \
+	@if ! command -v node >/dev/null 2>&1; then \
 		echo "Node.js is not installed. Please install Node.js first."; \
 		exit 1; \
 	fi
-	@if ! command -v npm &> /dev/null; then \
+	@if ! command -v npm >/dev/null 2>&1; then \
 		echo "npm is not installed. Please install npm first."; \
 		exit 1; \
 	fi
