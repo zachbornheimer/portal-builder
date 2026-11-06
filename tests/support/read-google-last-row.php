@@ -8,7 +8,7 @@
  */
 
 $repo_root = dirname( __DIR__, 2 );
-require_once $repo_root . '/vendor/autoload.php';
+require_once $repo_root . '/vendor-prefixed/autoload.php';
 require_once $repo_root . '/includes/adapters/class-zysys-file-store.php';
 
 $sheet_id  = '';

@@ -56,10 +56,13 @@ install-dev:
 	rm -rf vendor
 	composer install
 
-# Install composer dependencies (for production)
+# Install composer dependencies (for production). composer's post-install hook
+# runs scripts/prefix-vendor.sh, which writes vendor-prefixed/ (the only
+# third-party code the plugin loads and the zip ships).
 install-prod:
-	rm -rf vendor
+	rm -rf vendor vendor-prefixed
 	composer install --no-dev --optimize-autoloader
+	bash scripts/prefix-vendor.sh
 
 # Run build for production
 release: install-prod build

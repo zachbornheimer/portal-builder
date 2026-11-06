@@ -83,7 +83,7 @@ if ( ! class_exists( 'Portal_Google_Store' ) ) {
 		 * @return Zysys_FileStore
 		 */
 		public static function file_store_from_options() {
-			$autoload = dirname( __DIR__, 2 ) . '/vendor/autoload.php';
+			$autoload = dirname( __DIR__, 2 ) . '/vendor-prefixed/autoload.php';
 			if ( is_readable( $autoload ) ) {
 				require_once $autoload;
 			}

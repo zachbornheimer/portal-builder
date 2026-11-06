@@ -5,6 +5,8 @@
  * @package DragonGate
  */
 
+use DragonGate\Vendor\Google\Service\Sheets\ValueRange;
+
 if ( ! class_exists( 'Portal_Google_Probe_Store' ) ) {
 
 	/**
@@ -106,7 +108,7 @@ if ( ! class_exists( 'Portal_Google_Probe_Store' ) ) {
 				throw new Exception( 'Sheets agent not configured.' );
 			}
 
-			$body = new Google_Service_Sheets_ValueRange( array( 'values' => array( array_values( $row ) ) ) );
+			$body = new ValueRange( array( 'values' => array( array_values( $row ) ) ) );
 			$sheets->spreadsheets_values->append(
 				$sheet_id,
 				self::APPEND_RANGE,

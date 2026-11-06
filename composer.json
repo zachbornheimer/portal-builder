@@ -19,12 +19,46 @@
     },
     "preferred-install": "dist"
   },
+  "extra": {
+    "google/apiclient-services": [
+      "Drive",
+      "Sheets"
+    ],
+    "strauss": {
+      "target_directory": "vendor-prefixed",
+      "namespace_prefix": "DragonGate\\Vendor\\",
+      "classmap_prefix": "DragonGate_Vendor_",
+      "constant_prefix": "DRAGONGATE_VENDOR_",
+      "packages": [
+        "google/apiclient",
+        "monolog/monolog",
+        "phpmailer/phpmailer"
+      ],
+      "exclude_from_copy": {
+        "file_patterns": [
+          "#google/apiclient/src/aliases\\.php$#",
+          "#google/apiclient-services/autoload\\.php$#"
+        ]
+      },
+      "exclude_from_prefix": {
+        "packages": [
+          "symfony/deprecation-contracts",
+          "symfony/polyfill-php80",
+          "symfony/polyfill-php82"
+        ]
+      }
+    }
+  },
   "scripts": {
+    "prefix-vendor": "bash scripts/prefix-vendor.sh",
+    "pre-autoload-dump": "Google\\Task\\Composer::cleanup",
     "post-install-cmd": [
-      "composer dump-autoload --optimize"
+      "composer dump-autoload --optimize",
+      "@prefix-vendor"
     ],
     "post-update-cmd": [
-      "composer dump-autoload --optimize"
+      "composer dump-autoload --optimize",
+      "@prefix-vendor"
     ]
   }
 }

@@ -840,17 +840,17 @@ function load_portal_submission_for_cli( $repo_root ) {
 			}
 		}
 	}
-	if ( ! class_exists( 'PHPMailer\\PHPMailer\\Exception' ) ) {
+	if ( ! class_exists( 'DragonGate\\Vendor\\PHPMailer\\PHPMailer\\Exception' ) ) {
 		// Alias a user-defined subclass: PHP 8.2+ throws ValueError when
 		// class_alias() targets an internal class such as Exception.
 		class Portal_Harness_PHPMailer_Exception extends Exception {
 		}
-		class_alias( 'Portal_Harness_PHPMailer_Exception', 'PHPMailer\\PHPMailer\\Exception' );
+		class_alias( 'Portal_Harness_PHPMailer_Exception', 'DragonGate\\Vendor\\PHPMailer\\PHPMailer\\Exception' );
 	}
-	$autoload = $repo_root . '/vendor/autoload.php';
+	$autoload = $repo_root . '/vendor-prefixed/autoload.php';
 	if ( ! is_readable( $autoload ) ) {
-		if ( ! is_dir( $repo_root . '/vendor' ) ) {
-			mkdir( $repo_root . '/vendor', 0755, true );
+		if ( ! is_dir( $repo_root . '/vendor-prefixed' ) ) {
+			mkdir( $repo_root . '/vendor-prefixed', 0755, true );
 		}
 		file_put_contents( $autoload, "<?php\n" );
 	}

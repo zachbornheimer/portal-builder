@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
-# Build dist/portal-builder-<semver>.zip from HEAD + vendor + built assets.
+# Build dist/portal-builder-<semver>.zip from HEAD + vendor-prefixed + built assets.
+# Only the namespace-prefixed dependency copies ship (scripts/prefix-vendor.sh).
+# The unprefixed vendor/ tree is never packaged: another plugin's copy of the
+# same library would shadow it (ZYS-2607).
 # A fresh clone leaves submodule paths as empty directories. git archive
 # ships that empty directory, and WordPress fatals on the first require.
 # Initialise missing checkouts, then refuse to zip if a load-time require
@@ -37,7 +40,7 @@ while IFS= read -r rel; do
 	[[ -z "${rel}" ]] && continue
 	if [[ ! -f "${rel}" ]]; then
 		echo "make-release-zip: required file missing: ${rel}" >&2
-		echo "make-release-zip: portal-builder.php requires it at load. An empty submodule cannot be shipped (git submodule update --init --recursive); vendor/ needs composer install --no-dev." >&2
+		echo "make-release-zip: portal-builder.php requires it at load. An empty submodule cannot be shipped (git submodule update --init --recursive); vendor-prefixed/ needs composer install --no-dev (runs scripts/prefix-vendor.sh)." >&2
 		missing=1
 	fi
 done < <(grep -E '^require(_once)?[[:space:]]+' portal-builder.php | sed -nE "s/.*plugin_dir_path\\( __FILE__ \\) \\. '([^']+)'.*/\\1/p")
@@ -61,10 +64,12 @@ git submodule foreach --quiet --recursive '
 	git archive --format=tar --prefix="'"${PREFIX}"'/${sm_path}/" HEAD | tar -C "'"${TMP}"'" -xf -
 '
 
-if [[ -d vendor ]]; then
-	mkdir -p "${TMP}/${PREFIX}/vendor"
-	cp -R vendor/. "${TMP}/${PREFIX}/vendor/"
+if [[ ! -f vendor-prefixed/autoload.php ]]; then
+	echo "make-release-zip: vendor-prefixed/autoload.php missing; run composer install --no-dev (runs scripts/prefix-vendor.sh)" >&2
+	exit 1
 fi
+mkdir -p "${TMP}/${PREFIX}/vendor-prefixed"
+cp -R vendor-prefixed/. "${TMP}/${PREFIX}/vendor-prefixed/"
 if [[ -d assets/dist ]]; then
 	mkdir -p "${TMP}/${PREFIX}/assets/dist"
 	cp -R assets/dist/. "${TMP}/${PREFIX}/assets/dist/"
@@ -99,8 +104,15 @@ require_zip_member() {
 
 require_zip_member "includes/adapters/class-zysys-file-store.php"
 require_zip_member "assets/tokens.css"
-require_zip_member "vendor/autoload.php"
-require_zip_member "vendor/google/apiclient/src/Client.php"
+require_zip_member "vendor-prefixed/autoload.php"
+require_zip_member "vendor-prefixed/google/apiclient/src/Client.php"
+require_zip_member "vendor-prefixed/google/apiclient-services/src/Drive.php"
+require_zip_member "vendor-prefixed/google/apiclient-services/src/Sheets.php"
+# Nothing unprefixed may ship.
+if grep -q "^${PREFIX}/vendor/" <<<"${zip_names}"; then
+	echo "make-release-zip: zip contains the unprefixed ${PREFIX}/vendor/ tree" >&2
+	zip_missing=1
+fi
 while IFS= read -r rel; do
 	[[ -z "${rel}" ]] && continue
 	require_zip_member "${rel}"
@@ -109,8 +121,8 @@ done < <(grep -E '^require(_once)?[[:space:]]+' portal-builder.php | sed -nE "s/
 echo "make-release-zip: required zip members:" >&2
 unzip -l "${OUT}" | awk -v prefix="${PREFIX}/" '
   $NF == prefix "includes/adapters/class-zysys-file-store.php" ||
-  $NF == prefix "vendor/autoload.php" ||
-  $NF == prefix "vendor/google/apiclient/src/Client.php" {
+  $NF == prefix "vendor-prefixed/autoload.php" ||
+  $NF == prefix "vendor-prefixed/google/apiclient/src/Client.php" {
     print
   }
 ' >&2

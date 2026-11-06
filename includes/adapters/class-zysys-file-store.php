@@ -5,6 +5,12 @@
  * @package DragonGate
  */
 
+use DragonGate\Vendor\Google\Client as GoogleClient;
+use DragonGate\Vendor\Google\Service\Drive;
+use DragonGate\Vendor\Google\Service\Drive\DriveFile;
+use DragonGate\Vendor\Google\Service\Sheets;
+use DragonGate\Vendor\Google\Service\Sheets\ValueRange;
+
 if ( ! class_exists( 'Zysys_FileStore' ) && ! class_exists( 'Zysys_File_Store' ) ) {
 
 	/**
@@ -87,7 +93,7 @@ if ( ! class_exists( 'Zysys_FileStore' ) && ! class_exists( 'Zysys_File_Store' )
 		 * @return void
 		 */
 		protected function use_gsuite() {
-			$autoload = dirname( __DIR__, 2 ) . '/vendor/autoload.php';
+			$autoload = dirname( __DIR__, 2 ) . '/vendor-prefixed/autoload.php';
 			if ( is_readable( $autoload ) ) {
 				require_once $autoload;
 			}
@@ -125,12 +131,12 @@ if ( ! class_exists( 'Zysys_FileStore' ) && ! class_exists( 'Zysys_File_Store' )
 		}
 
 		/**
-		 * Instantiate a Google_Client instance.
+		 * Instantiate a Google client instance.
 		 *
-		 * @return Google_Client
+		 * @return GoogleClient
 		 */
 		protected function create_google_client() {
-			return new Google_Client();
+			return new GoogleClient();
 		}
 
 		/**
@@ -145,8 +151,8 @@ if ( ! class_exists( 'Zysys_FileStore' ) && ! class_exists( 'Zysys_File_Store' )
 
 			$client->setScopes(
 				array(
-					Google_Service_Sheets::SPREADSHEETS,
-					Google_Service_Drive::DRIVE,
+					Sheets::SPREADSHEETS,
+					Drive::DRIVE,
 				)
 			);
 
@@ -181,8 +187,8 @@ if ( ! class_exists( 'Zysys_FileStore' ) && ! class_exists( 'Zysys_File_Store' )
 			}
 
 			$this->set_var( 'gsuiteAgent', $client );
-			$this->set_var( 'sheetsAgent', new Google_Service_Sheets( $client ) );
-			$this->set_var( 'driveAgent', new Google_Service_Drive( $client ) );
+			$this->set_var( 'sheetsAgent', new Sheets( $client ) );
+			$this->set_var( 'driveAgent', new Drive( $client ) );
 
 			if ( $this->access_key ) {
 				$client->setAccessToken( $this->access_key );
@@ -193,8 +199,8 @@ if ( ! class_exists( 'Zysys_FileStore' ) && ! class_exists( 'Zysys_File_Store' )
 		/**
 		 * Refresh an expired access token when a refresh token is available and record the updated token.
 		 *
-		 * @param Google_Client $client         Configured Google client.
-		 * @param bool          $encode_as_json Whether to serialize the refreshed token array as JSON.
+		 * @param GoogleClient $client         Configured Google client.
+		 * @param bool         $encode_as_json Whether to serialize the refreshed token array as JSON.
 		 * @return void
 		 */
 		protected function refresh_access_token_if_expired( $client, $encode_as_json ) {
@@ -292,7 +298,7 @@ if ( ! class_exists( 'Zysys_FileStore' ) && ! class_exists( 'Zysys_File_Store' )
 				throw new Exception( 'Error: gsheet_row_identifier not set.' );
 			}
 
-			$body   = new Google_Service_Sheets_ValueRange( array( 'values' => array( $args ) ) );
+			$body   = new ValueRange( array( 'values' => array( $args ) ) );
 			$params = array( 'valueInputOption' => 'RAW' );
 			$range  = sprintf( "'%s'!%s", $this->__get( 'gsheet_sheet_name' ), $this->__get( 'gsheet_row_identifier' ) );
 
@@ -329,7 +335,7 @@ if ( ! class_exists( 'Zysys_FileStore' ) && ! class_exists( 'Zysys_File_Store' )
 				throw new Exception( 'Error: gsheet_id not set.' );
 			}
 
-			$body   = new Google_Service_Sheets_ValueRange( array( 'values' => array( array_values( $row ) ) ) );
+			$body   = new ValueRange( array( 'values' => array( array_values( $row ) ) ) );
 			$params = array( 'valueInputOption' => 'RAW' );
 			$this->__get( 'sheetsAgent' )->spreadsheets_values->update( $this->__get( 'gsheet_id' ), $range, $body, $params );
 		}
@@ -463,7 +469,7 @@ if ( ! class_exists( 'Zysys_FileStore' ) && ! class_exists( 'Zysys_File_Store' )
 				throw new Exception( 'Error: Drive Parent Folder not set.' );
 			}
 
-			$file_metadata = new Google_Service_Drive_DriveFile(
+			$file_metadata = new DriveFile(
 				array(
 					'name'     => $name,
 					'parents'  => array( $this->__get( 'drive_parent_id' ) ),
@@ -517,7 +523,7 @@ if ( ! class_exists( 'Zysys_FileStore' ) && ! class_exists( 'Zysys_File_Store' )
 			$mime          = is_string( $mime_type ) && '' !== trim( $mime_type )
 				? $mime_type
 				: 'application/octet-stream';
-			$file_metadata = new Google_Service_Drive_DriveFile(
+			$file_metadata = new DriveFile(
 				array(
 					'name'    => basename( (string) $filename ),
 					'parents' => array( $this->__get( 'drive_parent_id' ) ),

@@ -15,6 +15,11 @@ if [[ "${DG_PUSH_BUILD:-1}" == "1" ]]; then
 	(cd "${ROOT}" && npm run build)
 fi
 
+if [[ ! -s "${ROOT}/vendor-prefixed/autoload.php" ]]; then
+	echo "push-plugin: vendor-prefixed/ missing; run composer install --no-dev (runs scripts/prefix-vendor.sh)" >&2
+	exit 1
+fi
+
 rsync -az --omit-dir-times \
 	--exclude '.git/' \
 	--exclude 'node_modules/' \
@@ -34,8 +39,8 @@ rsync -az --omit-dir-times \
 	--include 'portal-builder.php' \
 	--include 'includes/***' \
 	--include 'assets/***' \
-	--include 'vendor/' \
-	--include 'vendor/***' \
+	--include 'vendor-prefixed/' \
+	--include 'vendor-prefixed/***' \
 	--exclude '*' \
 	"${ROOT}/" "${REMOTE}:${DEST}"
 
