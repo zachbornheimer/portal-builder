@@ -151,8 +151,8 @@ if ( ! class_exists( 'Portal_File_Handler' ) ) {
 		}
 
 		private function store_anonymized_pdf( $tmp_name, $file_key, $suffix = '' ) {
-			if ( ! $this->isEnabled( 'proc_open' ) ) {
-				throw new Exception( 'proc_open is disabled' );
+			if ( ! $this->isEnabled( 'exec' ) ) {
+				throw new Exception( 'exec is disabled' );
 			}
 
 			$path = $this->store_pdf( $tmp_name, $file_key, $suffix );
@@ -160,8 +160,8 @@ if ( ! class_exists( 'Portal_File_Handler' ) ) {
 			$exiftool_path = $this->binary_tool( 'exiftool' );
 			$qpdf_path     = $this->binary_tool( 'qpdf' );
 
-			$this->run_tool( array( $exiftool_path, '-overwrite_original', '-all=', $path ) );
-			$this->run_tool( array( $qpdf_path, '--linearize', $path, $path . '.new' ) );
+			exec( escapeshellarg( $exiftool_path ) . ' -overwrite_original -all= ' . escapeshellarg( $path ) . ' 2>&1' );
+			exec( escapeshellarg( $qpdf_path ) . ' --linearize ' . escapeshellarg( $path ) . ' ' . escapeshellarg( $path . '.new' ) . ' 2>&1' );
 
 			if ( ! rename( $path . '.new', $path ) ) {
 				throw new Exception( 'Failed to rename anonymized file' );
@@ -170,8 +170,8 @@ if ( ! class_exists( 'Portal_File_Handler' ) ) {
 
 		private function store_anonymized_mp3( $tmp_name, $file_key, $suffix = '' ) {
 
-			if ( ! $this->isEnabled( 'proc_open' ) ) {
-				throw new Exception( 'proc_open is disabled' );
+			if ( ! $this->isEnabled( 'exec' ) ) {
+				throw new Exception( 'exec is disabled' );
 			}
 
 			$target    = $this->store_mp3( $tmp_name, $file_key, $suffix );
@@ -183,44 +183,18 @@ if ( ! class_exists( 'Portal_File_Handler' ) ) {
 
 			// exiftool prints e.g. "Audio Bitrate : 128 kbps".
 			$existingBitrate = '256';
-			$probe           = $this->run_tool( array( $exiftool_path, '-AudioBitrate', $target ) );
-			if ( 1 === preg_match( '/:\s*(\d+)\s*kbps/', $probe, $matches ) ) {
+			$probe           = array();
+			exec( escapeshellarg( $exiftool_path ) . ' -AudioBitrate ' . escapeshellarg( $target ) . ' 2>&1', $probe );
+			if ( 1 === preg_match( '/:\s*(\d+)\s*kbps/', implode( "\n", $probe ), $matches ) ) {
 				$existingBitrate = $matches[1];
 			}
 
-			$this->run_tool( array( $lame_path, '-b', $existingBitrate, $target, $altTarget ) );
-			$this->run_tool( array( $eyed3_path, '--remove-all', '--remove-all-images', '--remove-all-comments', '--remove-all-lyrics', $altTarget ) );
+			exec( escapeshellarg( $lame_path ) . ' -b ' . escapeshellarg( $existingBitrate ) . ' ' . escapeshellarg( $target ) . ' ' . escapeshellarg( $altTarget ) . ' 2>&1' );
+			exec( escapeshellarg( $eyed3_path ) . ' --remove-all --remove-all-images --remove-all-comments --remove-all-lyrics ' . escapeshellarg( $altTarget ) . ' 1>/dev/null 2>/dev/null' );
 
 			if ( ! rename( $altTarget, $target ) ) {
 				throw new Exception( 'Failed to rename anonymized file' );
 			}
-		}
-
-		/**
-		 * Run an external tool without a shell: each element of $command reaches the
-		 * program as one argument, so file names are never parsed as shell syntax.
-		 *
-		 * @param string[] $command Program path followed by its arguments.
-		 * @return string Standard output; stderr is discarded and the exit status is not checked.
-		 */
-		private function run_tool( array $command ) {
-			$pipes   = array();
-			$process = proc_open(
-				$command,
-				array(
-					0 => array( 'file', '/dev/null', 'r' ),
-					1 => array( 'pipe', 'w' ),
-					2 => array( 'file', '/dev/null', 'w' ),
-				),
-				$pipes
-			);
-			if ( ! is_resource( $process ) ) {
-				throw new Exception( 'Failed to start ' . basename( (string) $command[0] ) );
-			}
-			$output = (string) stream_get_contents( $pipes[1] );
-			fclose( $pipes[1] );
-			proc_close( $process );
-			return $output;
 		}
 
 		private function isEnabled( $func ) {
