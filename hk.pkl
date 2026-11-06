@@ -1,0 +1,45 @@
+amends "package://github.com/jdx/hk/releases/download/v2.10.0/hk@2.10.0#/Config.pkl"
+
+// Project steps for the hk hooks that every repository on this machine already runs. The shared
+// config (~/.config/hk/config.pkl -> dev-profile/hk/hk.pkl) merges in additively, so every shared
+// step still runs and this file only adds one. The pin matches the shared config's hk version.
+//
+// A project hook replaces the shared hook's own settings rather than merging them (measured:
+// `hk run pre-push --plan` drops from "Run type: fix" to "check" without them), so the three
+// settings the shared pre-push hook sets are repeated verbatim below. Keep them equal to
+// dev-profile/hk/hk.pkl hooks["pre-push"].
+
+hooks {
+  ["pre-push"] {
+    fix = true
+    stash = "git"
+    timeout = "30m"
+    steps {
+      // ZYS-2607: an unprefixed GuzzleHttp\ / Psr\ / Google\ name in plugin code resolves to
+      // whichever plugin loaded that library first and fatals the submit path. This step runs
+      // scripts/vendor-guard.mjs: a foxguard rule generated from composer.lock over the first-party
+      // PHP, plus the composer.json / autoload wiring checks. When composer.json, composer.lock or
+      // scripts/prefix-vendor.sh is in the push it also proves the built vendor-prefixed/ tree and
+      // runs tests/unit/vendor-prefix-collision.test.mjs (needs `composer install` to have run).
+      //
+      // The glob says which pushed files make the step run; the guard itself reads the whole
+      // first-party PHP tree and composer.lock rather than the list, so the step is exclusive.
+      // Bounded: foxguard has a 60s timeout and the collision test 120s inside the script, and
+      // both fail closed. Fix a finding by prefixing the name; there is no suppression.
+      ["vendor-prefix-guard"] {
+        glob =
+          List(
+            "**/*.php",
+            "composer.json",
+            "composer.lock",
+            "scripts/prefix-vendor.sh",
+            "scripts/vendor-guard.mjs",
+            "rules/**",
+          )
+        exclude = List("tests/**", "vendor-prefixed/**")
+        check = "mise run vendor-guard -- --pushed -- {{files}}"
+        exclusive = true
+      }
+    }
+  }
+}

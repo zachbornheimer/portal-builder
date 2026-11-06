@@ -137,6 +137,19 @@ Every third-party library (Google API client, Guzzle, Monolog, psr/*, PHPMailer,
 
 Write plugin code against the prefixed names (`DragonGate\Vendor\Google\Client`, `DragonGate\Vendor\Google\Service\Drive`). Only the Drive and Sheets Google services are kept; add another under `extra.google/apiclient-services` in `composer.json`.
 
+### Vendor prefix guard
+
+`mise run vendor-guard` (also run by `mise run foxguard`, `mise run ci`, the CI foxguard job, and the hk pre-push step `vendor-prefix-guard`) keeps the prefixing from regressing. It fails when:
+
+- first-party PHP (`includes/`, `templates/`, `portal-builder.php`, any PHP outside `vendor/`, `vendor-prefixed/`, `node_modules/` and `tests/`) names a bundled dependency without the `DragonGate\Vendor\` prefix: `use GuzzleHttp\Client;`, `new \Monolog\Logger()`, `Psr\Log\LoggerInterface $logger`, `class_exists( 'Google_Client' )`, and the same inside strings. The namespaces come from the production packages in `composer.lock`, so a dependency you add is covered with no edit to the rule;
+- `portal-builder.php` or any first-party PHP loads `vendor/autoload.php` instead of `vendor-prefixed/autoload.php`;
+- `composer.json` requires a package that is not in `extra.strauss.packages`, or autoloads a tree under `vendor/`;
+- (`mise run vendor-guard-built`, part of `mise run ci`) a production package in `composer.lock` is missing from the built `vendor-prefixed/`.
+
+The rule is `rules/unprefixed-vendor-reference.yml.tmpl`, a foxguard rule that `scripts/vendor-guard.mjs` stamps out per namespace and runs; its header explains the exceptions. There is no suppression comment. Fix a finding by prefixing the name (`use DragonGate\Vendor\GuzzleHttp\Client;`; a global `Google_Client` is `DragonGate_Vendor_Google_Client`). A package Strauss must leave unprefixed (a polyfill) goes in `extra.strauss.exclude_from_prefix` in `composer.json`, which the guard reads; say why in the pull request. A trailing comment on a code line is still scanned, so reword it instead of quoting a vendor class name there.
+
+The hk step also runs `tests/unit/vendor-prefix-collision.test.mjs` when `composer.json`, `composer.lock` or `scripts/prefix-vendor.sh` is pushed; that needs `composer install` to have built `vendor-prefixed/`. The guard's own tests are `tests/unit/vendor-guard.test.mjs` with fixtures in `tests/fixtures/vendor-guard/`.
+
 ## Contributing
 
 We welcome contributions to the DragonGate Portals plugin! Please follow the guidelines below:

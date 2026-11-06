@@ -82,8 +82,20 @@ else
 fi
 """
 
+[tasks.vendor-guard]
+description = "Fail when plugin PHP names a bundled dependency without the DragonGate\\Vendor\\ prefix, or the autoload wiring would load an unprefixed one (ZYS-2607)"
+# Static: a foxguard rule generated from composer.lock (rules/unprefixed-vendor-reference.yml.tmpl)
+# plus structure checks on composer.json and the first-party PHP. Needs only node and foxguard.
+run = "node scripts/vendor-guard.mjs"
+
+[tasks.vendor-guard-built]
+description = "vendor-guard plus: every production package in composer.lock is present in the built vendor-prefixed/"
+# Needs the prefixed tree: run after `mise run setup` (composer install runs scripts/prefix-vendor.sh).
+run = "node scripts/vendor-guard.mjs --built"
+
 [tasks.foxguard]
-description = "Foxguard security scan of the plugin PHP/JS sources; fails on high or critical findings"
+description = "Foxguard security scan of the plugin PHP/JS sources (fails on high or critical findings), after the vendor-prefix guard rule"
+depends = ["vendor-guard"]
 # Scans includes/, portal-builder.php, src/ and assets/. foxguard takes a single path, so
 # everything else is excluded: dependencies and generated bundles (vendor, vendor-prefixed,
 # node_modules, dist, assets/dist, build), and non-shipping trees (tests, e2e, scripts, docs, site).
@@ -102,7 +114,7 @@ description = "Verify the mise task contract and release scripts"
 run = """
 #!/usr/bin/env bash
 set -euo pipefail
-for f in mise.toml lefthook.yml composer.json package.json scripts/cut-release.sh scripts/make-release-zip.sh portal-builder.php; do
+for f in mise.toml lefthook.yml hk.pkl composer.json package.json scripts/cut-release.sh scripts/make-release-zip.sh scripts/vendor-guard.mjs rules/unprefixed-vendor-reference.yml.tmpl portal-builder.php; do
   test -f "${f}" || { echo "doctor: missing ${f}" >&2; exit 1; }
 done
 mise tasks | grep -q '^setup ' || { echo 'doctor: setup task missing' >&2; exit 1; }
@@ -111,14 +123,15 @@ mise tasks | grep -q '^lint ' || { echo 'doctor: lint task missing' >&2; exit 1;
 mise tasks | grep -q '^test ' || { echo 'doctor: test task missing' >&2; exit 1; }
 mise tasks | grep -q '^scan ' || { echo 'doctor: scan task missing' >&2; exit 1; }
 mise tasks | grep -q '^foxguard ' || { echo 'doctor: foxguard task missing' >&2; exit 1; }
+mise tasks | grep -q '^vendor-guard ' || { echo 'doctor: vendor-guard task missing' >&2; exit 1; }
 mise tasks | grep -q '^ci ' || { echo 'doctor: ci task missing' >&2; exit 1; }
 mise tasks | grep -q '^cut-release ' || { echo 'doctor: cut-release task missing' >&2; exit 1; }
 echo 'doctor ok'
 """
 
 [tasks.ci]
-description = "lint + test + scan"
-depends = ["lint", "test", "scan"]
+description = "lint + test + scan + vendor-prefix guard on the built tree"
+depends = ["lint", "test", "scan", "vendor-guard-built"]
 
 [tasks.cut-release]
 description = "Tag current (or next) semver, build zip, optional GitHub Release"

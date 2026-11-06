@@ -1,0 +1,38 @@
+# Foxguard rule template: first-party plugin PHP must not name a bundled third-party
+# dependency without the Strauss prefix (ZYS-2607).
+#
+# Why: another plugin that ships its own Guzzle, psr/log, Monolog or Google client loads it
+# first, and PHP then resolves the plugin's own `GuzzleHttp\Client` to that older copy. The
+# plugin ships every dependency under the DragonGate\Vendor\ namespace (scripts/prefix-vendor.sh)
+# so load order cannot matter; one unprefixed name quietly reopens the collision.
+#
+# This file is a template, not a rule foxguard loads directly. scripts/vendor-guard.mjs derives
+# the namespace roots from the production packages in composer.lock (so a newly added
+# dependency is covered with no edit here), stamps out one rule per root from the block below,
+# and runs `foxguard --no-builtins --rules <generated>` over the first-party PHP tree. The
+# placeholders are:
+#   @@ROOT@@     top-level namespace of a production package, e.g. GuzzleHttp, Psr, Google
+#   @@PACKAGES@@ the composer packages that declare that namespace
+#   @@PREFIX@@   composer.json extra.strauss.namespace_prefix, e.g. DragonGate\Vendor\
+#   @@CLASSMAP_PREFIX@@ extra.strauss.classmap_prefix, the prefix Strauss gives global classes
+#
+# What the regex flags, per line of PHP outside a comment: @@ROOT@@\Name or \@@ROOT@@\Name in a
+# use, new, static call, type, instanceof, ::class or a string such as class_exists( 'X\\Y' ), and
+# the global class form @@ROOT@@_Name (Google_Client). It ignores a name that follows any other
+# namespace segment, so DragonGate\Vendor\@@ROOT@@\Name and Portal_@@ROOT@@_Name pass. A line
+# that opens with `*`, `//`, `/` or `#` is a comment and is skipped; a trailing comment on a
+# code line is still scanned, so reword it instead of quoting a vendor class there.
+#
+# Exceptions (each is derived from config the build already uses, never edited in here):
+#   - Packages listed in composer.json extra.strauss.exclude_from_prefix (the symfony polyfills
+#     and deprecation contracts) are not prefixed by Strauss on purpose: polyfills define global
+#     functions and classes that cannot be namespaced. Their namespaces are not guarded.
+#   - There is no exception for PSR interfaces. The plugin does not hand a PSR object to another
+#     plugin, so a bare Psr\Log\... name can only be a collision. Add an exception only with a
+#     named interop, and justify it here.
+#   - There are no inline suppressions. Fix the reference: use the prefixed name.
+- id: unprefixed-vendor-reference-@@ROOT@@
+  languages: [php]
+  severity: ERROR
+  message: 'Unprefixed reference to @@ROOT@@ (from @@PACKAGES@@). Plugin code must name the bundled copy: use @@PREFIX@@@@ROOT@@\... instead of @@ROOT@@\... or \@@ROOT@@\..., and a global @@ROOT@@_Name class becomes @@CLASSMAP_PREFIX@@@@ROOT@@_Name. See README, "Vendor prefix guard".'
+  pattern-regex: '(?m)^[ \t]*(?:[^\s\w\\*/#]|[^\s*/#][^\n]*?[^\\\w\n])?\\{0,2}(?:@@ROOT@@\\{1,2}[A-Za-z_]|@@ROOT@@_[A-Za-z])'
