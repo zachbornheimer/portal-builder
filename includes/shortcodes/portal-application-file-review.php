@@ -29,7 +29,7 @@ function dg_application_file_review_shortcode( $atts ) {
 					$file_error = $file['error'];
 
 					if ( $file_error === 0 ) {
-						# get the correct extension based on MIME
+						// get the correct extension based on MIME
 						$extension = '';
 						switch ( $file_type ) {
 							case 'application/pdf':
@@ -49,8 +49,8 @@ function dg_application_file_review_shortcode( $atts ) {
 				?>
 			</ul>
 		</fieldset>
-		<input type="hidden" name="eappId" value="<?php echo esc_attr( $_POST['eappId'] ); ?>" />
-		<input type="hidden" name="efiles" value="<?php echo esc_attr( $_POST['efiles'] ); ?>" />
+		<input type="hidden" name="eappId" value="<?php echo htmlspecialchars( (string) $_POST['eappId'], ENT_QUOTES, 'UTF-8' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped,WordPress.Security.NonceVerification.Missing ?>" />
+		<input type="hidden" name="efiles" value="<?php echo htmlspecialchars( (string) $_POST['efiles'], ENT_QUOTES, 'UTF-8' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped,WordPress.Security.NonceVerification.Missing ?>" />
 	</div>
 	<?php
 

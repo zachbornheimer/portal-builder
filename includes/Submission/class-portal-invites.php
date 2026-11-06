@@ -549,10 +549,7 @@ if ( ! class_exists( 'Portal_Invites' ) ) {
 		 */
 		private static function random_hex( $length ) {
 			$length = (int) $length;
-			if ( function_exists( 'random_bytes' ) ) {
-				return substr( bin2hex( random_bytes( (int) ceil( $length / 2 ) ) ), 0, $length );
-			}
-			return substr( md5( uniqid( 'dg-invite-', true ) ), 0, $length );
+			return substr( bin2hex( random_bytes( (int) ceil( $length / 2 ) ) ), 0, $length );
 		}
 	}
 }

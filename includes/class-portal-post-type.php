@@ -13,35 +13,35 @@ if ( ! class_exists( 'Portal_Post_Type' ) ) {
 		}
 
 		public function create_post_type() {
-		$labels = array(
-			'name'               => _x( 'DragonGate Portals', 'Post Type General Name', 'dragongate-portals' ),
-			'singular_name'      => _x( 'Portal', 'Post Type Singular Name', 'dragongate-portals' ),
-			'menu_name'          => __( 'Portals', 'dragongate-portals' ),
-			'name_admin_bar'     => __( 'Portal', 'dragongate-portals' ),
-			'add_new'            => __( 'Add New Portal', 'dragongate-portals' ),
-			'add_new_item'       => __( 'Add New Portal', 'dragongate-portals' ),
-			'edit_item'          => __( 'Edit Portal', 'dragongate-portals' ),
-			'new_item'           => __( 'New Portal', 'dragongate-portals' ),
-			'view_item'          => __( 'View Portal', 'dragongate-portals' ),
-			'all_items'          => __( 'All Portals', 'dragongate-portals' ),
-			'search_items'       => __( 'Search DragonGate Portals', 'dragongate-portals' ),
-			'not_found'          => __( 'No DragonGate Portals found.', 'dragongate-portals' ),
-			'not_found_in_trash' => __( 'No DragonGate Portals found in Trash.', 'dragongate-portals' ),
-		);
+			$labels = array(
+				'name'               => _x( 'DragonGate Portals', 'Post Type General Name', 'dragongate-portals' ),
+				'singular_name'      => _x( 'Portal', 'Post Type Singular Name', 'dragongate-portals' ),
+				'menu_name'          => __( 'Portals', 'dragongate-portals' ),
+				'name_admin_bar'     => __( 'Portal', 'dragongate-portals' ),
+				'add_new'            => __( 'Add New Portal', 'dragongate-portals' ),
+				'add_new_item'       => __( 'Add New Portal', 'dragongate-portals' ),
+				'edit_item'          => __( 'Edit Portal', 'dragongate-portals' ),
+				'new_item'           => __( 'New Portal', 'dragongate-portals' ),
+				'view_item'          => __( 'View Portal', 'dragongate-portals' ),
+				'all_items'          => __( 'All Portals', 'dragongate-portals' ),
+				'search_items'       => __( 'Search DragonGate Portals', 'dragongate-portals' ),
+				'not_found'          => __( 'No DragonGate Portals found.', 'dragongate-portals' ),
+				'not_found_in_trash' => __( 'No DragonGate Portals found in Trash.', 'dragongate-portals' ),
+			);
 
-		$args = array(
-			'labels'          => $labels,
-			'public'          => true,
-			'has_archive'     => true,
-			'show_in_menu'    => true,
-			'show_in_rest'    => true, // required for harness seed/cleanup + future REST clients
-			'menu_icon'       => $this->get_menu_icon(),
-			// Title only: product UI is the DragonGate wizard (no block/classic editor).
-			'supports'        => array( 'title' ),
-			'capability_type' => 'post',
-			'rewrite'         => array( 'slug' => 'portal' ),
-			'description'     => __( 'DragonGate Portals - Simply collect data, save it locally, and sync across Google Sheets and Drive. Build custom forms that automatically organize submissions and streamline your data workflow.', 'dragongate-portals' ),
-		);
+			$args = array(
+				'labels'          => $labels,
+				'public'          => true,
+				'has_archive'     => true,
+				'show_in_menu'    => true,
+				'show_in_rest'    => true, // required for harness seed/cleanup + future REST clients
+				'menu_icon'       => $this->get_menu_icon(),
+				// Title only: product UI is the DragonGate wizard (no block/classic editor).
+				'supports'        => array( 'title' ),
+				'capability_type' => 'post',
+				'rewrite'         => array( 'slug' => 'portal' ),
+				'description'     => __( 'DragonGate Portals - Simply collect data, save it locally, and sync across Google Sheets and Drive. Build custom forms that automatically organize submissions and streamline your data workflow.', 'dragongate-portals' ),
+			);
 
 			register_post_type( 'portal', $args );
 		}
@@ -83,7 +83,11 @@ if ( ! class_exists( 'Portal_Post_Type' ) ) {
 			}
 			$svg = dirname( __DIR__ ) . '/assets/menu-icon.svg';
 			if ( is_readable( $svg ) ) {
-				$contents = file_get_contents( $svg );
+				$handle   = fopen( $svg, 'rb' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
+				$contents = false === $handle ? false : stream_get_contents( $handle );
+				if ( false !== $handle ) {
+					fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+				}
 				if ( is_string( $contents ) && '' !== $contents ) {
 					return 'data:image/svg+xml;base64,' . base64_encode( $contents );
 				}

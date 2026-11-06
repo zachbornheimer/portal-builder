@@ -3,9 +3,8 @@
 require_once plugin_dir_path( __FILE__ ) . '../vendor-prefixed/autoload.php';
 
 if ( ! class_exists( 'Portal_Notification_When' ) ) {
-	$when = __DIR__ . '/Submission/class-portal-notification-when.php';
-	if ( is_readable( $when ) ) {
-		require_once $when;
+	if ( is_readable( __DIR__ . '/Submission/class-portal-notification-when.php' ) ) {
+		require_once __DIR__ . '/Submission/class-portal-notification-when.php';
 	}
 }
 

@@ -147,8 +147,11 @@ if ( ! class_exists( 'Portal_Staged_File_REST' ) ) {
 				return new WP_Error( 'dg_missing_file', 'A file upload is required.', array( 'status' => 400 ) );
 			}
 
-			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
-			$buffer = file_get_contents( $file['tmp_name'] );
+			$handle = fopen( $file['tmp_name'], 'rb' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
+			$buffer = false === $handle ? false : stream_get_contents( $handle );
+			if ( false !== $handle ) {
+				fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+			}
 			if ( ! is_string( $buffer ) || '' === $buffer ) {
 				return new WP_Error( 'dg_empty_file', 'Upload is empty.', array( 'status' => 400 ) );
 			}

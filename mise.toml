@@ -3,6 +3,18 @@ node = "22"
 aube = "1.41.0"
 lefthook = "2.1.9"
 
+# Foxguard is the security scanner: a release binary verified against the checksums below,
+# pinned the same way as dev-env/mise.security.toml. The `foxguard` task is the CI gate.
+[tools."github:0sec-labs/foxguard"]
+version = "0.14.1"
+format = "raw"
+bin = "foxguard"
+
+[tools."github:0sec-labs/foxguard".platforms]
+linux-x64 = { asset_pattern = "foxguard-linux-x86_64", checksum = "sha256:10a531279f7f3e9dcd01996e5e288309cd6d7d2bb2b7fa35de583d0bbe715bc2" }
+linux-arm64 = { asset_pattern = "foxguard-linux-aarch64", checksum = "sha256:f374bb1b81ffcb01aa5446719dee199245c673fffc9c659e985bbabe0faaa032" }
+macos-arm64 = { asset_pattern = "foxguard-macos-aarch64", checksum = "sha256:e466cb4692a959fb500cd9f55d35aac0dd530afce8358643ed186e2c8c85f8c5" }
+
 [tasks.setup]
 description = "Install Node (aube, npm lockfile fallback), Playwright Chromium, PHP (Composer), and Lefthook hooks"
 run = """
@@ -70,6 +82,21 @@ else
 fi
 """
 
+[tasks.foxguard]
+description = "Foxguard security scan of the plugin PHP/JS sources; fails on high or critical findings"
+# Scans includes/, portal-builder.php, src/ and assets/. foxguard takes a single path, so
+# everything else is excluded: dependencies and generated bundles (vendor, vendor-prefixed,
+# node_modules, dist, assets/dist, build), and non-shipping trees (tests, e2e, scripts, docs, site).
+env = { RAYON_NUM_THREADS = "2" }
+run = """
+foxguard --severity high \\
+  --exclude node_modules --exclude vendor --exclude vendor-prefixed \\
+  --exclude dist --exclude assets/dist --exclude build --exclude .git \\
+  --exclude tests --exclude e2e --exclude scripts --exclude docs --exclude site \\
+  --exclude playwright-report --exclude test-results --exclude workflows \\
+  --exclude toggle-test.html .
+"""
+
 [tasks.doctor]
 description = "Verify the mise task contract and release scripts"
 run = """
@@ -83,6 +110,7 @@ mise tasks | grep -q '^build ' || { echo 'doctor: build task missing' >&2; exit 
 mise tasks | grep -q '^lint ' || { echo 'doctor: lint task missing' >&2; exit 1; }
 mise tasks | grep -q '^test ' || { echo 'doctor: test task missing' >&2; exit 1; }
 mise tasks | grep -q '^scan ' || { echo 'doctor: scan task missing' >&2; exit 1; }
+mise tasks | grep -q '^foxguard ' || { echo 'doctor: foxguard task missing' >&2; exit 1; }
 mise tasks | grep -q '^ci ' || { echo 'doctor: ci task missing' >&2; exit 1; }
 mise tasks | grep -q '^cut-release ' || { echo 'doctor: cut-release task missing' >&2; exit 1; }
 echo 'doctor ok'

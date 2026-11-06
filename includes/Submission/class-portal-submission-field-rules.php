@@ -244,8 +244,15 @@ if ( ! class_exists( 'Portal_Submission_Field_Rules' ) ) {
 			if ( null === $path ) {
 				return '';
 			}
-			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
-			$chunk = file_get_contents( $path, false, null, 0, $length );
+			if ( (int) $length < 1 ) {
+				return '';
+			}
+			$handle = fopen( $path, 'rb' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
+			if ( false === $handle ) {
+				return '';
+			}
+			$chunk = fread( $handle, (int) $length ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fread
+			fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
 			return is_string( $chunk ) ? $chunk : '';
 		}
 

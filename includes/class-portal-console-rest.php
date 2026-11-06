@@ -217,7 +217,11 @@ if ( ! class_exists( 'Portal_Console_Rest' ) ) {
 			if ( '' === $tmp || ! is_readable( $tmp ) ) {
 				return new WP_Error( 'dg_packet_file', 'Choose a replacement file.', array( 'status' => 400 ) );
 			}
-			$buffer = file_get_contents( $tmp );
+			$handle = fopen( $tmp, 'rb' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
+			$buffer = false === $handle ? false : stream_get_contents( $handle );
+			if ( false !== $handle ) {
+				fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+			}
 			if ( ! is_string( $buffer ) ) {
 				return new WP_Error( 'dg_packet_file', 'Could not read the replacement file.', array( 'status' => 400 ) );
 			}

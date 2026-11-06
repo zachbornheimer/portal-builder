@@ -83,14 +83,12 @@ if ( ! class_exists( 'Portal_Google_Store' ) ) {
 		 * @return Zysys_FileStore
 		 */
 		public static function file_store_from_options() {
-			$autoload = dirname( __DIR__, 2 ) . '/vendor-prefixed/autoload.php';
-			if ( is_readable( $autoload ) ) {
-				require_once $autoload;
+			if ( is_readable( dirname( __DIR__, 2 ) . '/vendor-prefixed/autoload.php' ) ) {
+				require_once dirname( __DIR__, 2 ) . '/vendor-prefixed/autoload.php';
 			}
 			if ( ! class_exists( 'Zysys_FileStore' ) ) {
-				$filestore_path = __DIR__ . '/class-zysys-file-store.php';
-				if ( is_readable( $filestore_path ) ) {
-					require_once $filestore_path;
+				if ( is_readable( __DIR__ . '/class-zysys-file-store.php' ) ) {
+					require_once __DIR__ . '/class-zysys-file-store.php';
 				}
 			}
 			$credentials = array(

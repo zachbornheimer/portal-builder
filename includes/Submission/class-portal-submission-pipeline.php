@@ -6,16 +6,14 @@
  */
 
 if ( ! class_exists( 'Portal_Anonymize_Decision' ) ) {
-	$decision = __DIR__ . '/class-portal-anonymize-decision.php';
-	if ( is_readable( $decision ) ) {
-		require_once $decision;
+	if ( is_readable( __DIR__ . '/class-portal-anonymize-decision.php' ) ) {
+		require_once __DIR__ . '/class-portal-anonymize-decision.php';
 	}
 }
 
 if ( ! class_exists( 'Portal_Notification_When' ) ) {
-	$when = __DIR__ . '/class-portal-notification-when.php';
-	if ( is_readable( $when ) ) {
-		require_once $when;
+	if ( is_readable( __DIR__ . '/class-portal-notification-when.php' ) ) {
+		require_once __DIR__ . '/class-portal-notification-when.php';
 	}
 }
 

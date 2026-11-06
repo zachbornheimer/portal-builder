@@ -78,5 +78,5 @@ test('legacy Google reCAPTCHA is not enqueued without leftover sitekey', () => {
 	const src = fs.readFileSync(path.join(root, 'includes/templates.php'), 'utf8');
 	assert.match(src, /dg_recaptcha_sitekey/);
 	assert.match(src, /enqueue_recaptcha_script/);
-	assert.match(src, /trim\(\$sitekey\)/);
+	assert.match(src, /trim\(\s*\$sitekey\s*\)/);
 });
