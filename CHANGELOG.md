@@ -1,3 +1,10 @@
+## 0.1.13
+
+### Fixes
+
+- Pin monolog/monolog to ^2.9 so submissions no longer hit a fatal when another plugin loads psr/log 1.x first (ZYS-2607)
+- Catch Throwable across the public submit path so a PHP Error returns the controlled try-again failure (ZYS-2607)
+
 ## 0.1.12
 
 ### Features
