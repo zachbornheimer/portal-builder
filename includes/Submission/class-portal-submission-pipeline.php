@@ -63,13 +63,13 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 		}
 
 		/**
-		 * Record a human public-form error; log the technical exception.
+		 * Record a human public-form error; log the technical failure.
 		 *
-		 * @param Exception|string $exception Caught failure.
+		 * @param Throwable|string $exception Caught failure (Exception or Error).
 		 * @return void
 		 */
 		public static function record_public_failure( $exception ) {
-			$detail = $exception instanceof Exception ? $exception->getMessage() : (string) $exception;
+			$detail = $exception instanceof Throwable ? $exception->getMessage() : (string) $exception;
 			error_log( 'Portal Submission Error: ' . $detail );
 			self::$last_errors = array(
 				array(
@@ -161,8 +161,20 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 
 			$file_meta = self::normalize_uploaded_files( $files );
 			$file_meta = self::apply_staged_tokens( $post, $file_meta );
-			$pipeline  = self::for_environment( $definition );
-			$result    = $pipeline->process( $portal_id, $definition, $post, $file_meta );
+			try {
+				// Live adapter construction runs before process()'s
+				// destination boundary; an Error there (missing Google
+				// dependency, type mismatch) must not reach the public
+				// submit as a PHP fatal.
+				$pipeline = self::for_environment( $definition );
+				$result   = $pipeline->process( $portal_id, $definition, $post, $file_meta );
+			} catch ( Throwable $t ) {
+				self::record_public_failure( $t );
+				return array(
+					'ok'     => false,
+					'errors' => self::$last_errors,
+				);
+			}
 
 			if ( is_wp_error( $result ) ) {
 				self::$last_errors = self::errors_from_wp_error( $result );
@@ -702,7 +714,7 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 				);
 				$operator_mail_path = $this->send_operator_mail( $portal_id, $title, $tokens );
 				$dests['mail']      = ( '' !== $mail_path || '' !== $operator_mail_path ) ? 'ok' : 'fail';
-			} catch ( Exception $e ) {
+			} catch ( Throwable $e ) {
 				$dests[ $phase ] = 'fail';
 				$code            = $phase . '_fail';
 				$is_test         = class_exists( 'Portal_Definition' ) && Portal_Definition::test_mode_on( $definition );
@@ -953,12 +965,12 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 					$path = $this->mailer->capture( $message );
 				}
 				return is_string( $path ) ? $path : '';
-			} catch ( Exception $e ) {
+			} catch ( Throwable $e ) {
 				try {
 					$message['error'] = $e->getMessage();
 					$path             = $this->mailer->capture( $message );
 					return is_string( $path ) ? $path : '';
-				} catch ( Exception $ignored ) {
+				} catch ( Throwable $ignored ) {
 					return '';
 				}
 			}
@@ -1124,7 +1136,7 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 		 * @param string               $app_id     Application id.
 		 * @param array<string,string> $dests      Dest results.
 		 * @param string               $code       Error code.
-		 * @param Exception            $exception  Dest failure.
+		 * @param Throwable            $exception  Dest failure (Exception or Error).
 		 * @param string               $email      Applicant email.
 		 * @param bool                 $test       Per-portal testMode submit.
 		 * @param array<string,mixed>  $identity   Applicant identity.

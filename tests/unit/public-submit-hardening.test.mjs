@@ -125,6 +125,43 @@ test('ZYS-614: ready_to_submit Exception does not attach the success filter', ()
   assert.doesNotMatch(rendered, /secret\.json/);
 });
 
+test('ZYS-2607: TypeError during public submit is a controlled error, not a fatal', () => {
+  const { code, out, data } = runScenario({
+    entry: 'definition_submit_typeerror',
+  });
+  assert.equal(code, 0, out);
+  assert.ok(data, out);
+  assert.equal(data.ok, true, out);
+  assert.equal(
+    data.publicCatchThrowable,
+    true,
+    'handle_submissions still catches Exception; Error/TypeError escapes as a PHP fatal',
+  );
+  assert.equal(data.died, false, `wp_die: ${data.dieMessage || out}`);
+  assert.equal(data.definedErrors, true, 'DG_DEFINITION_SUBMIT_ERRORS was not defined');
+
+  const errors = Array.isArray(data.lastErrors) ? data.lastErrors : [];
+  assert.equal(errors.length, 1, `expected one public error, got ${JSON.stringify(errors)}`);
+  assert.equal(String(errors[0]?.code || ''), 'submit');
+
+  const human = String(data.humanMessage || '');
+  assert.match(human, /try again/i);
+  assert.match(human, /contact/i);
+  assert.doesNotMatch(human, /TypeError/);
+  assert.doesNotMatch(human, /wp_verify_nonce/);
+
+  const rendered = String(data.rendered || '');
+  assert.match(rendered, /dg-submit-errors/);
+  assert.doesNotMatch(rendered, /TypeError/);
+  assert.doesNotMatch(rendered, /wp_verify_nonce/);
+
+  // Operators get the technical detail in the log even though the public
+  // form only shows the human sentence.
+  const log = String(data.log || '');
+  assert.match(log, /Portal Submission Error:/);
+  assert.match(log, /wp_verify_nonce/);
+});
+
 test('ZYS-618: cleanup hook deletes only staged/tmp files older than 24h', () => {
   const now = 1_800_000_000;
   const { code, out, data } = runScenario({

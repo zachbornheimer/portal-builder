@@ -8,6 +8,7 @@
  * scenario.entry:
  *   inspect | public_failure | purge | upload_roots | schedule
  *   | legacy_submit_failure | ready_to_submit_no_definition
+ *   | definition_submit_typeerror
  */
 
 // phpcs:disable
@@ -173,6 +174,11 @@ if ( 'ready_to_submit_no_definition' === $entry ) {
 	exit( 0 );
 }
 
+if ( 'definition_submit_typeerror' === $entry ) {
+	echo json_encode( run_definition_submit_typeerror( $scenario, $repo_root ) ) . "\n";
+	exit( 0 );
+}
+
 if ( 'render_success' === $entry ) {
 	$result = isset( $scenario['result'] ) && is_array( $scenario['result'] )
 		? $scenario['result']
@@ -242,6 +248,7 @@ function inspect_public_submit_sources( $repo_root ) {
 		'publicCatchDiesRaw'      => $public_wp_die_raw,
 		'publicCatchRethrows'     => $public_rethrows,
 		'publicCatchRecordsHuman' => $public_records,
+		'publicCatchThrowable'   => (bool) preg_match( '/catch\s*\(\s*Throwable\s+\$e\s*\)/', $catch ),
 		'submissionDiesRaw'       => $submission_raw,
 		'abspathTmpConcat'        => $abspath_tmp,
 		'abspathStoreConcat'      => $abspath_store,
@@ -301,7 +308,7 @@ function extract_handle_submissions_catch( $plugin ) {
 	}
 	$from  = (int) $m[0][1];
 	$chunk = substr( $plugin, $from );
-	if ( ! preg_match( '/\}\s*catch\s*\(\s*Exception\s+\$e\s*\)\s*\{/', $chunk, $cm, PREG_OFFSET_CAPTURE ) ) {
+	if ( ! preg_match( '/\}\s*catch\s*\(\s*(?:Exception|Throwable)\s+\$e\s*\)\s*\{/', $chunk, $cm, PREG_OFFSET_CAPTURE ) ) {
 		return '';
 	}
 	$catch_at = (int) $cm[0][1];
@@ -627,6 +634,114 @@ function run_ready_to_submit_no_definition( array $scenario, $repo_root ) {
 }
 
 /**
+ * ZYS-2607: drive the shipped handle_submissions on a definition submit POST
+ * whose runtime raises a TypeError. An Error must surface as the same
+ * controlled public failure an Exception does, never as a PHP fatal.
+ *
+ * @param array  $scenario  Scenario (artifactDir for the error log).
+ * @param string $repo_root Plugin root.
+ * @return array<string,mixed>
+ */
+function run_definition_submit_typeerror( array $scenario, $repo_root ) {
+	$inspect = inspect_public_submit_sources( $repo_root );
+	$plugin  = (string) file_get_contents( $repo_root . '/portal-builder.php' );
+
+	$needed = array(
+		'handle_submissions',
+		'dg_try_definition_submission',
+		'dg_record_public_submit_failure',
+	);
+	foreach ( $needed as $name ) {
+		$src = extract_php_function( $plugin, $name );
+		if ( '' === $src ) {
+			return array(
+				'ok'                   => false,
+				'code'                 => 'missing_' . $name,
+				'publicCatchThrowable' => $inspect['publicCatchThrowable'],
+			);
+		}
+		if ( ! function_exists( $name ) ) {
+			eval( $src ); // phpcs:ignore Squiz.PHP.Eval.Discouraged -- shipped function under test.
+		}
+	}
+
+	if ( ! function_exists( 'wp_verify_nonce' ) ) {
+		/**
+		 * Stand-in for any mis-typed helper inside the submit path: PHP 8
+		 * raises TypeError, which does not extend Exception.
+		 *
+		 * @return bool
+		 */
+		function wp_verify_nonce() {
+			throw new TypeError( 'wp_verify_nonce(): Argument #1 ($nonce) must be of type string, array given' );
+		}
+	}
+	if ( ! function_exists( 'wp_unslash' ) ) {
+		function wp_unslash( $value ) {
+			return $value;
+		}
+	}
+	if ( ! function_exists( 'get_post' ) ) {
+		function get_post() {
+			return null;
+		}
+	}
+	if ( ! function_exists( 'get_post_meta' ) ) {
+		function get_post_meta() {
+			return '';
+		}
+	}
+
+	$artifact = scenario_artifact( $scenario );
+	$log_path = $artifact . DIRECTORY_SEPARATOR . 'typeerror-error.log';
+	if ( file_exists( $log_path ) ) {
+		unlink( $log_path );
+	}
+	ini_set( 'log_errors', '1' );
+	ini_set( 'error_log', $log_path );
+
+	$_SERVER['REQUEST_METHOD'] = 'POST';
+	$_POST                     = array(
+		Portal_Submission_Pipeline::NONCE_FIELD => 'zys-2607-nonce',
+		'post_id'                               => 42,
+	);
+	$_FILES                    = array();
+
+	$died        = false;
+	$die_message = '';
+	try {
+		handle_submissions();
+	} catch ( Exception $e ) {
+		if ( 0 === strpos( $e->getMessage(), 'wp_die:' ) ) {
+			$died        = true;
+			$die_message = substr( $e->getMessage(), 7 );
+		} else {
+			throw $e;
+		}
+	}
+
+	$errors   = Portal_Submission_Pipeline::last_errors();
+	$rendered = is_array( $errors ) ? Portal_Submission_Pipeline::render_errors( $errors ) : '';
+	$human    = '';
+	if ( is_array( $errors ) && isset( $errors[0]['message'] ) ) {
+		$human = (string) $errors[0]['message'];
+	}
+	$log = is_readable( $log_path ) ? (string) file_get_contents( $log_path ) : '';
+
+	return array(
+		'ok'                   => true,
+		'died'                 => $died || ! empty( $GLOBALS['wp_died'] ),
+		'dieMessage'           => $die_message,
+		'definedErrors'        => defined( 'DG_DEFINITION_SUBMIT_ERRORS' ) && DG_DEFINITION_SUBMIT_ERRORS,
+		'lastErrors'           => $errors,
+		'humanMessage'         => $human,
+		'rendered'             => $rendered,
+		'log'                  => $log,
+		'publicCatchThrowable' => $inspect['publicCatchThrowable'],
+	);
+}
+
+/**
  * Stubs so the shipped handle_submissions can run without WordPress.
  *
  * @param string $repo_root Plugin root.
@@ -726,7 +841,11 @@ function load_portal_submission_for_cli( $repo_root ) {
 		}
 	}
 	if ( ! class_exists( 'PHPMailer\\PHPMailer\\Exception' ) ) {
-		class_alias( 'Exception', 'PHPMailer\\PHPMailer\\Exception' );
+		// Alias a user-defined subclass: PHP 8.2+ throws ValueError when
+		// class_alias() targets an internal class such as Exception.
+		class Portal_Harness_PHPMailer_Exception extends Exception {
+		}
+		class_alias( 'Portal_Harness_PHPMailer_Exception', 'PHPMailer\\PHPMailer\\Exception' );
 	}
 	$autoload = $repo_root . '/vendor/autoload.php';
 	if ( ! is_readable( $autoload ) ) {
