@@ -211,3 +211,35 @@ test('operator log: happy-path ok plus forced Drive failure row', () => {
     `happy-path and Drive-failure rows must carry the same fields: ${JSON.stringify([okRow, driveRow])}`,
   );
 });
+
+test('ZYS-2607: TypeError from the Drive port is a controlled failure row, not a fatal', () => {
+  // No --append: the run starts from a cleared log so only this failure
+  // row is asserted.
+  const failed = runPipeline(['--drive-fail-error']);
+  assert.equal(failed.code, 1, failed.out);
+  assert.ok(failed.data, failed.out);
+  assert.equal(failed.data.code, 'dg_submission_dest', failed.out);
+  assert.match(String(failed.data.message || ''), /try again/i);
+  assert.doesNotMatch(String(failed.data.message || ''), /TypeError/);
+  assert.doesNotMatch(String(failed.data.message || ''), /file id/);
+
+  const rows = operatorRows(failed);
+  assert.equal(rows.length, 1, `expected exactly one operator log row, got ${JSON.stringify(rows)}`);
+  const row = rows[0];
+  assertDestKeys(row);
+  assertNoFileBytes(row);
+  assert.equal(row.dests.drive, 'fail');
+  assert.match(String(row.errorCode || ''), /^drive_fail$/);
+  assert.notEqual(String(row.errorCode), 'ok');
+  assert.ok(row.applicationId, 'failure row must carry the application id for the retry check');
+
+  const errors = Array.isArray(failed.data?.lastErrors) ? failed.data.lastErrors : [];
+  assert.equal(errors.length, 1, `expected one public error, got ${JSON.stringify(errors)}`);
+  assert.equal(String(errors[0]?.code || ''), 'submit');
+  assert.match(String(errors[0]?.message || ''), /try again/i);
+
+  const publicHtml =
+    typeof failed.data?.publicHtml === 'string' ? failed.data.publicHtml : '';
+  assert.doesNotMatch(publicHtml, /TypeError/);
+  assert.doesNotMatch(publicHtml, /file id/);
+});

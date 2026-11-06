@@ -301,7 +301,7 @@ function dg_register_meta_boxes( $portal_meta ) {
 /**
  * Handle review and submit POSTs for the current request.
  *
- * @throws Exception When a review or submit nonce or payload is invalid.
+ * @throws Throwable Never; failures are recorded as a public submit error.
  */
 function handle_submissions() {
 
@@ -423,16 +423,16 @@ function handle_submissions() {
 				Portal_Submission_Pipeline::mark_public_errors();
 			}
 		}
-	} catch ( Exception $e ) {
+	} catch ( Throwable $e ) {
 		dg_record_public_submit_failure( $e );
 		return;
 	}
 }
 
 /**
- * Keep a public submit exception off the page; the form re-renders.
+ * Keep a public submit failure off the page; the form re-renders.
  *
- * @param Exception $exception Caught failure.
+ * @param Throwable $exception Caught failure (Exception or Error).
  * @return void
  */
 function dg_record_public_submit_failure( $exception ) {

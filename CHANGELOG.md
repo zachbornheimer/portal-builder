@@ -29,10 +29,12 @@
 - Reject malformed Records responses with safe type/count diagnostics instead of silently presenting them as an empty submission list, and keep request failures separate from a successful empty response
 - Make invitation expiry compact with a visible dropdown affordance, provide keyboard-accessible candidate options, and reduce invitation row actions to quiet links
 - Build the release ZIP on PHP 8.1 and declare 8.1 as the plugin floor, matching the locked Google API dependencies
+- Catch Throwable, not just Exception, across the public submit path so a PHP Error — TypeError in a destination write or a missing Google dependency at live adapter construction — returns the controlled try-again failure with an operator log row instead of a WordPress critical-error page
 
 ### Tests
 
 - Prove schedule-driven portal status in unit tests
+- Cover Error and TypeError behavior in the public submit handler and destination pipeline alongside the existing Exception coverage, and keep the public-submit hardening harness running on PHP 8.2+ by aliasing a user-defined PHPMailer stub instead of the internal Exception class
 - Cover effective switch availability, top-level insertion behavior, admin control styling, Records error handling, and invitation accessibility
 
 ### Documentation

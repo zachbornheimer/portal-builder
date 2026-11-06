@@ -207,6 +207,7 @@ $append_only     = in_array( '--append', $argv, true );
 $via_for_post    = in_array( '--via-for-post', $argv, true );
 $live_google     = in_array( '--live-google', $argv, true );
 $drive_fail      = in_array( '--drive-fail', $argv, true );
+$drive_fail_error = in_array( '--drive-fail-error', $argv, true );
 $open_state_flag = harness_flag_value( $argv, '--open-state' );
 $mapping_path    = harness_flag_value( $argv, '--mapping' );
 $seed_headers    = harness_decode_headers( harness_flag_value( $argv, '--seed-headers' ) );
@@ -259,6 +260,9 @@ if ( ! $append_only ) {
 }
 if ( $drive_fail ) {
 	$drive = new Portal_Harness_Drive();
+}
+if ( $drive_fail_error ) {
+	$drive = new Portal_Harness_Drive_TypeError();
 }
 
 // Deterministic mail filename for assertions.
@@ -327,7 +331,7 @@ if ( $via_for_post ) {
 		}
 	);
 } else {
-	$pipeline = harness_artifact_pipeline( $artifact, $files_facade, $fixed_ms, $sheets, $drive, $mail_fail, $drive_fail );
+	$pipeline = harness_artifact_pipeline( $artifact, $files_facade, $fixed_ms, $sheets, $drive, $mail_fail, $drive_fail || $drive_fail_error );
 	$pipeline = harness_attach_log( $pipeline, $log_dir, $files_facade );
 	if ( null !== $open_state && method_exists( $pipeline, 'with_open_state' ) ) {
 		$pipeline->with_open_state( $open_state );
@@ -544,6 +548,23 @@ class Portal_Harness_Drive {
 	 */
 	public function store_file( $portal_id, $field_id, $buffer, $filename ) {
 		throw new Exception( 'Google Drive write failed: {"error":"invalid_grant","error_description":"Token has been expired or revoked."}' );
+	}
+}
+
+/**
+ * Drive port that raises a PHP Error (TypeError), not an Exception, so the
+ * destination pipeline's Throwable boundary is proven (ZYS-2607).
+ */
+class Portal_Harness_Drive_TypeError extends Portal_Harness_Drive {
+	/**
+	 * @param string|int $portal_id Portal id.
+	 * @param string     $field_id  Field id.
+	 * @param string     $buffer    Bytes.
+	 * @param string     $filename  Filename.
+	 * @return string
+	 */
+	public function store_file( $portal_id, $field_id, $buffer, $filename ) {
+		throw new TypeError( 'Google Drive write must return a file id string, null returned' );
 	}
 }
 
