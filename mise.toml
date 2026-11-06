@@ -79,6 +79,10 @@ if command -v gitleaks >/dev/null 2>&1; then
   # Git mode scans tracked history only. `--no-git` also scanned gitignored vendor/ and
   # tests/.artifacts, which reported 134 false positives from vendored test keys and fixtures.
   gitleaks git --redact --no-banner .
+  # vendor-prefixed/ is untracked build output but ships in the release zip, so scan it too.
+  if [ -d vendor-prefixed ]; then
+    gitleaks dir vendor-prefixed --redact --no-banner
+  fi
 else
   echo 'gitleaks not installed; skip'
 fi
