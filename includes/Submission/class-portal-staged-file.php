@@ -6,9 +6,8 @@
  */
 
 if ( ! class_exists( 'Portal_Anonymize_Decision' ) ) {
-	$decision = __DIR__ . '/class-portal-anonymize-decision.php';
-	if ( is_readable( $decision ) ) {
-		require_once $decision;
+	if ( is_readable( __DIR__ . '/class-portal-anonymize-decision.php' ) ) {
+		require_once __DIR__ . '/class-portal-anonymize-decision.php';
 	}
 }
 
@@ -54,7 +53,7 @@ if ( ! class_exists( 'Portal_Staged_File' ) ) {
 			$this->files     = $files instanceof Portal_Files ? $files : new Portal_Files();
 			$this->transport = $transport;
 			$this->base_dir  = is_string( $base_dir ) && '' !== $base_dir
-				? rtrim( $base_dir, "/\\" )
+				? rtrim( $base_dir, '/\\' )
 				: self::default_base_dir();
 		}
 
@@ -337,8 +336,8 @@ if ( ! class_exists( 'Portal_Staged_File' ) ) {
 			if ( '' === $token ) {
 				return null;
 			}
-			$dir  = $this->token_dir( $token );
-			$meta = $this->files->join( $dir, self::META_FILENAME );
+			$dir     = $this->token_dir( $token );
+			$meta    = $this->files->join( $dir, self::META_FILENAME );
 			$content = $this->files->join( $dir, self::CONTENT_FILENAME );
 			if ( ! $this->files->exists( $meta ) || ! $this->files->exists( $content ) ) {
 				return null;
@@ -465,7 +464,7 @@ if ( ! class_exists( 'Portal_Staged_File' ) ) {
 		private static function default_base_dir() {
 			if ( class_exists( 'Portal_Test_Mode' ) && Portal_Test_Mode::is_enabled() ) {
 				$root = Portal_Test_Mode::artifact_dir();
-				return rtrim( $root, "/\\" ) . DIRECTORY_SEPARATOR . self::STAGED_DIR_NAME;
+				return rtrim( $root, '/\\' ) . DIRECTORY_SEPARATOR . self::STAGED_DIR_NAME;
 			}
 			if ( class_exists( 'Portal_Upload_Store' ) ) {
 				return Portal_Upload_Store::staged_dir();
@@ -473,13 +472,13 @@ if ( ! class_exists( 'Portal_Staged_File' ) ) {
 			if ( function_exists( 'wp_upload_dir' ) ) {
 				$upload = wp_upload_dir();
 				if ( is_array( $upload ) && ! empty( $upload['basedir'] ) ) {
-					return rtrim( (string) $upload['basedir'], "/\\" ) . DIRECTORY_SEPARATOR . self::WP_STAGED_DIR;
+					return rtrim( (string) $upload['basedir'], '/\\' ) . DIRECTORY_SEPARATOR . self::WP_STAGED_DIR;
 				}
 			}
 			// CLI without test mode: still use repo artifacts when possible.
 			if ( class_exists( 'Portal_Test_Mode' ) ) {
 				$root = Portal_Test_Mode::artifact_dir();
-				return rtrim( $root, "/\\" ) . DIRECTORY_SEPARATOR . self::STAGED_DIR_NAME;
+				return rtrim( $root, '/\\' ) . DIRECTORY_SEPARATOR . self::STAGED_DIR_NAME;
 			}
 			return sys_get_temp_dir() . DIRECTORY_SEPARATOR . self::WP_STAGED_DIR;
 		}

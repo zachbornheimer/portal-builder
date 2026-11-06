@@ -56,8 +56,14 @@ if ( ! class_exists( 'Portal_Files' ) ) {
 		 * @return string
 		 */
 		public function read_text( $path ) {
-			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
-			return (string) file_get_contents( $path );
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
+			$handle = fopen( $path, 'rb' );
+			if ( false === $handle ) {
+				return '';
+			}
+			$contents = stream_get_contents( $handle );
+			fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+			return (string) $contents;
 		}
 
 		/**
@@ -123,7 +129,7 @@ if ( ! class_exists( 'Portal_Files' ) ) {
 				},
 				$filtered
 			);
-			return rtrim( $first, "/\\" ) . ( empty( $rest ) ? '' : DIRECTORY_SEPARATOR . implode( DIRECTORY_SEPARATOR, $rest ) );
+			return rtrim( $first, '/\\' ) . ( empty( $rest ) ? '' : DIRECTORY_SEPARATOR . implode( DIRECTORY_SEPARATOR, $rest ) );
 		}
 
 		/**

@@ -1,7 +1,7 @@
 /**
  * Portal records & invitations REST facade (dragongate/v1).
  */
-import { joinUrl } from './definitionApi.js';
+import { joinUrl, restFetch } from './definitionApi.js';
 
 /**
  * @typedef {{ restRoot: string, nonce: string, portalId: number|string }} RecordsApiConfig
@@ -50,7 +50,7 @@ function responseRows(body, key, label) {
  */
 async function requestJson(url, opts) {
 	const multipart = opts.body instanceof FormData;
-	const res = await fetch(url, {
+	const res = await restFetch(url, {
 		method: opts.method || 'GET',
 		credentials: 'same-origin',
 		headers: {

@@ -93,9 +93,8 @@ if ( ! class_exists( 'Zysys_FileStore' ) && ! class_exists( 'Zysys_File_Store' )
 		 * @return void
 		 */
 		protected function use_gsuite() {
-			$autoload = dirname( __DIR__, 2 ) . '/vendor-prefixed/autoload.php';
-			if ( is_readable( $autoload ) ) {
-				require_once $autoload;
+			if ( is_readable( dirname( __DIR__, 2 ) . '/vendor-prefixed/autoload.php' ) ) {
+				require_once dirname( __DIR__, 2 ) . '/vendor-prefixed/autoload.php';
 			}
 		}
 

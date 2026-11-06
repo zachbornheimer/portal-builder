@@ -12,20 +12,20 @@ if ( ! class_exists( 'Portal_Update' ) ) {
 	 */
 	class Portal_Update {
 
-		const REPO         = 'zachbornheimer/portal-builder';
-		const UPDATE_URI   = 'https://github.com/zachbornheimer/portal-builder';
-		const HOMEPAGE     = 'https://dragongateportals.com';
-		const ZIP_PREFIX   = 'portal-builder-';
-		const FOLDER       = 'dragongate-portals';
-		const SLUG         = 'dragongate-portals';
-		const NAME         = 'DragonGate Portals';
-		const AUTHOR       = 'Z. Bornheimer (ZYSYS)';
-		const AUTHOR_URI   = 'https://zysys.org/';
-		const REQUIRES_WP  = '6.4';
-		const REQUIRES_PHP = '8.1';
+		const REPO            = 'zachbornheimer/portal-builder';
+		const UPDATE_URI      = 'https://github.com/zachbornheimer/portal-builder';
+		const HOMEPAGE        = 'https://dragongateportals.com';
+		const ZIP_PREFIX      = 'portal-builder-';
+		const FOLDER          = 'dragongate-portals';
+		const SLUG            = 'dragongate-portals';
+		const NAME            = 'DragonGate Portals';
+		const AUTHOR          = 'Z. Bornheimer (ZYSYS)';
+		const AUTHOR_URI      = 'https://zysys.org/';
+		const REQUIRES_WP     = '6.4';
+		const REQUIRES_PHP    = '8.1';
 		const TESTED_FALLBACK = '6.8';
-		const DESCRIPTION  = 'A plugin to build portals for accepting applications and managing submissions with Google Sheets and Google Drive integration.';
-		const MAIN_FILE    = 'portal-builder.php';
+		const DESCRIPTION     = 'A plugin to build portals for accepting applications and managing submissions with Google Sheets and Google Drive integration.';
+		const MAIN_FILE       = 'portal-builder.php';
 
 		/**
 		 * Prior install folder names that self-relocate to FOLDER on load.
@@ -203,8 +203,8 @@ if ( ! class_exists( 'Portal_Update' ) ) {
 		 *
 		 * No-ops when current is already FOLDER, not a known legacy name, or dest exists.
 		 *
-		 * @param string        $plugins_dir    Absolute plugins directory.
-		 * @param string        $current_folder Install folder basename.
+		 * @param string           $plugins_dir    Absolute plugins directory.
+		 * @param string           $current_folder Install folder basename.
 		 * @param array<int,mixed> $active      active_plugins option value.
 		 * @return array{ok:bool,active:array<int,mixed>,folder:string}
 		 */
@@ -541,7 +541,12 @@ if ( ! class_exists( 'Portal_Update' ) ) {
 			if ( ! is_readable( $path ) ) {
 				return '';
 			}
-			$contents = file_get_contents( $path );
+			$handle = fopen( $path, 'rb' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
+			if ( false === $handle ) {
+				return '';
+			}
+			$contents = stream_get_contents( $handle );
+			fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
 			return is_string( $contents ) ? $contents : '';
 		}
 

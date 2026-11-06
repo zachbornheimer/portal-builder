@@ -151,57 +151,76 @@ if ( ! class_exists( 'Portal_File_Handler' ) ) {
 		}
 
 		private function store_anonymized_pdf( $tmp_name, $file_key, $suffix = '' ) {
-			if ( ! $this->isEnabled( 'shell_exec' ) ) {
-				throw new Exception( 'shell_exec is disabled' );
+			if ( ! $this->isEnabled( 'proc_open' ) ) {
+				throw new Exception( 'proc_open is disabled' );
 			}
 
-			$path   = $this->store_pdf( $tmp_name, $file_key, $suffix );
-			$target = escapeshellarg( $path );
+			$path = $this->store_pdf( $tmp_name, $file_key, $suffix );
 
 			$exiftool_path = $this->binary_tool( 'exiftool' );
 			$qpdf_path     = $this->binary_tool( 'qpdf' );
 
-			shell_exec( $exiftool_path . " -overwrite_original -all= $target 2>&1 3>&1" );
-			shell_exec( $qpdf_path . " --linearize $target $target.new" );
+			$this->run_tool( array( $exiftool_path, '-overwrite_original', '-all=', $path ) );
+			$this->run_tool( array( $qpdf_path, '--linearize', $path, $path . '.new' ) );
 
-			// remove any wrapping quotes from target
-			$target = trim( $target, "'" );
-			$target = trim( $target, '"' );
-
-			if ( ! rename( $target . '.new', $target ) ) {
+			if ( ! rename( $path . '.new', $path ) ) {
 				throw new Exception( 'Failed to rename anonymized file' );
 			}
 		}
 
 		private function store_anonymized_mp3( $tmp_name, $file_key, $suffix = '' ) {
 
-			if ( ! $this->isEnabled( 'shell_exec' ) ) {
-				throw new Exception( 'shell_exec is disabled' );
+			if ( ! $this->isEnabled( 'proc_open' ) ) {
+				throw new Exception( 'proc_open is disabled' );
 			}
 
-			$original_target    = $this->store_mp3( $tmp_name, $file_key, $suffix );
-			$original_altTarget = $original_target . '.alt.mp3';
-			$target             = escapeshellarg( $original_target );
-			$altTarget          = escapeshellarg( $original_altTarget );
+			$target    = $this->store_mp3( $tmp_name, $file_key, $suffix );
+			$altTarget = $target . '.alt.mp3';
 
 			$exiftool_path = $this->binary_tool( 'exiftool' );
 			$lame_path     = $this->binary_tool( 'lame' );
 			$eyed3_path    = $this->binary_tool( 'eyed3' );
-			$perl_path     = $this->binary_tool( 'perl' );
 
-			$existingBitrate = shell_exec( "$exiftool_path -AudioBitrate " . $target . " | $perl_path -lpe 's/.*: (\d+) kbps/$1/' 2>&1" );
-			$existingBitrate = rtrim( $existingBitrate );
-
-			if ( filter_var( $existingBitrate, FILTER_VALIDATE_INT ) === false ) {
-				$existingBitrate = '256';
+			// exiftool prints e.g. "Audio Bitrate : 128 kbps".
+			$existingBitrate = '256';
+			$probe           = $this->run_tool( array( $exiftool_path, '-AudioBitrate', $target ) );
+			if ( 1 === preg_match( '/:\s*(\d+)\s*kbps/', $probe, $matches ) ) {
+				$existingBitrate = $matches[1];
 			}
 
-			shell_exec( "$lame_path -b " . $existingBitrate . ' ' . $target . ' ' . $altTarget . ' 2>&1' );
-			shell_exec( "$eyed3_path --remove-all --remove-all-images --remove-all-comments --remove-all-lyrics " . $altTarget . ' 1>/dev/null 2>/dev/null' );
+			$this->run_tool( array( $lame_path, '-b', $existingBitrate, $target, $altTarget ) );
+			$this->run_tool( array( $eyed3_path, '--remove-all', '--remove-all-images', '--remove-all-comments', '--remove-all-lyrics', $altTarget ) );
 
-			if ( ! rename( $original_altTarget, $original_target ) ) {
+			if ( ! rename( $altTarget, $target ) ) {
 				throw new Exception( 'Failed to rename anonymized file' );
 			}
+		}
+
+		/**
+		 * Run an external tool without a shell: each element of $command reaches the
+		 * program as one argument, so file names are never parsed as shell syntax.
+		 *
+		 * @param string[] $command Program path followed by its arguments.
+		 * @return string Standard output; stderr is discarded and the exit status is not checked.
+		 */
+		private function run_tool( array $command ) {
+			$pipes   = array();
+			$process = proc_open(
+				$command,
+				array(
+					0 => array( 'file', '/dev/null', 'r' ),
+					1 => array( 'pipe', 'w' ),
+					2 => array( 'file', '/dev/null', 'w' ),
+				),
+				$pipes
+			);
+			if ( ! is_resource( $process ) ) {
+				throw new Exception( 'Failed to start ' . basename( (string) $command[0] ) );
+			}
+			$output = (string) stream_get_contents( $pipes[1] );
+			fclose( $pipes[1] );
+			proc_close( $process );
+			return $output;
 		}
 
 		private function isEnabled( $func ) {

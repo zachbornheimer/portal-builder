@@ -114,7 +114,6 @@ jQuery(document).ready(function ($) {
         e.preventDefault();
 
         var $link = $(this);
-        var postId = $link.data('post-id');
         var originalText = $link.text();
 
         // Show loading state
@@ -125,8 +124,13 @@ jQuery(document).ready(function ($) {
             .done(function (response) {
                 // Success - check if we got a redirect URL in the response
                 if (response && response.success && response.data && response.data.redirect_url) {
-                    // Redirect to the edit page
-                    window.location.href = response.data.redirect_url;
+                    // Redirect to the edit page, only when it stays on this site.
+                    var redirectUrl = new URL(String(response.data.redirect_url), window.location.origin);
+                    if (redirectUrl.origin === window.location.origin) {
+                        window.location.assign(redirectUrl.href);
+                    } else {
+                        window.location.reload();
+                    }
                 } else {
                     // Fallback: reload the page
                     $link.text('Duplicated!').removeClass('disabled');

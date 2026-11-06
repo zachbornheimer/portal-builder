@@ -8,7 +8,7 @@ const config = { restRoot: 'https://example.test/wp-json/dragongate/v1/', portal
 test('packet replacement sends actual multipart bytes and preserves the destination response', async (t) => {
 	const file = new File(['replacement bytes'], 'score.pdf');
 	t.mock.method(globalThis, 'fetch', async (url, options) => {
-		assert.equal(url, `${config.restRoot}portals/42/packets/application-1/replace`);
+		assert.equal(String(url), `${config.restRoot}portals/42/packets/application-1/replace`);
 		assert.equal(options.method, 'POST');
 		assert.equal(options.credentials, 'same-origin');
 		assert.equal(options.headers['X-WP-Nonce'], config.nonce);
@@ -25,7 +25,7 @@ test('packet replacement sends actual multipart bytes and preserves the destinat
 
 test('packet recall has no payload and returns the recalled packet', async (t) => {
 	t.mock.method(globalThis, 'fetch', async (url, options) => {
-		assert.equal(url, `${config.restRoot}portals/42/packets/application-1/recall`);
+		assert.equal(String(url), `${config.restRoot}portals/42/packets/application-1/recall`);
 		assert.equal(options.method, 'POST');
 		assert.equal(options.headers['X-WP-Nonce'], config.nonce);
 		assert.equal(options.body, undefined);

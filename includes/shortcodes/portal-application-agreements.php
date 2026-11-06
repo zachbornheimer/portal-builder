@@ -30,9 +30,15 @@ function dg_application_agreements_shortcode() {
 	}
 
 	// phpcs:ignore WordPress.Security.NonceVerification.Missing
-	$readonly = ( ! $definition_portal && isset( $_POST['review_nonce'] ) ) ? ' disabled="disabled" ' : '';
+	$readonly = false;
+	if ( ! $definition_portal && isset( $_POST['review_nonce'] ) ) {
+		$readonly = true;
+	}
 	// Definition portals submit in one step; legacy uses Continue → Submit.
-	$button_label = ( $definition_portal || $readonly ) ? 'Submit' : 'Continue';
+	$button_label = 'Continue';
+	if ( $definition_portal || $readonly ) {
+		$button_label = 'Submit';
+	}
 
 	ob_start();
 	?>
@@ -43,10 +49,21 @@ function dg_application_agreements_shortcode() {
 		<?php
 		foreach ( $agreements as $index => $disclaimer ) :
 			// phpcs:ignore WordPress.Security.NonceVerification.Missing
-			$checked = isset( $_POST[ 'sub_agreement_' . $index ] ) ? 'checked="checked"' : '';
+			$checked = false;
+			if ( isset( $_POST[ 'sub_agreement_' . $index ] ) ) {
+				$checked = true;
+			}
 			?>
 			<p class="row">
-				<input required id="sub_agreement_<?php echo esc_attr( (string) $index ); ?>" name="sub_agreement_<?php echo esc_attr( (string) $index ); ?>" type="checkbox" <?php echo $checked . ' ' . $readonly; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> />
+				<input required id="sub_agreement_<?php echo esc_attr( (string) $index ); ?>" name="sub_agreement_<?php echo esc_attr( (string) $index ); ?>" type="checkbox" 
+				<?php
+				if ( $checked ) :
+					?>
+					checked="checked"<?php endif; ?>
+					<?php
+					if ( $readonly ) :
+						?>
+					disabled="disabled" <?php endif; ?> />
 				<label for="sub_agreement_<?php echo esc_attr( (string) $index ); ?>"><?php echo esc_html( $disclaimer['text'] ); ?></label>
 			</p>
 			<?php

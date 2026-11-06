@@ -32,8 +32,11 @@
 		if (!app || !base) {
 			return;
 		}
+		if (new URL(base + encodeURIComponent(app) + '/recall', window.location.origin).origin !== window.location.origin) {
+			return;
+		}
 		button.disabled = true;
-		fetch(base + encodeURIComponent(app) + '/recall', {
+		fetch(new URL(base + encodeURIComponent(app) + '/recall', window.location.origin), {
 			method: 'POST',
 			credentials: 'same-origin',
 			headers: { 'X-WP-Nonce': nonce() },
@@ -64,8 +67,11 @@
 		var body = new FormData();
 		body.append('field_id', String(field.value).trim());
 		body.append('file', file.files[0]);
+		if (new URL(base + encodeURIComponent(app) + '/replace', window.location.origin).origin !== window.location.origin) {
+			return;
+		}
 		button.disabled = true;
-		fetch(base + encodeURIComponent(app) + '/replace', {
+		fetch(new URL(base + encodeURIComponent(app) + '/replace', window.location.origin), {
 			method: 'POST',
 			credentials: 'same-origin',
 			headers: { 'X-WP-Nonce': nonce() },

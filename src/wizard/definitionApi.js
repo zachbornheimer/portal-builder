@@ -3,6 +3,23 @@
  */
 
 /**
+ * fetch() for REST calls that carry the WP nonce. The target is resolved against the page
+ * and refused when it leaves the page origin, so a bad REST root attribute cannot send the
+ * nonce to another host.
+ *
+ * @param {string} url Absolute or page-relative REST URL.
+ * @param {RequestInit} init
+ * @returns {Promise<Response>}
+ */
+export function restFetch(url, init) {
+	const base = globalThis.location?.href;
+	if (base && new URL(url, base).origin !== new URL(base).origin) {
+		throw new Error('REST request refused: target is not on this site.');
+	}
+	return fetch(new URL(url, base), init);
+}
+
+/**
  * @param {{ restRoot: string, nonce: string, portalId: number|string }} cfg
  */
 export async function getDefinition(cfg) {
@@ -10,7 +27,7 @@ export async function getDefinition(cfg) {
 	const controller = new AbortController();
 	const timer = setTimeout(() => controller.abort(), 6000);
 	try {
-		const res = await fetch(url, {
+		const res = await restFetch(url, {
 			method: 'GET',
 			credentials: 'same-origin',
 			signal: controller.signal,
@@ -49,7 +66,7 @@ export async function getDefinition(cfg) {
  */
 export async function saveDefinition(cfg) {
 	const url = joinUrl(cfg.restRoot, `portals/${cfg.portalId}/definition`);
-	const res = await fetch(url, {
+	const res = await restFetch(url, {
 		method: 'POST',
 		credentials: 'same-origin',
 		headers: {
@@ -85,7 +102,7 @@ export async function listPortalTemplates(cfg) {
 		cfg.wpRestRoot,
 		'wp/v2/portal?per_page=12&status=publish&_fields=id,title',
 	);
-	const res = await fetch(url, {
+	const res = await restFetch(url, {
 		method: 'GET',
 		credentials: 'same-origin',
 		headers: {
@@ -120,7 +137,7 @@ export async function updatePortalPost(cfg) {
 	if (cfg.status) {
 		body.status = cfg.status;
 	}
-	const res = await fetch(url, {
+	const res = await restFetch(url, {
 		method: 'POST',
 		credentials: 'same-origin',
 		headers: {
@@ -161,7 +178,6 @@ export function joinUrl(base, path) {
  * @param {string} html
  */
 function decodeEntities(html) {
-	const el = document.createElement('textarea');
-	el.innerHTML = html;
-	return el.value;
+	const doc = new DOMParser().parseFromString(`<!doctype html><body>${html}`, 'text/html');
+	return doc.body.textContent ?? '';
 }

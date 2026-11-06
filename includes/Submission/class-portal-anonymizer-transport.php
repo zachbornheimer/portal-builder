@@ -181,13 +181,14 @@ if ( ! class_exists( 'Portal_Anonymizer_Transport' ) ) {
 			foreach ( $headers as $name => $value ) {
 				$lines[] = $name . ': ' . $value;
 			}
-			$handle = curl_init( $url );
+			$handle = curl_init();
 			if ( false === $handle ) {
 				throw new RuntimeException( 'anonymize transport unavailable' );
 			}
 			curl_setopt_array(
 				$handle,
 				array(
+					CURLOPT_URL            => $url,
 					CURLOPT_CUSTOMREQUEST  => $method,
 					CURLOPT_POSTFIELDS     => $body,
 					CURLOPT_HTTPHEADER     => $lines,

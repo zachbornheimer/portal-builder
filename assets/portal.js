@@ -4,13 +4,12 @@ document.addEventListener("DOMContentLoaded", function () {
         let field_name = field.getAttribute("data-display-label");
         var label = document.querySelector("label[for=" + field_name + "]");
         if (label) {
-            let text = label.innerText.replace("\*", "");
-            field.innerHTML = text + " " + field.innerHTML;
-            // replace multiple text in a row.
-            field.innerHTML = field.innerHTML.replace(text + " " + text, text);
-
+            let text = label.innerText.replace("*", "");
             if (field.getAttribute("data-display-label-override")) {
-                field.innerHTML = text;
+                field.textContent = text;
+            } else if (field.textContent.indexOf(text) !== 0) {
+                // Prepend the label unless the field already starts with it.
+                field.insertBefore(document.createTextNode(text + " "), field.firstChild);
             }
         }
     });

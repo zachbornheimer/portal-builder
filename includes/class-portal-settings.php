@@ -942,11 +942,7 @@ if ( ! class_exists( 'Portal_Settings' ) ) {
 		public function google_probe_callback() {
 			$request = isset( $_POST ) && is_array( $_POST ) ? wp_unslash( $_POST ) : array();
 			$result  = $this->handle_google_probe( $request );
-			if ( function_exists( 'wp_send_json' ) ) {
-				wp_send_json( $result );
-				return;
-			}
-			echo wp_json_encode( $result );
+			wp_send_json( $result );
 		}
 
 		/**

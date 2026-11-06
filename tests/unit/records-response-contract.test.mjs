@@ -10,7 +10,7 @@ const records = [
 
 test('records GET preserves the real REST envelope and sends the bootstrap nonce', async (t) => {
 	t.mock.method(globalThis, 'fetch', async (url, options) => {
-		assert.equal(url, `${config.restRoot}portals/42/records?limit=5`);
+		assert.equal(String(url), `${config.restRoot}portals/42/records?limit=5`);
 		assert.equal(options.method, 'GET');
 		assert.equal(options.credentials, 'same-origin');
 		assert.equal(options.headers['X-WP-Nonce'], config.nonce);
@@ -72,7 +72,7 @@ test('malformed response diagnostics do not disclose applicant strings or row pa
 
 test('a paged records response retains total and accepts a string portal configuration id', async (t) => {
 	t.mock.method(globalThis, 'fetch', async (url) => {
-		assert.ok(url.endsWith('/records?limit=1'));
+		assert.ok(String(url).endsWith('/records?limit=1'));
 		return Response.json({ portalId: 42, total: 2, records: records.slice(0, 1) });
 	});
 	assert.deepEqual(await getRecords({ ...config, portalId: '42', limit: 1 }), {
