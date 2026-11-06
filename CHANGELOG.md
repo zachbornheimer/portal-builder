@@ -1,3 +1,10 @@
+## 0.1.15
+
+### Tooling
+
+- Add a vendor-prefix guard so the ZYS-2607 collision cannot come back: it fails when plugin PHP names a bundled dependency (GuzzleHttp, Monolog, Psr, Google and `Google_*`, Firebase, PHPMailer, and any package added to `composer.lock` later) without the `DragonGate\Vendor\` prefix, when `portal-builder.php` or `includes/` loads `vendor/autoload.php` instead of `vendor-prefixed/autoload.php`, when `composer.json` requires a package Strauss does not prefix, or when a production package in `composer.lock` is missing from the built `vendor-prefixed/`. The rule is a foxguard rule generated from `composer.lock` (`rules/unprefixed-vendor-reference.yml.tmpl`, run by `scripts/vendor-guard.mjs`), wired into `mise run vendor-guard`, `mise run foxguard`, `mise run ci` and the CI foxguard job, and into an hk pre-push step named `vendor-prefix-guard` (which also runs the collision test when `composer.json`, `composer.lock` or `scripts/prefix-vendor.sh` is pushed)
+- Fix a finding by prefixing the name (`use DragonGate\Vendor\GuzzleHttp\Client;`, a global `Google_Client` becomes `DragonGate_Vendor_Google_Client`); there is no suppression comment. A package Strauss deliberately leaves unprefixed goes in `composer.json` `extra.strauss.exclude_from_prefix`, which the guard reads, with the reason in the pull request
+
 ## 0.1.14
 
 ### Fixes
