@@ -71,12 +71,14 @@ description = "Unit tests (no LocalWP)"
 run = "node --test 'tests/unit/**/*.test.mjs'"
 
 [tasks.scan]
-description = "Secrets scan when gitleaks is available"
+description = "Secrets scan of tracked git history when gitleaks is available"
 run = """
 #!/usr/bin/env bash
 set -euo pipefail
 if command -v gitleaks >/dev/null 2>&1; then
-  gitleaks detect --no-git --source . --redact
+  # Git mode scans tracked history only. `--no-git` also scanned gitignored vendor/ and
+  # tests/.artifacts, which reported 134 false positives from vendored test keys and fixtures.
+  gitleaks git --redact --no-banner .
 else
   echo 'gitleaks not installed; skip'
 fi
