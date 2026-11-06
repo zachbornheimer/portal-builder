@@ -18,9 +18,13 @@ on:
           - pipeline
           - all
 
+permissions: {}
+
 jobs:
   e2e:
     name: e2e-${{ inputs.suite }}
+    permissions:
+      contents: read
     # Self-hosted runner with LocalWP + plugin symlink; override label as needed.
     runs-on: [self-hosted, localwp]
     timeout-minutes: 30
@@ -28,10 +32,12 @@ jobs:
     # triggers it without a matching runner (better than silent skip).
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: "20"
           cache: npm
@@ -49,19 +55,20 @@ jobs:
         env:
           CI: "1"
           DG_TEST_MODE: "1"
+          SUITE: ${{ inputs.suite }}
         run: |
-          case "${{ inputs.suite }}" in
+          case "${SUITE}" in
             smoke)    npm run test:e2e:smoke ;;
             admin)    npm run test:e2e:admin ;;
             public)   npm run test:e2e:public ;;
             pipeline) npm run test:e2e:pipeline ;;
             all)      npm run test:e2e ;;
-            *)        echo "Unknown suite: ${{ inputs.suite }}" >&2; exit 1 ;;
+            *)        echo "Unknown suite: ${SUITE}" >&2; exit 1 ;;
           esac
 
       - name: Upload Playwright report
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: playwright-report-${{ inputs.suite }}
           path: |

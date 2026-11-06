@@ -75,14 +75,14 @@ jobs:
       - name: Get current date and short commit hash
         id: vars
         run: |
-          echo "DATE=$(date +'%y-%m-%d')" >> $GITHUB_ENV
-          echo "COMMIT_HASH=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+          echo "DATE=$(date +'%y-%m-%d')" >> "$GITHUB_ENV"
+          echo "COMMIT_HASH=$(git rev-parse --short HEAD)" >> "$GITHUB_ENV"
 
       - name: Find the ZIP file
         id: find_zip
         run: |
-          ZIP_FILE=$(ls ${PLUGIN_NAME}-*.zip | head -n 1)
-          echo "ZIP_FILE=${ZIP_FILE}" >> $GITHUB_ENV
+          ZIP_FILE=$(find . -maxdepth 1 -name "${PLUGIN_NAME}-*.zip" -printf '%f\n' | head -n 1)
+          echo "ZIP_FILE=${ZIP_FILE}" >> "$GITHUB_ENV"
 
       - name: Create GitHub Release
         id: create_release
