@@ -15,12 +15,8 @@
 /.env                      export-ignore
 /.env.example              export-ignore
 
-# Composer dev dependencies should be ignored in the production build, but not during development
-/vendor/composer/installed.json export-ignore
-/vendor/bin/ export-ignore
-
-# include vendor folder
-/vendor/                   export-include
+# vendor/ and vendor-prefixed/ are untracked. scripts/make-release-zip.sh copies
+# vendor-prefixed/ (namespace-prefixed dependencies) into the zip and never vendor/.
 
 # Optional: Exclude assets not needed for production (uncomment if necessary)
 /assets/src/               export-ignore

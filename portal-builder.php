@@ -28,7 +28,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 // Define plugin version constant.
 if ( ! defined( 'DG_VERSION' ) ) {
-	define( 'DG_VERSION', '0.1.12' );
+	define( 'DG_VERSION', '0.1.13' );
 }
 
 // Include the necessary files.
@@ -93,8 +93,10 @@ require_once plugin_dir_path( __FILE__ ) . 'includes/class-portal-setup-screen.p
 require_once plugin_dir_path( __FILE__ ) . 'includes/templates.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/adapters/class-zysys-file-store.php';
 
-// Include Composer's autoload file.
-require_once plugin_dir_path( __FILE__ ) . 'vendor/autoload.php';
+// Load only the namespace-prefixed (DragonGate\Vendor\) copies of the third-party
+// libraries. Another plugin's Guzzle, psr/log, or Monolog can no longer shadow ours.
+// Built by scripts/prefix-vendor.sh (Strauss); never load the unprefixed Composer autoloader.
+require_once plugin_dir_path( __FILE__ ) . 'vendor-prefixed/autoload.php';
 
 if ( ! defined( 'DG_TMP_UPLOADS_DIR' ) ) {
 	define( 'DG_TMP_UPLOADS_DIR', Portal_Upload_Store::tmp_dir() );

@@ -1,3 +1,11 @@
+## 0.1.14
+
+### Fixes
+
+- Namespace-prefix every bundled third-party library (Google API client, Guzzle, Monolog, psr/*, firebase/php-jwt, PHPMailer) under `DragonGate\Vendor\` with Strauss, and load only the prefixed copies, so another plugin's older Guzzle or psr/log can no longer win the autoload race and fatal the submit path with `Undefined constant GuzzleHttp\ClientInterface::MAJOR_VERSION` (ZYS-2607)
+- Ship only the Drive and Sheets Google services in the release zip, which no longer contains the unprefixed `vendor/` tree
+- Align the `DG_VERSION` constant with the 0.1.13 plugin header
+
 ## 0.1.13
 
 ### Fixes

@@ -37,7 +37,7 @@ function wp_json_encode( $d ) {
 	return json_encode( $d );
 }
 
-require_once $repo_root . '/vendor/autoload.php';
+require_once $repo_root . '/vendor-prefixed/autoload.php';
 require_once $repo_root . '/includes/adapters/class-zysys-file-store.php';
 require_once $repo_root . '/includes/class-portal-options.php';
 require_once $repo_root . '/includes/Definition/class-portal-definition.php';
@@ -338,7 +338,7 @@ function ensure_sandbox( $store, array $ids, $path ) {
 	}
 
 	if ( '' === $ids['spreadsheetId'] ) {
-		$body    = new Google_Service_Sheets_Spreadsheet(
+		$body    = new \DragonGate\Vendor\Google\Service\Sheets\Spreadsheet(
 			array(
 				'properties' => array( 'title' => 'DragonGate prove-live' ),
 				'sheets'     => array(
@@ -351,7 +351,7 @@ function ensure_sandbox( $store, array $ids, $path ) {
 		echo "created_sheet={$ids['spreadsheetId']}\n";
 	}
 	if ( '' === $ids['folderId'] ) {
-		$meta    = new Google_Service_Drive_DriveFile(
+		$meta    = new \DragonGate\Vendor\Google\Service\Drive\DriveFile(
 			array(
 				'name'     => 'DragonGate prove-live',
 				'mimeType' => 'application/vnd.google-apps.folder',

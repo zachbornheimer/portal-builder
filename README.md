@@ -82,7 +82,7 @@ Rolling / prerelease tags are ignored. Manual ZIP replace still works:
 - One **Public form** URL per portal
 - Site-wide defaults under **Portals → Default Settings**
 
-## Development
+## Building the plugin
 
 Contributor path only. Strangers installing from a ZIP should follow [First hour](#first-hour-zip-install-to-a-first-test-submit).
 
@@ -128,8 +128,14 @@ Contributor path only. Strangers installing from a ZIP should follow [First hour
 - **`make build`**: Build the plugin and create a ZIP file.
 - **`make release`**: Install production dependencies and build the plugin.
 - **`make install-dev`**: Install development dependencies.
-- **`make install-prod`**: Install production dependencies.
+- **`make install-prod`**: Install production dependencies and prefix them into `vendor-prefixed/`.
 - **`make update-submodules`**: Update all git submodules.
+
+### Prefixed dependencies
+
+Every third-party library (Google API client, Guzzle, Monolog, psr/*, PHPMailer, firebase/php-jwt) is copied by [Strauss](https://github.com/BrianHenryIE/strauss) into `vendor-prefixed/` under the `DragonGate\Vendor\` namespace, and the plugin loads only `vendor-prefixed/autoload.php`. Another plugin's bundled Guzzle or psr/log can no longer shadow ours (ZYS-2607). `composer install` runs `scripts/prefix-vendor.sh` automatically; `vendor-prefixed/` is generated, not committed, and the release zip ships it without `vendor/`.
+
+Write plugin code against the prefixed names (`DragonGate\Vendor\Google\Client`, `DragonGate\Vendor\Google\Service\Drive`). Only the Drive and Sheets Google services are kept; add another under `extra.google/apiclient-services` in `composer.json`.
 
 ## Contributing
 

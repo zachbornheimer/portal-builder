@@ -26,10 +26,11 @@ test -f vendor/autoload.php
 """
 
 [tasks.build]
-description = "Vite assets, production Composer, release zip"
+description = "Vite assets, production Composer, vendor prefixing (Strauss), release zip"
 run = [
   "npm run build",
   "composer install --no-dev --optimize-autoloader",
+  "bash scripts/prefix-vendor.sh",
   "bash scripts/make-release-zip.sh",
 ]
 
