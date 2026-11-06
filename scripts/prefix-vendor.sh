@@ -85,4 +85,10 @@ if [[ -n "${leftover}" ]]; then
 	exit 1
 fi
 
+# Upstream documentation is not runtime code and does not belong in the shipped
+# zip. firebase/php-jwt's README embeds a sample PEM private key, which a
+# secrets scan of the zip rightly reports. LICENSE files stay: redistribution
+# requires them.
+find vendor-prefixed -type f \( -iname 'README*' -o -iname 'CHANGELOG*' -o -iname 'UPGRADING*' -o -iname 'CONTRIBUTING*' \) -delete
+
 echo "prefix-vendor: vendor-prefixed/ ready"
