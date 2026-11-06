@@ -30,6 +30,7 @@
 - Make invitation expiry compact with a visible dropdown affordance, provide keyboard-accessible candidate options, and reduce invitation row actions to quiet links
 - Build the release ZIP on PHP 8.1 and declare 8.1 as the plugin floor, matching the locked Google API dependencies
 - Catch Throwable, not just Exception, across the public submit path so a PHP Error — TypeError in a destination write or a missing Google dependency at live adapter construction — returns the controlled try-again failure with an operator log row instead of a WordPress critical-error page
+- Pin monolog/monolog to ^2.9 so the bundled Google client no longer fatals with a Monolog\Logger::emergency() signature error when another plugin loads an untyped psr/log 1.x LoggerInterface first (ZYS-2607); this is a compile-time declaration fatal that no Throwable catch can intercept
 
 ### Tests
 
