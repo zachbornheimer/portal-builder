@@ -236,7 +236,7 @@ if ( ! class_exists( 'Portal_About' ) ) {
 
 						/* Code styling */
 						#dgp-about code { font-family: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace; }
-                            CSS;
+						CSS;
 
 								wp_register_style( 'dgp-about-custom', false );
 								wp_enqueue_style( 'dgp-about-custom' );
