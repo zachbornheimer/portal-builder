@@ -1,7 +1,6 @@
 [tools]
 node = "22"
 aube = "1.41.0"
-lefthook = "2.1.9"
 
 # Foxguard is the security scanner: a release binary verified against the checksums below,
 # pinned the same way as dev-env/mise.security.toml. The `foxguard` task is the CI gate.
@@ -16,7 +15,7 @@ linux-arm64 = { asset_pattern = "foxguard-linux-aarch64", checksum = "sha256:f37
 macos-arm64 = { asset_pattern = "foxguard-macos-aarch64", checksum = "sha256:e466cb4692a959fb500cd9f55d35aac0dd530afce8358643ed186e2c8c85f8c5" }
 
 [tasks.setup]
-description = "Install Node (aube, npm lockfile fallback), Playwright Chromium, PHP (Composer), and Lefthook hooks"
+description = "Install Node (aube, npm lockfile fallback), Playwright Chromium, and PHP (Composer)"
 run = """
 #!/usr/bin/env bash
 set -euo pipefail
@@ -31,7 +30,6 @@ else
   npx playwright install chromium
 fi
 composer install
-lefthook install
 node --version
 php -v
 test -f vendor/autoload.php
@@ -120,7 +118,7 @@ description = "Verify the mise task contract and release scripts"
 run = """
 #!/usr/bin/env bash
 set -euo pipefail
-for f in mise.toml lefthook.yml hk.pkl composer.json package.json scripts/cut-release.sh scripts/make-release-zip.sh scripts/vendor-guard.mjs rules/unprefixed-vendor-reference.yml.tmpl portal-builder.php; do
+for f in mise.toml hk.pkl composer.json package.json scripts/cut-release.sh scripts/make-release-zip.sh scripts/vendor-guard.mjs rules/unprefixed-vendor-reference.yml.tmpl portal-builder.php; do
   test -f "${f}" || { echo "doctor: missing ${f}" >&2; exit 1; }
 done
 mise tasks | grep -q '^setup ' || { echo 'doctor: setup task missing' >&2; exit 1; }

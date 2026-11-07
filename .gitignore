@@ -52,7 +52,6 @@ Thumbs.db
 !.gitattributes
 !.github
 !/mise.toml
-!/lefthook.yml
 !site/.gitignore
 
 # Ignore files related to linting, code style checks, and code quality, but keep phpcs.xml
