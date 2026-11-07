@@ -98,7 +98,9 @@ if ( ! class_exists( 'Portal_File_Handler' ) ) {
 		}
 
 		private function store_temp_file( $type, $tmp_name, $file_key, $suffix = '' ) {
-			// if anonymize
+			// Definition submit anonymizes via All Intersections. This local
+			// exiftool/qpdf/lame strip is last-resort for the legacy path when
+			// the API is not configured.
 
 			switch ( $type ) {
 				case 'application/pdf':
@@ -149,55 +151,48 @@ if ( ! class_exists( 'Portal_File_Handler' ) ) {
 		}
 
 		private function store_anonymized_pdf( $tmp_name, $file_key, $suffix = '' ) {
-			if ( ! $this->isEnabled( 'shell_exec' ) ) {
-				throw new Exception( 'shell_exec is disabled' );
+			if ( ! $this->isEnabled( 'exec' ) ) {
+				throw new Exception( 'exec is disabled' );
 			}
 
-			$path   = $this->store_pdf( $tmp_name, $file_key, $suffix );
-			$target = escapeshellarg( $path );
+			$path = $this->store_pdf( $tmp_name, $file_key, $suffix );
 
 			$exiftool_path = $this->binary_tool( 'exiftool' );
 			$qpdf_path     = $this->binary_tool( 'qpdf' );
 
-			shell_exec( $exiftool_path . " -overwrite_original -all= $target 2>&1 3>&1" );
-			shell_exec( $qpdf_path . " --linearize $target $target.new" );
+			exec( escapeshellarg( $exiftool_path ) . ' -overwrite_original -all= ' . escapeshellarg( $path ) . ' 2>&1' );
+			exec( escapeshellarg( $qpdf_path ) . ' --linearize ' . escapeshellarg( $path ) . ' ' . escapeshellarg( $path . '.new' ) . ' 2>&1' );
 
-			// remove any wrapping quotes from target
-			$target = trim( $target, "'" );
-			$target = trim( $target, '"' );
-
-			if ( ! rename( $target . '.new', $target ) ) {
+			if ( ! rename( $path . '.new', $path ) ) {
 				throw new Exception( 'Failed to rename anonymized file' );
 			}
 		}
 
 		private function store_anonymized_mp3( $tmp_name, $file_key, $suffix = '' ) {
 
-			if ( ! $this->isEnabled( 'shell_exec' ) ) {
-				throw new Exception( 'shell_exec is disabled' );
+			if ( ! $this->isEnabled( 'exec' ) ) {
+				throw new Exception( 'exec is disabled' );
 			}
 
-			$original_target    = $this->store_mp3( $tmp_name, $file_key, $suffix );
-			$original_altTarget = $original_target . '.alt.mp3';
-			$target             = escapeshellarg( $original_target );
-			$altTarget          = escapeshellarg( $original_altTarget );
+			$target    = $this->store_mp3( $tmp_name, $file_key, $suffix );
+			$altTarget = $target . '.alt.mp3';
 
 			$exiftool_path = $this->binary_tool( 'exiftool' );
 			$lame_path     = $this->binary_tool( 'lame' );
 			$eyed3_path    = $this->binary_tool( 'eyed3' );
-			$perl_path     = $this->binary_tool( 'perl' );
 
-			$existingBitrate = shell_exec( "$exiftool_path -AudioBitrate " . $target . " | $perl_path -lpe 's/.*: (\d+) kbps/$1/' 2>&1" );
-			$existingBitrate = rtrim( $existingBitrate );
-
-			if ( filter_var( $existingBitrate, FILTER_VALIDATE_INT ) === false ) {
-				$existingBitrate = '256';
+			// exiftool prints e.g. "Audio Bitrate : 128 kbps".
+			$existingBitrate = '256';
+			$probe           = array();
+			exec( escapeshellarg( $exiftool_path ) . ' -AudioBitrate ' . escapeshellarg( $target ) . ' 2>&1', $probe );
+			if ( 1 === preg_match( '/:\s*(\d+)\s*kbps/', implode( "\n", $probe ), $matches ) ) {
+				$existingBitrate = $matches[1];
 			}
 
-			shell_exec( "$lame_path -b " . $existingBitrate . ' ' . $target . ' ' . $altTarget . ' 2>&1' );
-			shell_exec( "$eyed3_path --remove-all --remove-all-images --remove-all-comments --remove-all-lyrics " . $altTarget . ' 1>/dev/null 2>/dev/null' );
+			exec( escapeshellarg( $lame_path ) . ' -b ' . escapeshellarg( $existingBitrate ) . ' ' . escapeshellarg( $target ) . ' ' . escapeshellarg( $altTarget ) . ' 2>&1' );
+			exec( escapeshellarg( $eyed3_path ) . ' --remove-all --remove-all-images --remove-all-comments --remove-all-lyrics ' . escapeshellarg( $altTarget ) . ' 1>/dev/null 2>/dev/null' );
 
-			if ( ! rename( $original_altTarget, $original_target ) ) {
+			if ( ! rename( $altTarget, $target ) ) {
 				throw new Exception( 'Failed to rename anonymized file' );
 			}
 		}
@@ -208,7 +203,7 @@ if ( ! class_exists( 'Portal_File_Handler' ) ) {
 
 		private function binary_tool( $tool ) {
 
-			$path = get_option( 'pb_' . $tool . '_path', '/usr/local/bin/' . $tool );
+			$path = Portal_Options::get( 'dg_' . $tool . '_path', '/usr/local/bin/' . $tool );
 			$path = escapeshellarg( $path );
 
 			// remove surrounding quotes

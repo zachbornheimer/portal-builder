@@ -1,3 +1,4 @@
+# Use `mise run …` as the entrypoint. This Makefile is legacy.
 # Plugin name
 PLUGIN_NAME := portal-builder
 
@@ -26,30 +27,17 @@ setup:
 	mkdir -p $(BUILD_DIR) $(DIST_DIR)
 	mkdir -p assets/dist
 
-# Ensure git-archive-all is installed
-install-git-archive-all:
-	@if ! command -v git-archive-all &> /dev/null; then \
-		if [ "$(MAKECMDGOALS)" = "install-git-archive-all" ]; then \
-			echo "Installing git-archive-all..."; \
-		fi; \
-		pip install git-archive-all; \
-	else \
-		if [ "$(MAKECMDGOALS)" = "install-git-archive-all" ]; then \
-			echo "git-archive-all is already installed."; \
-		fi; \
-	fi
-
 # Update submodules to ensure they are on the latest commit
 update-submodules:
 	git submodule update --init --recursive
 
 # Install Node.js dependencies
 install-node:
-	@if ! command -v node &> /dev/null; then \
+	@if ! command -v node >/dev/null 2>&1; then \
 		echo "Node.js is not installed. Please install Node.js first."; \
 		exit 1; \
 	fi
-	@if ! command -v npm &> /dev/null; then \
+	@if ! command -v npm >/dev/null 2>&1; then \
 		echo "npm is not installed. Please install npm first."; \
 		exit 1; \
 	fi
@@ -59,19 +47,22 @@ install-node:
 build-svelte:
 	npm run build
 
-# Build the plugin including submodules using git-archive-all
-build: clean setup install-prod install-node build-svelte install-git-archive-all update-submodules
-	git-archive-all -9 $(shell find vendor -type f | sed 's/^/--include="/;s/$$/"/') $(shell find assets/dist -type f | sed 's/^/--include="/;s/$$/"/') $(OUTPUT_FILE)
+# Build the plugin ZIP (HEAD + submodules + vendor + assets/dist)
+build: clean setup install-prod install-node build-svelte update-submodules
+	bash scripts/make-release-zip.sh
 
 # Install composer dependencies (for dev)
 install-dev:
 	rm -rf vendor
 	composer install
 
-# Install composer dependencies (for production)
+# Install composer dependencies (for production). composer's post-install hook
+# runs scripts/prefix-vendor.sh, which writes vendor-prefixed/ (the only
+# third-party code the plugin loads and the zip ships).
 install-prod:
-	rm -rf vendor
+	rm -rf vendor vendor-prefixed
 	composer install --no-dev --optimize-autoloader
+	bash scripts/prefix-vendor.sh
 
 # Run build for production
 release: install-prod build
@@ -84,4 +75,4 @@ dev: clean setup install-dev install-node build-svelte
 svelte: install-node build-svelte
 	@echo "Svelte components built successfully."
 
-.PHONY: all clean setup build install-git-archive-all update-submodules install-dev install-prod release dev install-node build-svelte svelte
+.PHONY: all clean setup build update-submodules install-dev install-prod release dev install-node build-svelte svelte

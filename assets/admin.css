@@ -150,3 +150,97 @@ input[type="url"] {
   height: 25px;
   padding: 5px !important;
 }
+
+/* Default Settings owns these rows; do not restyle other wp-admin screens. */
+.dg-default-settings .form-table > tbody > tr {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.dg-default-settings .form-table > tbody > tr > th {
+  flex: 0 0 200px;
+  box-sizing: border-box;
+}
+
+.dg-default-settings .form-table > tbody > tr > td {
+  flex: 1 1 22rem;
+  min-width: 0;
+  margin: 0;
+}
+
+#wpbody-content .dg-default-settings .dg-settings-control-row,
+#wpbody-content .dg-default-settings .dg-settings-check-row,
+#wpbody-content .dg-default-settings p.submit {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dg-default-settings .dg-settings-control-row,
+.dg-default-settings p.submit {
+  flex-wrap: wrap;
+}
+
+.dg-default-settings .dg-settings-check-row {
+  margin: 8px 0;
+}
+
+.dg-default-settings .dg-settings-check-row input[type="checkbox"] {
+  flex: 0 0 auto;
+  margin: 0;
+}
+
+.dg-default-settings .dg-settings-control-row > input:not([type="hidden"]),
+.dg-default-settings .dg-settings-control-row > select {
+  flex: 1 1 12rem;
+  min-width: 0;
+  width: auto;
+}
+
+.dg-default-settings input:not([type="checkbox"]):not([type="radio"]),
+.dg-default-settings select,
+.dg-default-settings textarea {
+  max-width: 100%;
+  box-sizing: border-box;
+  /* Full-width controls must not add wp-admin's horizontal input margins. */
+  margin-inline: 0;
+}
+
+.dg-default-settings .pb-brand-colors {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+  gap: 8px;
+  max-width: 48rem;
+}
+
+.dg-default-settings .data-table > [id] {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.dg-default-settings .data-table > [id] > .flex-1 {
+  flex: 1 1 16rem;
+  min-width: 0;
+}
+
+.dg-default-settings .data-table > [id] > .flex-shrink-0 {
+  margin-left: 0;
+}
+
+.dg-default-settings .data-table .delete-row {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (max-width: 782px) {
+  .dg-default-settings .form-table > tbody > tr > th,
+  .dg-default-settings .form-table > tbody > tr > td {
+    flex-basis: 100%;
+    width: 100%;
+  }
+}

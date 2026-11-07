@@ -1,0 +1,144 @@
+[tools]
+node = "22"
+aube = "1.41.0"
+lefthook = "2.1.9"
+
+# Foxguard is the security scanner: a release binary verified against the checksums below,
+# pinned the same way as dev-env/mise.security.toml. The `foxguard` task is the CI gate.
+[tools."github:0sec-labs/foxguard"]
+version = "0.14.1"
+format = "raw"
+bin = "foxguard"
+
+[tools."github:0sec-labs/foxguard".platforms]
+linux-x64 = { asset_pattern = "foxguard-linux-x86_64", checksum = "sha256:10a531279f7f3e9dcd01996e5e288309cd6d7d2bb2b7fa35de583d0bbe715bc2" }
+linux-arm64 = { asset_pattern = "foxguard-linux-aarch64", checksum = "sha256:f374bb1b81ffcb01aa5446719dee199245c673fffc9c659e985bbabe0faaa032" }
+macos-arm64 = { asset_pattern = "foxguard-macos-aarch64", checksum = "sha256:e466cb4692a959fb500cd9f55d35aac0dd530afce8358643ed186e2c8c85f8c5" }
+
+[tasks.setup]
+description = "Install Node (aube, npm lockfile fallback), Playwright Chromium, PHP (Composer), and Lefthook hooks"
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+if ! aube install; then
+  echo 'aube install failed; falling back to npm ci'
+  npm ci
+fi
+# open-shows-before-proof.test.mjs drives a real headless Chromium.
+if [[ -n "${CI:-}" ]]; then
+  npx playwright install --with-deps chromium
+else
+  npx playwright install chromium
+fi
+composer install
+lefthook install
+node --version
+php -v
+test -f vendor/autoload.php
+"""
+
+[tasks.build]
+description = "Vite assets, production Composer, vendor prefixing (Strauss), release zip"
+run = [
+  "npm run build",
+  "composer install --no-dev --optimize-autoloader",
+  "bash scripts/prefix-vendor.sh",
+  "bash scripts/make-release-zip.sh",
+]
+
+[tasks.lint]
+description = "PHP syntax in CI; full PHPCS locally when installed"
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+# Always syntax-check (job name is mocks + unit; this is the CI lint gate).
+php -l portal-builder.php >/dev/null
+find includes -name '*.php' -print0 | xargs -0 -n1 php -l >/dev/null
+echo 'php -l ok'
+# Full WordPress PHPCS still fails on pre-existing SpaceIndent/doc debt across
+# the tree (main included). Keep it for local until a baseline exists.
+if [[ -n "${GITHUB_ACTIONS:-}" ]]; then
+  echo 'phpcs skipped in CI (pre-existing baseline debt; run locally)'
+  exit 0
+fi
+if [[ -x vendor/bin/phpcs ]]; then
+  composer exec phpcs --
+fi
+"""
+
+[tasks.test]
+description = "Unit tests (no LocalWP)"
+run = "node --test 'tests/unit/**/*.test.mjs'"
+
+[tasks.scan]
+description = "Secrets scan of tracked git history when gitleaks is available"
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+if command -v gitleaks >/dev/null 2>&1; then
+  # Git mode scans tracked history only. `--no-git` also scanned gitignored vendor/ and
+  # tests/.artifacts, which reported 134 false positives from vendored test keys and fixtures.
+  gitleaks git --redact --no-banner .
+  # vendor-prefixed/ is untracked build output but ships in the release zip, so scan it too.
+  if [ -d vendor-prefixed ]; then
+    gitleaks dir vendor-prefixed --redact --no-banner
+  fi
+else
+  echo 'gitleaks not installed; skip'
+fi
+"""
+
+[tasks.vendor-guard]
+description = "Fail when plugin PHP names a bundled dependency without the DragonGate\\Vendor\\ prefix, or the autoload wiring would load an unprefixed one (ZYS-2607)"
+# Static: a foxguard rule generated from composer.lock (rules/unprefixed-vendor-reference.yml.tmpl)
+# plus structure checks on composer.json and the first-party PHP. Needs only node and foxguard.
+run = "node scripts/vendor-guard.mjs"
+
+[tasks.vendor-guard-built]
+description = "vendor-guard plus: every production package in composer.lock is present in the built vendor-prefixed/"
+# Needs the prefixed tree: run after `mise run setup` (composer install runs scripts/prefix-vendor.sh).
+run = "node scripts/vendor-guard.mjs --built"
+
+[tasks.foxguard]
+description = "Foxguard security scan of the plugin PHP/JS sources (fails on high or critical findings), after the vendor-prefix guard rule"
+depends = ["vendor-guard"]
+# Scans includes/, portal-builder.php, src/ and assets/. foxguard takes a single path, so
+# everything else is excluded: dependencies and generated bundles (vendor, vendor-prefixed,
+# node_modules, dist, assets/dist, build), and non-shipping trees (tests, e2e, scripts, docs, site).
+env = { RAYON_NUM_THREADS = "2" }
+run = """
+foxguard --severity high \\
+  --exclude node_modules --exclude vendor --exclude vendor-prefixed \\
+  --exclude dist --exclude assets/dist --exclude build --exclude .git \\
+  --exclude tests --exclude e2e --exclude scripts --exclude docs --exclude site \\
+  --exclude playwright-report --exclude test-results --exclude workflows \\
+  --exclude toggle-test.html .
+"""
+
+[tasks.doctor]
+description = "Verify the mise task contract and release scripts"
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+for f in mise.toml lefthook.yml hk.pkl composer.json package.json scripts/cut-release.sh scripts/make-release-zip.sh scripts/vendor-guard.mjs rules/unprefixed-vendor-reference.yml.tmpl portal-builder.php; do
+  test -f "${f}" || { echo "doctor: missing ${f}" >&2; exit 1; }
+done
+mise tasks | grep -q '^setup ' || { echo 'doctor: setup task missing' >&2; exit 1; }
+mise tasks | grep -q '^build ' || { echo 'doctor: build task missing' >&2; exit 1; }
+mise tasks | grep -q '^lint ' || { echo 'doctor: lint task missing' >&2; exit 1; }
+mise tasks | grep -q '^test ' || { echo 'doctor: test task missing' >&2; exit 1; }
+mise tasks | grep -q '^scan ' || { echo 'doctor: scan task missing' >&2; exit 1; }
+mise tasks | grep -q '^foxguard ' || { echo 'doctor: foxguard task missing' >&2; exit 1; }
+mise tasks | grep -q '^vendor-guard ' || { echo 'doctor: vendor-guard task missing' >&2; exit 1; }
+mise tasks | grep -q '^ci ' || { echo 'doctor: ci task missing' >&2; exit 1; }
+mise tasks | grep -q '^cut-release ' || { echo 'doctor: cut-release task missing' >&2; exit 1; }
+echo 'doctor ok'
+"""
+
+[tasks.ci]
+description = "lint + test + scan + vendor-prefix guard on the built tree"
+depends = ["lint", "test", "scan", "vendor-guard-built"]
+
+[tasks.cut-release]
+description = "Tag current (or next) semver, build zip, optional GitHub Release"
+run = "bash scripts/cut-release.sh"

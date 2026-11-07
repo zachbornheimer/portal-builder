@@ -1,9 +1,15 @@
 <?php
 
-require_once plugin_dir_path( __FILE__ ) . '../vendor/autoload.php';
+require_once plugin_dir_path( __FILE__ ) . '../vendor-prefixed/autoload.php';
 
-use PHPMailer\PHPMailer\PHPMailer;
-use PHPMailer\PHPMailer\Exception;
+if ( ! class_exists( 'Portal_Notification_When' ) ) {
+	if ( is_readable( __DIR__ . '/Submission/class-portal-notification-when.php' ) ) {
+		require_once __DIR__ . '/Submission/class-portal-notification-when.php';
+	}
+}
+
+use DragonGate\Vendor\PHPMailer\PHPMailer\PHPMailer;
+use DragonGate\Vendor\PHPMailer\PHPMailer\Exception;
 
 if ( ! class_exists( 'Portal_Submission' ) ) {
 
@@ -22,15 +28,15 @@ if ( ! class_exists( 'Portal_Submission' ) ) {
 
 			// Retrieve Google Sheets, Google Drive, and client secret keys from WordPress options
 			$credentials = array(
-				'access_key'    => get_option( 'pb_google_access_key' ),
-				'client_secret' => get_option( 'pb_google_secret_key' ),
+				'access_key'    => Portal_Options::get( 'dg_google_access_key' ),
+				'client_secret' => Portal_Options::get( 'dg_google_secret_key' ),
 			);
 
 			// Initialize the Zysys_FileStore object with the retrieved credentials
 			$this->file_store = new Zysys_FileStore( $credentials );
 
 			if ( $this->file_store->__get( 'update_access_token' ) ) {
-				update_option( 'pb_google_access_key', $this->file_store->__get( 'update_access_token' ) );
+				Portal_Options::set( 'dg_google_access_key', $this->file_store->__get( 'update_access_token' ) );
 			}
 		}
 
@@ -46,11 +52,6 @@ if ( ! class_exists( 'Portal_Submission' ) ) {
 			try {
 				// Validate nonce
 				$this->validate_nonce();
-
-				// Example: Collect payment if required
-				if ( $this->should_collect_payment( $data ) ) {
-					$this->collect_payment( $data );
-				}
 
 				// Example: Generate PDF
 				if ( $this->should_generate_pdf( $data ) ) {
@@ -71,30 +72,20 @@ if ( ! class_exists( 'Portal_Submission' ) ) {
 				if ( $this->should_send_email( $data ) ) {
 					$this->send_email( $data );
 				}
-			} catch ( Exception $e ) {
-				// Handle exceptions (logging, showing error messages, etc.)
-				if ( WP_DEBUG ) {
-					wp_die( $e->getMessage() );
-				} else {
-					error_log( $e->getMessage() );
-					if ( WP_DEBUG ) {
-						wp_die( $e->getMessage() );
-					} else {
-						wp_die( 'An error occurred during submission processing.' );
-					}
+			} catch ( \Exception $e ) {
+				if ( function_exists( 'dg_record_public_submit_failure' ) ) {
+					dg_record_public_submit_failure( $e );
+					return false;
 				}
+				if ( class_exists( 'Portal_Submission_Pipeline' ) ) {
+					Portal_Submission_Pipeline::record_public_failure( $e );
+					Portal_Submission_Pipeline::mark_public_errors();
+					return false;
+				}
+				error_log( 'Portal Submission Error: ' . $e->getMessage() );
+				return false;
 			}
-		}
-
-		// Example method to determine if payment should be collected
-		private function should_collect_payment( $data ) {
-			return isset( $data['requires_payment'] ) && $data['requires_payment'] === 'yes';
-		}
-
-		// Example payment processing method
-		private function collect_payment( $data ) {
-			// Integrate with Stripe or another payment processor
-			// Example code here
+			return true;
 		}
 
 		// Example method to determine if a PDF should be generated
@@ -133,17 +124,17 @@ if ( ! class_exists( 'Portal_Submission' ) ) {
 			// get the post title from the id
 			$portal_name = get_the_title( $data['post_id'] );
 
-			$raw_notification_date = get_post_meta( $data['post_id'], '_portal_applicant_notification_date', true );
-			// turn the raw date into a human readable date like Monday, June 15, 2021
-			$application_notification_date = date( 'l, F j, Y', strtotime( $raw_notification_date ) );
+			$application_notification_date = class_exists( 'Portal_Notification_When' )
+				? Portal_Notification_When::phrase( $data['post_id'] )
+				: '';
 
 			$link = $this->generate_receipt_link();
 
-			$fromEmail      = get_option( 'pb_receipt_from_email', '' );
-			$fromName       = get_option( 'pb_receipt_from_name', '' );
-			$receiptSubject = get_option( 'pb_receipt_subject', '' );
-			$receiptBody    = get_option( 'pb_receipt_body', '' );
-			$receiptAltBody = get_option( 'pb_receipt_alt_body', '' );
+			$fromEmail      = Portal_Options::get( 'dg_receipt_from_email', '' );
+			$fromName       = Portal_Mailer::from_name();
+			$receiptSubject = Portal_Options::get( 'dg_receipt_subject', '' );
+			$receiptBody    = Portal_Options::get( 'dg_receipt_body', '' );
+			$receiptAltBody = Portal_Options::get( 'dg_receipt_alt_body', '' );
 
 			$mail = new PHPMailer( true );
 
@@ -165,7 +156,7 @@ if ( ! class_exists( 'Portal_Submission' ) ) {
 			$receiptBody = wpautop( $receiptBody );
 
 			try {
-				$mail->setFrom( $fromEmail, $portal_name . ' Application Automated Receipt' );
+				$mail->setFrom( $fromEmail, $fromName );
 				$mail->addAddress( $data['sub_email'] );
 				// $mail->addAttachment($outdir . 'Application_' . $appId . '.pdf');
 				$mail->Subject = $receiptSubject;
@@ -320,18 +311,22 @@ if ( ! class_exists( 'Portal_Submission' ) ) {
 
 		/**
 		 * Process completion tracking data from pb_group shortcodes
-		 * 
+		 *
 		 * This method handles the completion tracking fields that are automatically
 		 * generated by pb_group shortcodes with track-completion attributes.
-		 * 
+		 *
 		 * @param array $data The form submission data
 		 * @return array Modified data with processed completion tracking
 		 */
 		private function process_completion_tracking( $data ) {
 			// Find all completion tracking fields (fields ending with _complete)
-			$completion_fields = array_filter( $data, function( $key ) {
-				return strpos( $key, '_complete' ) !== false;
-			}, ARRAY_FILTER_USE_KEY );
+			$completion_fields = array_filter(
+				$data,
+				function ( $key ) {
+					return strpos( $key, '_complete' ) !== false;
+				},
+				ARRAY_FILTER_USE_KEY
+			);
 
 			// Log completion tracking for debugging (only in debug mode)
 			if ( WP_DEBUG && ! empty( $completion_fields ) ) {
@@ -361,7 +356,7 @@ if ( ! class_exists( 'Portal_Submission' ) ) {
 			$args_for_url                   = array();
 			$args_for_url['app-id']         = $this->file_handler->get_appId();
 			$args_for_url['date-submitted'] = date( 'M d, Y' );
-			$args_for_url['epost-id']       = pb_encrypt_str( $this->raw_file_data['post_id'] );
+			$args_for_url['epost-id']       = dg_encrypt_str( $this->raw_file_data['post_id'] );
 			$args_for_url['portal-name']    = get_the_title( $this->raw_file_data['post_id'] );
 
 			// merge the raw file data into the args for the url
@@ -375,14 +370,14 @@ if ( ! class_exists( 'Portal_Submission' ) ) {
 			}
 
 			$args_for_url['files'] = json_encode( $this->file_handler->stored_file_paths );
-			if ( defined( 'PB_FILE_LABELS' ) ) {
-				$args_for_url['file_labels'] = json_encode( PB_FILE_LABELS );
+			if ( defined( 'DG_FILE_LABELS' ) ) {
+				$args_for_url['file_labels'] = json_encode( DG_FILE_LABELS );
 			}
 
 			// remove null values
 			$args_for_url = array_filter( $args_for_url );
 
-			$receipt_generator = get_option( 'pb_receipt_generator', '' );
+			$receipt_generator = Portal_Options::get( 'dg_receipt_generator', '' );
 			$link              = $receipt_generator . '?' . http_build_query( $args_for_url, '', '&', PHP_QUERY_RFC3986 );
 
 			if ( $receipt_generator ) {

@@ -1,0 +1,11 @@
+{
+  "packages": [
+    { "name": "google/apiclient", "autoload": { "psr-4": { "Google\\": "src/" }, "classmap": ["src/aliases.php"] } },
+    { "name": "guzzlehttp/guzzle", "autoload": { "psr-4": { "GuzzleHttp\\": "src/" } } },
+    { "name": "psr/log", "autoload": { "psr-4": { "Psr\\Log\\": "src" } } },
+    { "name": "symfony/polyfill-php80", "autoload": { "psr-4": { "Symfony\\Polyfill\\Php80\\": "" } } }
+  ],
+  "packages-dev": [
+    { "name": "squizlabs/php_codesniffer", "autoload": { "psr-4": { "PHP_CodeSniffer\\": "src/" } } }
+  ]
+}

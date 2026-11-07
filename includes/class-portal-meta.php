@@ -23,7 +23,30 @@ if ( ! class_exists( 'Portal_Meta' ) ) {
 			);
 		}
 
+		/**
+		 * Whether the Svelte wizard is a post.php surface.
+		 *
+		 * Product editing is the setup screen. post.php is Legacy fields only.
+		 *
+		 * @return bool
+		 */
+		public static function registers_wizard_on_post_editor() {
+			return false;
+		}
+
 		public function add_meta_boxes() {
+			// Leftover field boxes stay registered for save_post; CSS shows them only on Legacy fields.
+			if ( self::registers_wizard_on_post_editor() ) {
+				add_meta_box(
+					'portal_setup_wizard',
+					__( 'Portal setup', 'dragongate-portals' ),
+					array( $this, 'render_wizard_mount' ),
+					'portal',
+					'normal',
+					'high'
+				);
+			}
+
 			foreach ( $this->meta_boxes as $meta_box ) {
 				add_meta_box(
 					$meta_box['id'],
@@ -35,6 +58,26 @@ if ( ! class_exists( 'Portal_Meta' ) ) {
 					$meta_box['fields']
 				);
 			}
+		}
+
+		/**
+		 * Svelte wizard mount (Start → Build → Map → Publish).
+		 *
+		 * @param WP_Post $post Current post.
+		 */
+		public function render_wizard_mount( $post ) {
+			$portal_id = (int) $post->ID;
+			$rest_root = esc_url_raw( rest_url( 'dragongate/v1' ) );
+			$nonce     = wp_create_nonce( 'wp_rest' );
+			$title     = get_the_title( $portal_id );
+			printf(
+				'<div data-portal-wizard class="dg-wizard-root" data-portal-id="%1$d" data-rest-root="%2$s" data-rest-nonce="%3$s" data-portal-title="%4$s" data-wp-rest-root="%5$s"></div>',
+				$portal_id,
+				esc_attr( $rest_root ),
+				esc_attr( $nonce ),
+				esc_attr( $title ),
+				esc_attr( esc_url_raw( rest_url() ) )
+			);
 		}
 
 		public function render_meta_box( $post, $meta_box ) {
@@ -96,6 +139,13 @@ if ( ! class_exists( 'Portal_Meta' ) ) {
 						echo '</div>';
 						break;
 
+					case 'text':
+						echo '<div class="form-group">';
+						echo '<label for="' . esc_attr( $field['id'] ) . '">' . $label . '</label>';
+						echo '<input type="text" id="' . esc_attr( $field['id'] ) . '" name="' . esc_attr( $field['id'] ) . '" class="form-control" value="' . esc_attr( $meta_value ) . '" placeholder="' . $placeholder . '" />';
+						echo '</div>';
+						break;
+
 					case 'textarea':
 						echo '<div class="form-group">';
 						echo '<label for="' . esc_attr( $field['id'] ) . '">' . $label . '</label>';
@@ -129,37 +179,136 @@ if ( ! class_exists( 'Portal_Meta' ) ) {
 
 			foreach ( $this->meta_boxes as $meta_box ) {
 				foreach ( $meta_box['fields'] as $field ) {
-
-					if ( isset( $_POST[ $field['id'] ] ) ) {
-						update_post_meta( $post_id, $field['id'], sanitize_text_field( $_POST[ $field['id'] ] ) );
-					} else {
+					if ( ! isset( $_POST[ $field['id'] ] ) ) {
 						delete_post_meta( $post_id, $field['id'] );
+						continue;
 					}
+
+					$raw = wp_unslash( $_POST[ $field['id'] ] );
+
+					if ( $this->is_json_meta_field( $field ) ) {
+						$this->save_json_meta( $post_id, $field['id'], $raw );
+						continue;
+					}
+
+					update_post_meta( $post_id, $field['id'], sanitize_text_field( $raw ) );
 				}
 			}
 		}
 
-		public function enqueue_scripts() {
-		// Enqueue local Tailwind CSS with custom zysys-blue colors
-		wp_enqueue_style( 'dragongate-portal-css', plugins_url( '../assets/dist/dragongate-portal.css', __FILE__ ), array(), PB_VERSION );
-			
-			// Enqueue Dashicons for trash icon
+		/**
+		 * Whether a field stores structured JSON (must not run through sanitize_text_field).
+		 *
+		 * @param array $field Meta field config.
+		 * @return bool
+		 */
+		private function is_json_meta_field( $field ) {
+			$type = isset( $field['type'] ) ? $field['type'] : '';
+			$id   = isset( $field['id'] ) ? $field['id'] : '';
+
+			if ( 'data-table' === $type ) {
+				return true;
+			}
+
+			$json_ids = array( '_portal_record_keeping', '_portal_file_backups' );
+			return in_array( $id, $json_ids, true );
+		}
+
+		/**
+		 * Persist a JSON array meta value without sanitize_text_field (which mangles quotes).
+		 *
+		 * @param int    $post_id Post ID.
+		 * @param string $meta_key Meta key.
+		 * @param mixed  $raw     Unslashed POST value.
+		 */
+		private function save_json_meta( $post_id, $meta_key, $raw ) {
+			if ( ! is_string( $raw ) ) {
+				return;
+			}
+
+			$decoded = json_decode( $raw, true );
+			if ( JSON_ERROR_NONE !== json_last_error() || ! is_array( $decoded ) ) {
+				return;
+			}
+
+			update_post_meta( $post_id, $meta_key, wp_json_encode( $decoded ) );
+		}
+
+		/**
+		 * Enqueue admin assets on portal edit screens only.
+		 *
+		 * @param string $hook_suffix Current admin page hook.
+		 */
+		public function enqueue_scripts( $hook_suffix = '' ) {
+			$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+			if ( ! $screen || 'portal' !== $screen->post_type ) {
+				return;
+			}
+			// edit.php list table: Tailwind preflight + Svelte bundle break WP sticky thead/scroll.
+			if ( 'edit' === $screen->base ) {
+				return;
+			}
+
+			wp_enqueue_style(
+				'dragongate-portal-css',
+				plugins_url( '../assets/dist/dragongate-portal.css', __FILE__ ),
+				array(),
+				DG_VERSION
+			);
+
+			wp_enqueue_style(
+				'dg-portal-admin',
+				plugins_url( '../assets/portal-admin.css', __FILE__ ),
+				array( 'dragongate-portal-css' ),
+				DG_VERSION
+			);
+
 			wp_enqueue_style( 'dashicons' );
-			
-			// Enqueue existing styles after Tailwind
-			wp_enqueue_style( 'portal-meta-box-styles', plugins_url( '../assets/portal-meta-box.css', __FILE__ ), array( 'dragongate-portal-css' ), PB_VERSION );
-			wp_enqueue_script( 'portal-meta-box-script', plugins_url( '../assets/portal-meta-box.js', __FILE__ ), [ 'jquery' ], PB_VERSION, true );
-			wp_enqueue_script( 'pb-url-validation', plugins_url( '../assets/url-validation.js', __FILE__ ), [ 'jquery' ], PB_VERSION, true );
-			
-			// Enqueue Svelte dragongate portal
-			wp_enqueue_script( 'dragongate-portal-js', plugins_url( '../assets/dist/dragongate-portal.js', __FILE__ ), array(), PB_VERSION, true );
-			// Add type="module" attribute
-			add_filter( 'script_loader_tag', function( $tag, $handle ) {
-				if ( 'dragongate-portal-js' === $handle ) {
-					return str_replace( '<script ', '<script type="module" ', $tag );
-				}
-				return $tag;
-			}, 10, 2 );
+
+			wp_enqueue_style(
+				'portal-meta-box-styles',
+				plugins_url( '../assets/portal-meta-box.css', __FILE__ ),
+				array( 'dragongate-portal-css' ),
+				DG_VERSION
+			);
+			wp_enqueue_script(
+				'portal-meta-box-script',
+				plugins_url( '../assets/portal-meta-box.js', __FILE__ ),
+				array( 'jquery' ),
+				DG_VERSION,
+				true
+			);
+			wp_enqueue_script(
+				'dg-url-validation-js',
+				plugins_url( '../assets/url-validation.js', __FILE__ ),
+				array( 'jquery' ),
+				DG_VERSION,
+				true
+			);
+
+			// Shared Svelte bundle: data tables on Legacy fields only — not a wizard surface.
+			$legacy_fields = class_exists( 'Portal_Setup_Screen' )
+				&& Portal_Setup_Screen::is_legacy_fields_screen();
+			if ( $legacy_fields ) {
+				wp_enqueue_script(
+					'dragongate-portal-js',
+					plugins_url( '../assets/dist/dragongate-portal.js', __FILE__ ),
+					array(),
+					DG_VERSION,
+					true
+				);
+				add_filter(
+					'script_loader_tag',
+					static function ( $tag, $handle ) {
+						if ( 'dragongate-portal-js' === $handle ) {
+							return str_replace( '<script ', '<script type="module" ', $tag );
+						}
+						return $tag;
+					},
+					10,
+					2
+				);
+			}
 		}
 
 		public function validate_url_callback() {

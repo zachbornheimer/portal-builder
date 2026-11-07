@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "title": "Generic Host Portal",
+  "fields": [
+    {
+      "id": "applicant",
+      "type": "applicant_pack",
+      "label": "Your Information",
+      "required": true
+    },
+    {
+      "id": "work_title",
+      "type": "short_text",
+      "label": "Title",
+      "required": true
+    },
+    {
+      "id": "file",
+      "type": "score_file",
+      "label": "File",
+      "required": true,
+      "help": "PDF",
+      "fileSuffix": "_FILE"
+    }
+  ],
+  "mapping": { "sheets": [], "drive": [] },
+  "publish": {
+    "deadline": null,
+    "timezone": "America/New_York",
+    "applicationFee": null,
+    "forceClosed": false
+  },
+  "options": { "anonymize": false, "skipHeader": false, "guidelinesUrl": null }
+}

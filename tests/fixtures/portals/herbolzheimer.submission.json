@@ -1,0 +1,26 @@
+{
+  "portalId": "herbolzheimer",
+  "values": {
+    "sub_title": "Mr",
+    "sub_name": "John Doe",
+    "sub_email": "applicant@example.com",
+    "sub_inst_affil": "ISJAC",
+    "sub_address_first_part": "123 Main St",
+    "sub_city": "Raleigh",
+    "sub_country": "US",
+    "sub_state": "NC",
+    "sub_zip": "27601",
+    "sub_phone": "+1-919-555-0100",
+    "sub_work_title": "Symphony No. 1"
+  },
+  "files": {
+    "score": {
+      "name": "sample-score.pdf",
+      "path": "tests/fixtures/files/sample-score.pdf"
+    },
+    "recording": {
+      "name": "sample-recording.mp3",
+      "path": "tests/fixtures/files/sample-recording.mp3"
+    }
+  }
+}

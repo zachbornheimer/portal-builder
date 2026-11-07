@@ -1,5 +1,5 @@
 <?php
-function pb_application_file_review_shortcode( $atts ) {
+function dg_application_file_review_shortcode( $atts ) {
 	// Make sure the necessary condition is met (e.g., 'review_nonce' is set in the POST request)
 	if ( ! isset( $_POST['review_nonce'] ) ) {
 		return '';
@@ -7,7 +7,7 @@ function pb_application_file_review_shortcode( $atts ) {
 
 	// Retrieve stored file paths from the file handler
 	global $file_handler;
-	$file_handler = defined( 'PB_FILE_HANDLER' ) ? PB_FILE_HANDLER : $file_handler;
+	$file_handler = defined( 'DG_FILE_HANDLER' ) ? DG_FILE_HANDLER : $file_handler;
 	if ( ! $file_handler ) {
 		return '<p>File handler not initialized.</p>';
 	}
@@ -29,7 +29,7 @@ function pb_application_file_review_shortcode( $atts ) {
 					$file_error = $file['error'];
 
 					if ( $file_error === 0 ) {
-						# get the correct extension based on MIME
+						// get the correct extension based on MIME
 						$extension = '';
 						switch ( $file_type ) {
 							case 'application/pdf':
@@ -42,19 +42,19 @@ function pb_application_file_review_shortcode( $atts ) {
 								$extension = '';
 								break;
 						}
-						$url = site_url( PB_RELATIVE_TMP_UPLOADS_DIR . '/' . $file_handler->stored_file_paths[ $key ] );
+						$url = site_url( DG_RELATIVE_TMP_UPLOADS_DIR . '/' . $file_handler->stored_file_paths[ $key ] );
 						echo '<li><a href="' . esc_url( $url ) . '" target="_blank" data-display-label-override="1" data-display-label="' . esc_attr( $key ) . '">' . esc_html( $file_name ) . '</a></li>';
 					}
 				}
 				?>
 			</ul>
 		</fieldset>
-		<input type="hidden" name="eappId" value="<?php echo esc_attr( $_POST['eappId'] ); ?>" />
-		<input type="hidden" name="efiles" value="<?php echo esc_attr( $_POST['efiles'] ); ?>" />
+		<input type="hidden" name="eappId" value="<?php echo htmlspecialchars( (string) $_POST['eappId'], ENT_QUOTES, 'UTF-8' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped,WordPress.Security.NonceVerification.Missing ?>" />
+		<input type="hidden" name="efiles" value="<?php echo htmlspecialchars( (string) $_POST['efiles'], ENT_QUOTES, 'UTF-8' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped,WordPress.Security.NonceVerification.Missing ?>" />
 	</div>
 	<?php
 
 	// Return the buffer content
 	return ob_get_clean();
 }
-add_shortcode( 'portal-application-file-review', 'pb_application_file_review_shortcode' );
+add_shortcode( 'portal-application-file-review', 'dg_application_file_review_shortcode' );

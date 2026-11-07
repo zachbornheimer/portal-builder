@@ -1,0 +1,61 @@
+# Offline CI gate — unit + mock facades only.
+# Full e2e (LocalWP) is Local-only until Phase 9; see e2e-local.yml.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions: {}
+
+jobs:
+  offline:
+    name: mocks + unit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: mise
+        uses: jdx/mise-action@c37c93293d6b742fc901e1406b8f764f6fb19dac # v2.4.4
+
+      - name: Setup
+        run: mise run setup
+
+      - name: CI
+        run: mise run ci
+
+  foxguard:
+    name: foxguard
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      # Install only the pinned, checksum-verified foxguard and node from mise.toml, not aube/lefthook.
+      # node runs scripts/vendor-guard.mjs, which `mise run foxguard` runs first (the vendor-prefix rule).
+      - name: mise
+        uses: jdx/mise-action@c37c93293d6b742fc901e1406b8f764f6fb19dac # v2.4.4
+        with:
+          install_args: github:0sec-labs/foxguard node
+
+      - name: Foxguard
+        run: mise run foxguard

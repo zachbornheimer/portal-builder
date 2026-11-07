@@ -81,12 +81,39 @@ jQuery(document).ready(function ($) {
         $(this).closest('tr').remove();
     });
 
+    $(document).on('click', '#dg-google-probe-submit', function (e) {
+        e.preventDefault();
+        var $btn = $(this);
+        var $result = $('#dg-google-probe-result');
+        var cfg = window.portalBuilderGoogleProbe || {};
+        $btn.prop('disabled', true);
+        $result
+            .removeAttr('hidden')
+            .removeClass('notice-success notice-error')
+            .addClass('notice inline')
+            .text(cfg.working || 'Testing Google connection…');
+        $.post(cfg.ajaxUrl || window.ajaxurl, {
+            action: cfg.action || 'dg_google_probe',
+            dg_google_probe_nonce: cfg.nonce || '',
+            dg_google_probe_folder_id: $('#dg-google-probe-folder-id').val(),
+            dg_google_probe_sheet_id: $('#dg-google-probe-sheet-id').val()
+        }).done(function (res) {
+            var payload = res && res.data ? res.data : res;
+            var ok = !!(payload && payload.ok);
+            var msg = (payload && payload.message) || (ok ? 'Passed.' : 'Failed.');
+            $result.toggleClass('notice-success', ok).toggleClass('notice-error', !ok).text(msg);
+        }).fail(function () {
+            $result.addClass('notice-error').text('The test could not run. Reload the page and try again.');
+        }).always(function () {
+            $btn.prop('disabled', false);
+        });
+    });
+
     // Handle duplicate portal action
     $(document).on('click', '.duplicate-portal', function (e) {
         e.preventDefault();
 
         var $link = $(this);
-        var postId = $link.data('post-id');
         var originalText = $link.text();
 
         // Show loading state
@@ -97,8 +124,13 @@ jQuery(document).ready(function ($) {
             .done(function (response) {
                 // Success - check if we got a redirect URL in the response
                 if (response && response.success && response.data && response.data.redirect_url) {
-                    // Redirect to the edit page
-                    window.location.href = response.data.redirect_url;
+                    // Redirect to the edit page, only when it stays on this site.
+                    var redirectUrl = new URL(String(response.data.redirect_url), window.location.origin);
+                    if (redirectUrl.origin === window.location.origin) {
+                        window.location.assign(redirectUrl.href);
+                    } else {
+                        window.location.reload();
+                    }
                 } else {
                     // Fallback: reload the page
                     $link.text('Duplicated!').removeClass('disabled');

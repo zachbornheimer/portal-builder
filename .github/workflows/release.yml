@@ -7,23 +7,30 @@ on:
     tags:
       - "v*.*.*" # Matches v1.0.0, v1.0.1-beta, etc.
 
+permissions: {}
+
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     env:
       PLUGIN_NAME: portal-builder
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           submodules: true # Include submodules
+          persist-credentials: false
 
       - name: Set up PHP
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
         with:
-          php-version: "8.0"
+          # composer.lock production deps (google/apiclient, google/auth) need
+          # PHP >=8.1; keep in step with composer.json config.platform.
+          php-version: "8.1"
 
       - name: Install Composer dependencies
         run: composer install --no-dev --optimize-autoloader
@@ -35,7 +42,7 @@ jobs:
         run: make release
 
       - name: Upload build artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: ${{ env.PLUGIN_NAME }}
           path: dist/
@@ -44,16 +51,20 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')
+    permissions:
+      contents: write
 
     env:
       PLUGIN_NAME: portal-builder
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
 
       - name: Download build artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: ${{ env.PLUGIN_NAME }}
           path: ./
@@ -64,33 +75,46 @@ jobs:
       - name: Get current date and short commit hash
         id: vars
         run: |
-          echo "DATE=$(date +'%y-%m-%d')" >> $GITHUB_ENV
-          echo "COMMIT_HASH=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+          echo "DATE=$(date +'%y-%m-%d')" >> "$GITHUB_ENV"
+          echo "COMMIT_HASH=$(git rev-parse --short HEAD)" >> "$GITHUB_ENV"
 
       - name: Find the ZIP file
         id: find_zip
         run: |
-          ZIP_FILE=$(ls ${PLUGIN_NAME}-*.zip | head -n 1)
-          echo "ZIP_FILE=${ZIP_FILE}" >> $GITHUB_ENV
+          ZIP_FILE=$(find . -maxdepth 1 -name "${PLUGIN_NAME}-*.zip" -printf '%f\n' | head -n 1)
+          echo "ZIP_FILE=${ZIP_FILE}" >> "$GITHUB_ENV"
 
       - name: Create GitHub Release
         id: create_release
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: ${{ github.ref_name == 'main' && format('rolling-release-{0}-{1}', env.DATE, env.COMMIT_HASH) || github.ref_name }}
-          name: ${{ github.ref_name == 'main' && format('Rolling Release - {0} Hash {1}', env.DATE, env.COMMIT_HASH) || github.ref_name }}
-          draft: false
-          prerelease: ${{ github.ref_name == 'main' || startsWith(github.ref, 'refs/tags/') }}
-          files: ${{ env.ZIP_FILE }}
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REF_NAME: ${{ github.ref_name }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          if [ "${REF_NAME}" = "main" ]; then
+            # Rolling builds are prereleases.
+            gh release create "rolling-release-${DATE}-${COMMIT_HASH}" "${ZIP_FILE}" \
+              --target "${GITHUB_SHA}" \
+              --title "Rolling Release - ${DATE} Hash ${COMMIT_HASH}" \
+              --prerelease
+          else
+            # Tag releases must not be prereleases: the plugin's updater reads
+            # /releases/latest, which skips prereleases (ZYS-2607).
+            gh release create "${REF_NAME}" "${ZIP_FILE}" \
+              --title "${REF_NAME}" \
+              --verify-tag \
+              --latest
+          fi
 
   changelog:
     needs: release
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
       - name: Release Drafter
-        uses: release-drafter/release-drafter@v6
+        uses: release-drafter/release-drafter@6a93d829887aa2e0748befe2e808c66c0ec6e4c7 # v6.4.0
         with:
           config-name: release-drafter.yml
         env:
