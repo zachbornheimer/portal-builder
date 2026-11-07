@@ -46,10 +46,10 @@ if ( ! class_exists( 'Portal_Drive_Store' ) ) {
 		/**
 		 * Store one field's file.
 		 *
-		 * @param string|int      $portal_id Portal id.
-		 * @param string          $field_id  Definition field id.
-		 * @param string          $buffer    File bytes.
-		 * @param string          $filename  Original / destination basename.
+		 * @param string|int $portal_id Portal id.
+		 * @param string     $field_id  Definition field id.
+		 * @param string     $buffer    File bytes.
+		 * @param string     $filename  Original / destination basename.
 		 * @return string Absolute path written.
 		 */
 		public function store_file( $portal_id, $field_id, $buffer, $filename ) {

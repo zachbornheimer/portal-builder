@@ -9,12 +9,12 @@ import path from 'node:path';
 const root = process.cwd();
 const htmlPath = path.join(root, 'site/public/index.html');
 const cssPath = path.join(root, 'site/public/css/home.css');
-
-const html = fs.readFileSync(htmlPath, 'utf8');
+// dprint wraps long attributes and text; compare on collapsed whitespace.
+const html = fs.readFileSync(htmlPath, 'utf8').replace(/\s+/g, ' ');
 const css = fs.readFileSync(cssPath, 'utf8');
 
 test('home title is unique and names the door that opens', () => {
-	const title = html.match(/<title>([^<]+)<\/title>/);
+	const title = html.match(/<title>\s*([^<]+?)\s*<\/title>/);
 	const desc = html.match(/<meta name="description" content="([^"]+)"/);
 	assert.ok(title, 'home has <title>');
 	assert.ok(desc, 'home has meta description');

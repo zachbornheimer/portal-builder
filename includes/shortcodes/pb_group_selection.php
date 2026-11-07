@@ -1,7 +1,7 @@
 <?php
 function dg_group_selection_shortcode( $atts, $content = null ) {
 
-	# if $_POST review_nonce is set, return $content
+	// if $_POST review_nonce is set, return $content
 	if ( isset( $_POST['review_nonce'] ) ) {
 		return do_shortcode( $content );
 	}
@@ -15,7 +15,6 @@ function dg_group_selection_shortcode( $atts, $content = null ) {
 	static $group_selection_count = 0;
 	++$group_selection_count;
 
-
 	$atts = shortcode_atts(
 		array(
 			'label'               => '', // Legend for the fieldset
@@ -25,15 +24,14 @@ function dg_group_selection_shortcode( $atts, $content = null ) {
 		$atts
 	);
 
-	# random_string should be a mixture of the time, a random number, and the label
+	// random_string should be a mixture of the time, a random number, and the label
 	$random_string = time() . rand( 0, 1000 ) . preg_replace( '/\W/', '', $atts['label'] );
-	# sha256 it and take a substring of the first 10 characters
+	// sha256 it and take a substring of the first 10 characters
 	$random_string = substr( hash( 'sha256', $random_string ), 0, 10 ) . $random_string;
 
 	$selection_label     = $atts['label'];
 	$select_instructions = $atts['select-instructions'];
 	$options             = $atts['options'] ? explode( ',', $atts['options'] ) : array();
-
 
 	$select_options = '<option value="" disabled selected>Select an option</option>';
 	$group_html     = '';

@@ -115,10 +115,10 @@ if ( ! class_exists( 'Portal_Release_Notes' ) ) {
 				$text
 			);
 
-			$lines    = preg_split( '/\R/', (string) $text );
-			$out      = array();
-			$in_list  = false;
-			$para     = array();
+			$lines   = preg_split( '/\R/', (string) $text );
+			$out     = array();
+			$in_list = false;
+			$para    = array();
 
 			foreach ( $lines as $line ) {
 				if ( preg_match( '/^### (.+)$/', $line, $match ) ) {

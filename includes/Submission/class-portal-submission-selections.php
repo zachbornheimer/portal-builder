@@ -54,7 +54,7 @@ if ( ! class_exists( 'Portal_Submission_Selections' ) ) {
 					}
 				}
 
-				$columns[ $id ]                        = $option_id;
+				$columns[ $id ]                      = $option_id;
 				$columns[ $id . self::LABEL_SUFFIX ] = $option_label;
 			}
 

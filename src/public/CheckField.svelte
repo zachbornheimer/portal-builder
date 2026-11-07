@@ -1,5 +1,5 @@
 <script>
-	import { Label } from 'bits-ui';
+import { Label } from 'bits-ui';
 
 	/**
 	 * @typedef {Object} Props
@@ -15,6 +15,6 @@
 </script>
 
 <label class="dg-check" for={id}>
-	<input type="checkbox" {id} {name} value="1" {required} {checked} />
-	<Label.Root for={id}><span>{label}</span></Label.Root>
+  <input type="checkbox" {id} {name} value="1" {required} {checked} />
+  <Label.Root for={id}><span>{label}</span></Label.Root>
 </label>

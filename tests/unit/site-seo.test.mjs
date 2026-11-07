@@ -25,8 +25,9 @@ test('every marketing HTML page has a unique title and description', () => {
 	const titles = [];
 	const descriptions = [];
 	for (const rel of PAGES) {
-		const html = fs.readFileSync(path.join(pub, rel), 'utf8');
-		const title = html.match(/<title>([^<]+)<\/title>/);
+		// dprint wraps long attributes and text; compare on collapsed whitespace.
+		const html = fs.readFileSync(path.join(pub, rel), 'utf8').replace(/\s+/g, ' ');
+		const title = html.match(/<title>\s*([^<]+?)\s*<\/title>/);
 		const desc = html.match(/<meta name="description" content="([^"]+)"/);
 		assert.ok(title, `${rel} has <title>`);
 		assert.ok(desc, `${rel} has meta description`);

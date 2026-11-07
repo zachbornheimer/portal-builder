@@ -1,5 +1,5 @@
 <script>
-	import { Label } from 'bits-ui';
+import { Label } from 'bits-ui';
 
 	/**
 	 * @typedef {Object} Props
@@ -29,19 +29,26 @@
 </script>
 
 {#if label}
-	<Label.Root for={id}>{label}</Label.Root>
+  <Label.Root for={id}>{label}</Label.Root>
 {/if}
 {#if multiline}
-	<textarea class="dg-control" {id} {name} rows="5" {required} {value}></textarea>
+  <textarea
+    class="dg-control"
+    {id}
+    {name}
+    rows="5"
+    {required}
+    {value}
+  ></textarea>
 {:else}
-	<input
-		class="dg-control"
-		{id}
-		{name}
-		{type}
-		{required}
-		{value}
-		autocomplete={autocomplete || undefined}
-		maxlength={maxlength}
-	/>
+  <input
+    class="dg-control"
+    {id}
+    {name}
+    {type}
+    {required}
+    {value}
+    autocomplete={autocomplete || undefined}
+    maxlength={maxlength}
+  />
 {/if}

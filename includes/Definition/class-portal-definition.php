@@ -345,9 +345,9 @@ if ( ! class_exists( 'Portal_Definition' ) ) {
 			if ( $depth > 6 ) {
 				return new WP_Error( 'dg_definition_depth', 'Field nesting too deep.' );
 			}
-			$out           = array();
-			$seen_ids      = array();
-			$applicant_n   = 0;
+			$out         = array();
+			$seen_ids    = array();
+			$applicant_n = 0;
 
 			foreach ( $fields as $i => $field ) {
 				if ( ! is_array( $field ) ) {
@@ -392,7 +392,7 @@ if ( ! class_exists( 'Portal_Definition' ) ) {
 					$normalized['children'] = $vc;
 				}
 				if ( 'branch' === $type ) {
-					$options = isset( $field['options'] ) && is_array( $field['options'] ) ? $field['options'] : array();
+					$options   = isset( $field['options'] ) && is_array( $field['options'] ) ? $field['options'] : array();
 					$norm_opts = array();
 					foreach ( $options as $oi => $opt ) {
 						if ( ! is_array( $opt ) || empty( $opt['id'] ) || empty( $opt['label'] ) ) {

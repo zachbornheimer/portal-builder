@@ -316,67 +316,67 @@ if ( ! class_exists( 'Portal_Meta' ) ) {
 			$response = wp_remote_get( $url );
 
 			if ( is_wp_error( $response ) ) {
-				wp_send_json_error( [ 'message' => 'Invalid URL' ] );
+				wp_send_json_error( array( 'message' => 'Invalid URL' ) );
 			}
 
 			$status_code = wp_remote_retrieve_response_code( $response );
 
 			if ( $status_code === 200 ) {
-				wp_send_json_success( [ 'message' => 'Valid URL' ] );
+				wp_send_json_success( array( 'message' => 'Valid URL' ) );
 			} else {
-				wp_send_json_error( [ 'message' => 'Invalid URL' ] );
+				wp_send_json_error( array( 'message' => 'Invalid URL' ) );
 			}
 		}
 
-	private function render_data_table( $meta_key, $columns, $extraction, $post_id, $options = [], $disclosure = '' ) {
-		// Wrap everything in the scoped portal-builder class
-		echo '<div class="portal-builder">';
-		
-		// Add segmented control for sheet selection
-		$this->render_sheet_segmented_control( $meta_key, $post_id );
-		
-		// Create a minimal data table container for Svelte to take over
-		echo '<div id="' . esc_attr( $meta_key ) . '" class="data-table">';
-		echo '</div>';
-		
-		// Store the data for Svelte to read
-		$values = get_post_meta( $post_id, $meta_key, true );
-		if ( $values ) {
-			$values = json_decode( $values, true );
-			// Keep decoding until we get an array
-			$max_iterations = 20;
-			$iteration_count = 0;
-			while ( ! is_array( $values ) ) {
+		private function render_data_table( $meta_key, $columns, $extraction, $post_id, $options = array(), $disclosure = '' ) {
+			// Wrap everything in the scoped portal-builder class
+			echo '<div class="portal-builder">';
+
+			// Add segmented control for sheet selection
+			$this->render_sheet_segmented_control( $meta_key, $post_id );
+
+			// Create a minimal data table container for Svelte to take over
+			echo '<div id="' . esc_attr( $meta_key ) . '" class="data-table">';
+			echo '</div>';
+
+			// Store the data for Svelte to read
+			$values = get_post_meta( $post_id, $meta_key, true );
+			if ( $values ) {
 				$values = json_decode( $values, true );
-				++$iteration_count;
-				if ( $iteration_count >= $max_iterations ) {
-					break;
+				// Keep decoding until we get an array
+				$max_iterations  = 20;
+				$iteration_count = 0;
+				while ( ! is_array( $values ) ) {
+					$values = json_decode( $values, true );
+					++$iteration_count;
+					if ( $iteration_count >= $max_iterations ) {
+						break;
+					}
 				}
 			}
-		}
-		
-		// If decoding failed, create empty array
-		if ( ! is_array( $values ) ) {
-			$values = array();
-		}
-		
-		// Hidden input for form submission (Svelte will update this)
-		echo '<input type="hidden" name="' . esc_attr( $meta_key ) . '" id="' . esc_attr( $meta_key ) . '" value="' . esc_attr( json_encode( $values ) ) . '" />';
-		
-		// Close the scoped wrapper
-		echo '</div>';
-	}
 
-	/**
-	 * Render segmented control for sheet selection
-	 *
-	 * @param string $meta_key
-	 * @param int    $post_id
-	 */
-	private function render_sheet_segmented_control( $meta_key, $post_id ) {
-		// Create container for Svelte component
-		echo '<div data-segmented-control data-meta-key="' . esc_attr( $meta_key ) . '" data-post-id="' . esc_attr( $post_id ) . '">';
-		echo '</div>';
+			// If decoding failed, create empty array
+			if ( ! is_array( $values ) ) {
+				$values = array();
+			}
+
+			// Hidden input for form submission (Svelte will update this)
+			echo '<input type="hidden" name="' . esc_attr( $meta_key ) . '" id="' . esc_attr( $meta_key ) . '" value="' . esc_attr( json_encode( $values ) ) . '" />';
+
+			// Close the scoped wrapper
+			echo '</div>';
+		}
+
+		/**
+		 * Render segmented control for sheet selection
+		 *
+		 * @param string $meta_key
+		 * @param int    $post_id
+		 */
+		private function render_sheet_segmented_control( $meta_key, $post_id ) {
+			// Create container for Svelte component
+			echo '<div data-segmented-control data-meta-key="' . esc_attr( $meta_key ) . '" data-post-id="' . esc_attr( $post_id ) . '">';
+			echo '</div>';
+		}
 	}
-}
 }

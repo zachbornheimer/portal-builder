@@ -1,5 +1,5 @@
 <script>
-	import Field from '../../ui/Field.svelte';
+import Field from '../../ui/Field.svelte';
 	import CheckField from '../../ui/CheckField.svelte';
 	import {
 		acceptFolderInput,
@@ -167,163 +167,177 @@
 </script>
 
 <p class="dg-wizard-eyebrow">{definition?.title || 'Portal'}</p>
-<h2 id="dg-wizard-step-title" class="dg-wizard-title">Where does each field go?</h2>
+<h2 id="dg-wizard-step-title" class="dg-wizard-title">
+  Where does each field go?
+</h2>
 <p class="dg-wizard-lead">
-	Map form answers to Google Sheets columns and Drive folders. Unmapped fields are flagged —
-	don’t leave them blank before publish.
+  Map form answers to Google Sheets columns and Drive folders. Unmapped fields
+  are flagged — don’t leave them blank before publish.
 </p>
 
 <div class="dg-dest-grid">
-	{#each destSheets as sheet, i (sheet.id || i)}
-		{@const sheetId = parseSpreadsheetId(sheet.spreadsheetId)}
-		<div class="dg-dest-card cardish">
-			<p class="dg-dest-card-kicker">{sheetKicker(sheet, i)}</p>
-			<Field
-				id={`dg-dest-sheet-name-${i}`}
-				label="Name"
-				value={sheet.name}
-				oninput={(e) => updateSheet(i, { name: e.currentTarget.value })}
-			/>
-			<Field
-				id={`dg-dest-sheet-id-${i}`}
-				label="Spreadsheet"
-				placeholder="Paste a Google Sheets URL or id"
-				value={sheet.spreadsheetId}
-				oninput={(e) =>
-					updateSheet(i, {
-						spreadsheetId: acceptSpreadsheetInput(e.currentTarget.value),
-						role: sheet.role || (i === 0 ? 'housekeeping' : 'adjudicator'),
-					})}
-			/>
-			{#if sheetId}
-				<p class="dg-dest-status dg-dest-status--set">
-					<a href={`${SHEET_OPEN_PREFIX}${sheetId}`} target="_blank" rel="noopener"
-						>Open sheet</a
-					>
-				</p>
-			{:else}
-				<p class="dg-dest-status">Not set — paste a sheet URL</p>
-			{/if}
-			{#if canRemoveSheet(sheet)}
-				<button
-					type="button"
-					class="dg-btn dg-btn-ghost dg-btn-sm"
-					onclick={() => onRemoveSheet(sheet.id)}
-				>
-					Remove sheet
-				</button>
-			{/if}
-		</div>
-	{/each}
-	<button type="button" class="dg-dest-add cardish" onclick={onAddSheet}>
-		<span class="dg-dest-add-plus" aria-hidden="true">+</span>
-		Add another sheet
-	</button>
-	{#if destDrive}
-		{@const folderId = parseFolderId(destDrive.folderId)}
-		<div class="dg-dest-card cardish">
-			<p class="dg-dest-card-kicker">Drive folder</p>
-			<Field
-				id="dg-dest-drive-name"
-				label="Name"
-				value={destDrive.name}
-				oninput={(e) => updateDrive({ name: e.currentTarget.value })}
-			/>
-			<Field
-				id="dg-dest-drive-id"
-				label="Folder"
-				placeholder="Paste a Drive folder URL or id"
-				value={destDrive.folderId}
-				oninput={(e) =>
-					updateDrive({ folderId: acceptFolderInput(e.currentTarget.value) })}
-			/>
-			{#if folderId}
-				<p class="dg-dest-status dg-dest-status--set">
-					<a href={`${FOLDER_OPEN_PREFIX}${folderId}`} target="_blank" rel="noopener"
-						>Open folder</a
-					>
-				</p>
-			{:else}
-				<p class="dg-dest-status">Not set — paste a folder URL</p>
-			{/if}
-		</div>
-	{/if}
+  {#each destSheets as sheet, i (sheet.id || i)}
+    {@const sheetId = parseSpreadsheetId(sheet.spreadsheetId)}
+    <div class="dg-dest-card cardish">
+      <p class="dg-dest-card-kicker">{sheetKicker(sheet, i)}</p>
+      <Field
+        id={`dg-dest-sheet-name-${i}`}
+        label="Name"
+        value={sheet.name}
+        oninput={(e) => updateSheet(i, { name: e.currentTarget.value })}
+      />
+      <Field
+        id={`dg-dest-sheet-id-${i}`}
+        label="Spreadsheet"
+        placeholder="Paste a Google Sheets URL or id"
+        value={sheet.spreadsheetId}
+        oninput={(e) =>
+        updateSheet(i, {
+        	spreadsheetId: acceptSpreadsheetInput(e.currentTarget.value),
+        	role: sheet.role || (i === 0 ? 'housekeeping' : 'adjudicator'),
+        })}
+      />
+      {#if sheetId}
+        <p class="dg-dest-status dg-dest-status--set">
+          <a
+            href={`${SHEET_OPEN_PREFIX}${sheetId}`}
+            target="_blank"
+            rel="noopener"
+          >Open sheet</a>
+        </p>
+      {:else}
+        <p class="dg-dest-status">Not set — paste a sheet URL</p>
+      {/if}
+      {#if canRemoveSheet(sheet)}
+        <button
+          type="button"
+          class="dg-btn dg-btn-ghost dg-btn-sm"
+          onclick={() => onRemoveSheet(sheet.id)}
+        >
+          Remove sheet
+        </button>
+      {/if}
+    </div>
+  {/each}
+  <button type="button" class="dg-dest-add cardish" onclick={onAddSheet}>
+    <span class="dg-dest-add-plus" aria-hidden="true">+</span>
+    Add another sheet
+  </button>
+  {#if destDrive}
+    {@const folderId = parseFolderId(destDrive.folderId)}
+    <div class="dg-dest-card cardish">
+      <p class="dg-dest-card-kicker">Drive folder</p>
+      <Field
+        id="dg-dest-drive-name"
+        label="Name"
+        value={destDrive.name}
+        oninput={(e) => updateDrive({ name: e.currentTarget.value })}
+      />
+      <Field
+        id="dg-dest-drive-id"
+        label="Folder"
+        placeholder="Paste a Drive folder URL or id"
+        value={destDrive.folderId}
+        oninput={(e) =>
+        updateDrive({ folderId: acceptFolderInput(e.currentTarget.value) })}
+      />
+      {#if folderId}
+        <p class="dg-dest-status dg-dest-status--set">
+          <a
+            href={`${FOLDER_OPEN_PREFIX}${folderId}`}
+            target="_blank"
+            rel="noopener"
+          >Open folder</a>
+        </p>
+      {:else}
+        <p class="dg-dest-status">Not set — paste a folder URL</p>
+      {/if}
+    </div>
+  {/if}
 </div>
 
 <div class="dg-map-toolbar">
-	<button type="button" class="dg-btn dg-btn-ghost dg-btn-sm" onclick={autoMapAll}>
-		Auto-map defaults
-	</button>
-	<span class="dg-field-help">
-		Sheet: <strong>{summary.sheets}</strong> · Drive: <strong>{summary.drive}</strong>
-	</span>
+  <button
+    type="button"
+    class="dg-btn dg-btn-ghost dg-btn-sm"
+    onclick={autoMapAll}
+  >
+    Auto-map defaults
+  </button>
+  <span class="dg-field-help">
+    Sheet: <strong>{summary.sheets}</strong> · Drive: <strong>{
+      summary.drive
+    }</strong>
+  </span>
 </div>
 
 {#if fields.length === 0}
-	<div class="dg-empty-hint" role="status">Add fields in Build first.</div>
+  <div class="dg-empty-hint" role="status">Add fields in Build first.</div>
 {:else}
-	<div class="dg-map-table cardish" data-dg-map-table>
-		<div class="dg-map-head">
-			<span>Form field</span>
-			<span></span>
-			<span>Destination</span>
-		</div>
-		{#each fields as f (f.id)}
-			{@const mapped = Boolean(currentDest(f))}
-			<div
-				class="dg-map-row"
-				class:dg-map-row--warn={!mapped}
-				data-mapped={mapped ? 'true' : 'false'}
-			>
-				<div class="dg-map-field">
-					{f.label}
-					<span class="dg-field-type-pill">{pillForType(f.type)}</span>
-				</div>
-				<div class="dg-map-arrow" aria-hidden="true">→</div>
-				<div class="dg-map-dests">
-					{#each destSheets as sheet (sheet.id)}
-						<CheckField
-							id={`dg-map-${f.id}-sheet-${sheet.id}`}
-							label={sheet.name}
-							checked={parseDestParts(currentDest(f)).sheets.some(
-								(s) => s.name === sheet.name,
-							)}
-							onchange={() => onToggleSheet(f, sheet.name)}
-						/>
-					{/each}
-					{#if isFileField(f) && destDrive}
-						<CheckField
-							id={`dg-map-${f.id}-drive`}
-							label={`${destDrive.name} (Drive)`}
-							checked={parseDestParts(currentDest(f)).drive === destDrive.name}
-							onchange={() => onToggleDrive(f, destDrive.name)}
-						/>
-					{/if}
-					{#if f.type === 'branch' && (f.options || []).length > 0}
-						<button
-							type="button"
-							class="dg-btn dg-btn-ghost dg-btn-sm"
-							onclick={() => onAddSheetsForBranch(f)}
-						>
-							Add a sheet per option
-						</button>
-					{/if}
-				</div>
-			</div>
-		{/each}
-	</div>
+  <div class="dg-map-table cardish" data-dg-map-table>
+    <div class="dg-map-head">
+      <span>Form field</span>
+      <span></span>
+      <span>Destination</span>
+    </div>
+    {#each fields as f (f.id)}
+      {@const mapped = Boolean(currentDest(f))}
+      <div
+        class="dg-map-row"
+        class:dg-map-row--warn={!mapped}
+        data-mapped={mapped ? 'true' : 'false'}
+      >
+        <div class="dg-map-field">
+          {f.label}
+          <span class="dg-field-type-pill">{pillForType(f.type)}</span>
+        </div>
+        <div class="dg-map-arrow" aria-hidden="true">→</div>
+        <div class="dg-map-dests">
+          {#each destSheets as sheet (sheet.id)}
+            <CheckField
+              id={`dg-map-${f.id}-sheet-${sheet.id}`}
+              label={sheet.name}
+              checked={parseDestParts(currentDest(f)).sheets.some(
+              	(s) => s.name === sheet.name,
+              )}
+              onchange={() => onToggleSheet(f, sheet.name)}
+            />
+          {/each}
+          {#if isFileField(f) && destDrive}
+            <CheckField
+              id={`dg-map-${f.id}-drive`}
+              label={`${destDrive.name} (Drive)`}
+              checked={parseDestParts(currentDest(f)).drive === destDrive.name}
+              onchange={() => onToggleDrive(f, destDrive.name)}
+            />
+          {/if}
+          {#if f.type === 'branch' && (f.options || []).length > 0}
+            <button
+              type="button"
+              class="dg-btn dg-btn-ghost dg-btn-sm"
+              onclick={() => onAddSheetsForBranch(f)}
+            >
+              Add a sheet per option
+            </button>
+          {/if}
+        </div>
+      </div>
+    {/each}
+  </div>
 {/if}
 
 {#if unmapped.length > 0}
-	<p class="dg-wizard-alert" role="status">
-		⚠ {unmapped.length} field{unmapped.length === 1 ? '' : 's'} unmapped — map them or auto-map
-		before publish.
-	</p>
+  <p class="dg-wizard-alert" role="status">
+    ⚠ {unmapped.length} field{unmapped.length === 1 ? '' : 's'} unmapped —
+    map them or auto-map before publish.
+  </p>
 {/if}
 
 <div class="dg-wizard-actions">
-	<button type="button" class="dg-btn dg-btn-ghost" onclick={onBack}>← Back to form</button>
-	<button type="button" class="dg-btn dg-btn-primary" onclick={onContinue}>
-		Continue to Portal Configuration →
-	</button>
+  <button type="button" class="dg-btn dg-btn-ghost" onclick={onBack}>
+    ← Back to form
+  </button>
+  <button type="button" class="dg-btn dg-btn-primary" onclick={onContinue}>
+    Continue to Portal Configuration →
+  </button>
 </div>

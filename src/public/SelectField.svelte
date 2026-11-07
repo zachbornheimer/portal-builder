@@ -1,5 +1,5 @@
 <script>
-	import SelectField from '../ui/SelectField.svelte';
+import SelectField from '../ui/SelectField.svelte';
 
 	let props = $props();
 </script>
