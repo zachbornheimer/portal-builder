@@ -14,10 +14,10 @@ $release = array(
 		),
 	),
 );
-$offer = Portal_Update::offer_from_release( $release, DG_VERSION );
-$file  = Portal_Update::plugin_file();
-$t     = Portal_Update::inject( (object) array(), $file, $offer );
-$latest = Portal_Update::fetch_latest();
+$offer   = Portal_Update::offer_from_release( $release, DG_VERSION );
+$file    = Portal_Update::plugin_file();
+$t       = Portal_Update::inject( (object) array(), $file, $offer );
+$latest  = Portal_Update::fetch_latest();
 echo 'installed=' . DG_VERSION . "\n";
 echo 'plugin=' . $file . "\n";
 echo 'offer=' . ( is_array( $offer ) ? $offer['version'] : 'none' ) . "\n";

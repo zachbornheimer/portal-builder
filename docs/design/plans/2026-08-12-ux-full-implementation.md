@@ -32,35 +32,35 @@
 
 ## Product outcome (done when all phases pass)
 
-| Who | Outcome |
-|-----|---------|
-| Applicant (closed) | Exactly one closed reason message; tokenized centered layout; no form/agreements/notes |
-| Applicant (open) | Single paper form column; side labels on desktop; styled file controls; note above files; tokenized agreements + “Submit application” |
-| Editor (preview) | Ember banner + full form UI; **cannot** create production submission |
-| Operator (admin) | No empty block canvas; white Portals icon; full-width wizard; can configure definition via wizard steps without legacy meta boxes for happy path |
-| Maintainers | Definition path owns public chrome; shortcodes silent when closed/definition; tests guard regressions |
+| Who                | Outcome                                                                                                                                          |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Applicant (closed) | Exactly one closed reason message; tokenized centered layout; no form/agreements/notes                                                           |
+| Applicant (open)   | Single paper form column; side labels on desktop; styled file controls; note above files; tokenized agreements + “Submit application”            |
+| Editor (preview)   | Ember banner + full form UI; **cannot** create production submission                                                                             |
+| Operator (admin)   | No empty block canvas; white Portals icon; full-width wizard; can configure definition via wizard steps without legacy meta boxes for happy path |
+| Maintainers        | Definition path owns public chrome; shortcodes silent when closed/definition; tests guard regressions                                            |
 
 ## File map (ownership)
 
-| Area | Primary files |
-|------|----------------|
-| Closed/preview gate | `includes/Definition/class-portal-public-render.php`, `class-portal-open-state.php` |
-| Form HTML | `includes/Definition/class-portal-definition-renderer.php` |
-| Template shell | `includes/templates/single-portal.php` |
-| Shortcodes | `includes/shortcodes/portal-application-*.php`, `pb_form*.php` |
-| Public CSS | `assets/definition-form.css` (canonical), `assets/portal.css` (legacy only; stop fighting definition) |
-| Tokens | `src/tokens.css`, `docs/design/TOKENS.md` |
-| CPT / icon | `includes/class-portal-post-type.php` |
-| Wizard mount / admin CSS | `includes/class-portal-meta.php`, `assets/admin.css` (or new `assets/portal-admin.css`) |
-| Wizard UI | `src/wizard/*`, `src/index.js` |
-| Definition REST | `includes/class-portal-definition-rest.php` |
-| Public JS (file UI) | new small module under `assets/` or enqueue from public-render |
-| Tests | `e2e/public/*`, `e2e/admin/*`, `tests/unit/*` |
-| Evidence | `docs/design/tutorial/`, `scripts/capture-tutorial-shots.mjs` |
+| Area                     | Primary files                                                                                         |
+| ------------------------ | ----------------------------------------------------------------------------------------------------- |
+| Closed/preview gate      | `includes/Definition/class-portal-public-render.php`, `class-portal-open-state.php`                   |
+| Form HTML                | `includes/Definition/class-portal-definition-renderer.php`                                            |
+| Template shell           | `includes/templates/single-portal.php`                                                                |
+| Shortcodes               | `includes/shortcodes/portal-application-*.php`, `pb_form*.php`                                        |
+| Public CSS               | `assets/definition-form.css` (canonical), `assets/portal.css` (legacy only; stop fighting definition) |
+| Tokens                   | `src/tokens.css`, `docs/design/TOKENS.md`                                                             |
+| CPT / icon               | `includes/class-portal-post-type.php`                                                                 |
+| Wizard mount / admin CSS | `includes/class-portal-meta.php`, `assets/admin.css` (or new `assets/portal-admin.css`)               |
+| Wizard UI                | `src/wizard/*`, `src/index.js`                                                                        |
+| Definition REST          | `includes/class-portal-definition-rest.php`                                                           |
+| Public JS (file UI)      | new small module under `assets/` or enqueue from public-render                                        |
+| Tests                    | `e2e/public/*`, `e2e/admin/*`, `tests/unit/*`                                                         |
+| Evidence                 | `docs/design/tutorial/`, `scripts/capture-tutorial-shots.mjs`                                         |
 
 ## Execution DAG (phases)
 
-```
+```text
 Phase 0  Docs + harness hygiene          ──► independent
 Phase 1  UX-01 closed message ownership  ──► first ship
 Phase 2  UX-02 closed/preview visuals    ──► after Phase 1
@@ -80,6 +80,7 @@ Parallelizable after Phase 0: **Phase 3** and **Phase 6** with public phases **1
 ### Task 0: Commit design ground truth + plan
 
 **Files:**
+
 - Add: `docs/design/UX-NEXT-STEPS.md` (already untracked)
 - Add: `docs/design/tutorial/**`, `scripts/capture-tutorial-shots.mjs`
 - Add: `docs/design/plans/2026-08-12-ux-full-implementation.md` (copy of this plan)
@@ -107,12 +108,14 @@ Expected: exit 0; plugin path resolves to this repo.
 ### Task 1: UX-01 — Single closed message (P0)
 
 **Files:**
+
 - Modify: `includes/shortcodes/portal-application-agreements.php` (L7–9)
 - Modify: `includes/shortcodes/portal-application-upload-notes.php` (L6–8)
 - Modify: `e2e/public/closed-preview.spec.ts` (assert single message + reason)
 - Optional: `tests/unit/` PHP harness for closed HTML if easy; e2e is primary
 
 **Interfaces:**
+
 - Consumes: `PB_APPLICATION_DEADLINE_PASSED` already defined when closed
 - Produces: shortcodes return `''` when closed (not deadline copy)
 
@@ -160,7 +163,7 @@ npx playwright test e2e/public/closed-preview.spec.ts
 
 ```php
 if ( defined( 'PB_APPLICATION_DEADLINE_PASSED' ) && PB_APPLICATION_DEADLINE_PASSED ) {
-	return '';
+ return '';
 }
 ```
 
@@ -168,7 +171,7 @@ if ( defined( 'PB_APPLICATION_DEADLINE_PASSED' ) && PB_APPLICATION_DEADLINE_PASS
 
 ```php
 if ( defined( 'PB_APPLICATION_DEADLINE_PASSED' ) && PB_APPLICATION_DEADLINE_PASSED ) {
-	return '';
+ return '';
 }
 ```
 
@@ -191,11 +194,13 @@ git commit -m "fix(public): silence shortcodes when closed (single closed messag
 ### Task 2: UX-02 — Closed + preview visual system
 
 **Files:**
+
 - Modify: `includes/Definition/class-portal-public-render.php` (`render_closed_message`, `render_preview_banner`)
 - Modify: `assets/definition-form.css`
 - Ensure enqueue runs for closed definition portals (today enqueue requires definition present — keep that; closed still has definition)
 
 **Interfaces:**
+
 - Produces: enriched closed markup; styled `.dg-portal-closed`, `.dg-preview-banner`
 
 - [ ] **Step 1: Enrich closed markup** (single hierarchy)
@@ -231,9 +236,17 @@ return sprintf(
   box-shadow: var(--shadow-card);
   text-align: center;
 }
-.dg-portal-closed__eyebrow { color: var(--ink-400); font-size: var(--t-small); }
-.dg-portal-closed__title { font-family: var(--font-display); color: var(--ink); }
-.dg-portal-closed__status { color: var(--ink-600); }
+.dg-portal-closed__eyebrow {
+  color: var(--ink-400);
+  font-size: var(--t-small);
+}
+.dg-portal-closed__title {
+  font-family: var(--font-display);
+  color: var(--ink);
+}
+.dg-portal-closed__status {
+  color: var(--ink-600);
+}
 
 .dg-preview-banner {
   width: 100%;
@@ -269,6 +282,7 @@ git commit -m "feat(public): tokenized closed and preview surfaces"
 ### Task 3: UX-07 — White monochrome menu icon
 
 **Files:**
+
 - Modify: `includes/class-portal-post-type.php` `get_menu_icon_data_uri()`
 - Optional source: simplify `assets/icon.svg` for admin use (do not break public dragon art)
 
@@ -287,12 +301,14 @@ git commit -m "fix(admin): white monochrome Portals menu icon"
 ### Task 4: UX-03 + UX-11 — Form layout v2 + required/help structure
 
 **Files:**
+
 - Modify: `includes/Definition/class-portal-definition-renderer.php` (`label_text`, `help_html`, field wrappers)
 - Modify: `assets/definition-form.css`
 - Modify: `assets/portal.css` only to **scope legacy** rules so they do not force label-above on `.dg-form`
 - Modify: `tests/unit/definition-render.test.mjs` (or PHP harness `php-render-definition.php`)
 
 **Interfaces:**
+
 - Produces: desktop side-label rows; `.dg-required`; `.dg-field__help`; centered column `max-width: 40rem`
 
 - [ ] **Step 1: RED unit** — rendered HTML for `short_text` required field contains `dg-required` and does **not** contain bare `Title*` glued without span; help is outside label.
@@ -334,9 +350,13 @@ private static function help_html( $field ) {
   margin-block-end: var(--s-3);
 }
 @media (max-width: 640px) {
-  .dg-form .dg-field--row { grid-template-columns: 1fr; }
+  .dg-form .dg-field--row {
+    grid-template-columns: 1fr;
+  }
 }
-.dg-form .dg-required { color: var(--ember); }
+.dg-form .dg-required {
+  color: var(--ember);
+}
 /* Do not use #ccc on definition form */
 ```
 
@@ -360,11 +380,13 @@ git commit -m "feat(public): definition form side labels, required markers, help
 ### Task 5: UX-05 — Note as `dg-alert` above files
 
 **Files:**
+
 - Modify: `includes/shortcodes/portal-application-upload-notes.php` **or** move note into definition renderer (prefer Task 6 ownership; this task can restyle shortcode markup first)
 - Modify: `assets/definition-form.css`
 - Modify: `includes/templates/single-portal.php` order **if** still using shortcodes: notes **before** `the_content` is wrong for open forms — notes should be **inside** form above file fields (Task 6). Interim: restyle only; placement fixed in Task 6.
 
 **Copy rules:**
+
 - Generic size/time note (32MB)
 - Conversion links as secondary list
 - Drop “Call For Scores, all fields required…” on prize-only portals (generic: “Required fields are marked with *”)
@@ -374,7 +396,9 @@ git commit -m "feat(public): definition form side labels, required markers, help
 ```html
 <div class="dg-alert dg-alert--info" role="note">
   <p class="dg-alert__title">Note</p>
-  <p class="dg-alert__body">Large files may take several minutes. Keep uploads under 32 MB.</p>
+  <p class="dg-alert__body">
+    Large files may take several minutes. Keep uploads under 32 MB.
+  </p>
   <ul class="dg-alert__links">...</ul>
 </div>
 ```
@@ -391,11 +415,13 @@ git commit -m "feat(public): tokenized upload note alert"
 ### Task 6: UX-04 — File ingestion UI
 
 **Files:**
+
 - Modify: `class-portal-definition-renderer.php` `render_file_input`
 - Add: small public JS `assets/definition-form.js` (filename display) enqueued by `Portal_Public_Render::enqueue_assets`
 - Modify: `definition-form.css`
 
 **Interfaces:**
+
 - Native `<input type="file">` remains for a11y (visually clipped)
 - Visible: accept hint (“PDF only” / “MP3 only”), button/drop zone, selected filename
 
@@ -404,7 +430,9 @@ git commit -m "feat(public): tokenized upload note alert"
 ```html
 <div class="dg-file" data-dg-file>
   <input type="file" class="dg-file__input" id="..." name="..." accept="..." />
-  <button type="button" class="dg-file__trigger" aria-controls="...">Choose file</button>
+  <button type="button" class="dg-file__trigger" aria-controls="...">
+    Choose file
+  </button>
   <span class="dg-file__name" data-dg-file-name>No file chosen</span>
   <p class="dg-field__help">PDF only</p>
 </div>
@@ -423,6 +451,7 @@ git commit -m "feat(public): styled file inputs with accept hints"
 ### Task 7: UX-06 + UX-12 — Definition owns form chrome
 
 **Files:**
+
 - Modify: `class-portal-definition-renderer.php` or `class-portal-public-render.php` to compose: note + fields + agreements + submit
 - Modify: `single-portal.php` — when definition present, **do not** emit agreements/notes shortcodes (detect via `Portal_Definition::load_for_post`)
 - Modify: agreements shortcode to extract pure HTML builder used by both shortcode (legacy) and definition path
@@ -430,6 +459,7 @@ git commit -m "feat(public): styled file inputs with accept hints"
 - Style agreements + recaptcha inside `.dg-form`
 
 **Interfaces:**
+
 - Produces: one `.dg-form` (or shell) containing agreements + submit for definition portals
 - Closed path: template skips chrome shortcodes when closed **or** shortcodes empty (Task 1 already empty when closed)
 
@@ -471,11 +501,13 @@ git commit -m "feat(public): definition owns agreements, notes, and submit chrom
 ### Task 8: Preview view-only (product decision)
 
 **Files:**
+
 - Modify: `class-portal-public-render.php` / submission pipeline entry
 - Modify: definition form submit button when `is_preview_request`
 - Tests: e2e preview does not POST production artifacts
 
 **Rule:** If `Portal_Open_State::is_preview_request( $post_id )` and portal would otherwise be closed (or always in preview):
+
 - Banner visible
 - Form visible
 - Submit control `disabled` **or** pipeline rejects with friendly message and does not write Sheet/Drive
@@ -495,6 +527,7 @@ git commit -m "feat(public): preview is view-only for submissions"
 ### Task 9: UX-08 — Remove block editor (wizard-only CPT)
 
 **Files:**
+
 - Modify: `includes/class-portal-post-type.php` L38 supports → `array( 'title', 'thumbnail' )`
 - Optional: `remove_post_type_support( 'portal', 'editor' )` on init
 - Verify: `e2e/admin/portal-crud.spec.ts` still green (REST-based)
@@ -512,10 +545,12 @@ git commit -m "feat(admin): wizard-only portals (drop block editor support)"
 ### Task 10: UX-09 — Admin CSS product chrome
 
 **Files:**
+
 - Modify: `assets/admin.css` or add `assets/portal-admin.css` enqueued only on portal screens
 - Modify: `includes/class-portal-meta.php` enqueue
 
 **Goals:**
+
 - `#portal_setup_wizard` full width, primary visual
 - Hide noisy unrelated meta (Custom Sidebars / OP3) via CSS if possible; at least collapse postbox clutter
 - Title field remains for portal name
@@ -523,10 +558,19 @@ git commit -m "feat(admin): wizard-only portals (drop block editor support)"
 
 ```css
 /* portal edit only body class post-type-portal */
-.post-type-portal .block-editor { /* gone after UX-08 */ }
-.post-type-portal #portal_setup_wizard .inside { margin: 0; padding: 0; }
-.post-type-portal .dg-wizard-root { min-height: 70vh; }
-.post-type-portal #postbox-container-1 { /* optional narrow */ }
+.post-type-portal .block-editor {
+  /* gone after UX-08 */
+}
+.post-type-portal #portal_setup_wizard .inside {
+  margin: 0;
+  padding: 0;
+}
+.post-type-portal .dg-wizard-root {
+  min-height: 70vh;
+}
+.post-type-portal #postbox-container-1 {
+  /* optional narrow */
+}
 ```
 
 - [ ] **Step 1: Implement + screenshot admin edit**
@@ -541,6 +585,7 @@ git commit -m "feat(admin): full-width portal wizard chrome"
 ### Task 11: UX-10a — Wizard foundation (load/save definition)
 
 **Files:**
+
 - Modify: `src/wizard/WizardShell.svelte`
 - Add: `src/wizard/definitionApi.js` (GET/POST facade — no raw fetch scatter)
 - Modify: `src/index.js` — pass `portalId`, `restNonce`, `restRoot` from `wp_localize_script` / data attributes on mount
@@ -556,6 +601,7 @@ printf(
 ```
 
 **Interfaces:**
+
 ```js
 // definitionApi.js
 export async function getDefinition({ restRoot, nonce, portalId })
@@ -577,6 +623,7 @@ git commit -m "feat(admin): wizard loads and saves portal definition via REST"
 ### Task 12: UX-10b — Start step (templates / blank / clone)
 
 **Files:**
+
 - Add: `src/wizard/steps/StartStep.svelte`
 - Modify: `WizardShell.svelte`
 - Reuse: existing `duplicate_portal` AJAX or REST list of portals for template cards
@@ -598,6 +645,7 @@ git commit -m "feat(admin): wizard Start step with blank and clone templates"
 ### Task 13: UX-10c — Build step (field canvas)
 
 **Files:**
+
 - Add: `src/wizard/steps/BuildStep.svelte` (+ field list components as needed; keep files small)
 - Field types v0.1 from PORTAL-MODEL: short_text, score_file, recording_file, applicant_pack, group, disclaimer, static_html (minimum set for Herbolzheimer)
 - Live preview: optional read-only HTML iframe or simplified list; full public CSS preview is stretch — list + type pills OK for v1 if public preview is hard
@@ -619,6 +667,7 @@ git commit -m "feat(admin): wizard Build step for definition fields"
 ### Task 14: UX-10d — Map step
 
 **Files:**
+
 - Add: `src/wizard/steps/MapStep.svelte`
 - Prefer writing `mapping.sheets` / `mapping.drive` on definition; bridge from legacy `_portal_record_keeping` / `_portal_file_backups` on first load if mapping empty
 - Reuse concepts from `PortalBuilder.svelte` without forcing full dual UI forever — either embed PortalBuilder in Map step **or** simplified mapping table
@@ -638,6 +687,7 @@ git commit -m "feat(admin): wizard Map step for Sheets and Drive mapping"
 ### Task 15: UX-10e — Publish step
 
 **Files:**
+
 - Add: `src/wizard/steps/PublishStep.svelte`
 - Fields: deadline, timezone, applicationFee, forceClosed, guidelinesUrl, anonymize, freeForMembers
 - WP publish: use existing post status UI or button that sets status via REST `wp/v2/portal/{id}`
@@ -657,18 +707,18 @@ git commit -m "feat(admin): wizard Publish step for deadline and open state"
 
 Do these as you touch areas — not a big-bang rewrite.
 
-| Practice | Action |
-|----------|--------|
-| **Flag rename** | Prefer `DG_PORTAL_FORM_CLOSED` for new code paths; keep defining `PB_APPLICATION_DEADLINE_PASSED` as alias for legacy shortcodes until all shortcodes use empty-when-closed |
-| **Facade** | Wizard REST only via `definitionApi.js`; no `fetch` in leaf components |
-| **Constants** | Closed messages stay on `Portal_Public_Render` class constants; no new string literals in shortcodes |
-| **File size** | Split `class-portal-definition-renderer.php` if it exceeds ~250 after form chrome (extract `class-portal-definition-form-chrome.php`) |
-| **A11y** | Required fields: `required` + `aria-required`; preview banner `role="status"`; file button labeled |
-| **No dual ownership** | After Task 7, grep for deadline copy in shortcodes — only `Portal_Public_Render` may emit closed copy |
-| **Tokens** | Ban new `#ccc` / raw greys in definition CSS; legacy portal.css may keep until legacy portals die |
-| **Tests** | Every phase ends with targeted test command; full `npm run ci` before declaring plan complete |
-| **Tutorial shots** | Re-run `node scripts/capture-tutorial-shots.mjs` after Phases 1–7; replace stale `docs/design/tutorial/*.png` |
-| **Legacy meta** | After Map+Publish parity, hide `portal_options` / record_keeping / file_backups behind “Advanced” or remove from default screen |
+| Practice              | Action                                                                                                                                                                      |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Flag rename**       | Prefer `DG_PORTAL_FORM_CLOSED` for new code paths; keep defining `PB_APPLICATION_DEADLINE_PASSED` as alias for legacy shortcodes until all shortcodes use empty-when-closed |
+| **Facade**            | Wizard REST only via `definitionApi.js`; no `fetch` in leaf components                                                                                                      |
+| **Constants**         | Closed messages stay on `Portal_Public_Render` class constants; no new string literals in shortcodes                                                                        |
+| **File size**         | Split `class-portal-definition-renderer.php` if it exceeds ~250 after form chrome (extract `class-portal-definition-form-chrome.php`)                                       |
+| **A11y**              | Required fields: `required` + `aria-required`; preview banner `role="status"`; file button labeled                                                                          |
+| **No dual ownership** | After Task 7, grep for deadline copy in shortcodes — only `Portal_Public_Render` may emit closed copy                                                                       |
+| **Tokens**            | Ban new `#ccc` / raw greys in definition CSS; legacy portal.css may keep until legacy portals die                                                                           |
+| **Tests**             | Every phase ends with targeted test command; full `npm run ci` before declaring plan complete                                                                               |
+| **Tutorial shots**    | Re-run `node scripts/capture-tutorial-shots.mjs` after Phases 1–7; replace stale `docs/design/tutorial/*.png`                                                               |
+| **Legacy meta**       | After Map+Publish parity, hide `portal_options` / record_keeping / file_backups behind “Advanced” or remove from default screen                                             |
 
 - [ ] **Step 1:** Add grep-based unit or CI note: `rg "deadline has passed" includes/shortcodes` should only hit comments or empty paths.
 - [ ] **Step 2:** Run full gate:
@@ -691,42 +741,42 @@ git commit -m "chore: UX track hygiene and tutorial re-capture"
 
 All must be true:
 
-| Check | Evidence |
-|-------|----------|
-| Closed public: one status sentence | e2e + live shot |
-| Force-closed never says deadline | e2e force-only |
-| Preview banner tokenized; submit disabled | e2e |
-| Form centered; side labels desktop | tutorial re-shot `05b` class |
-| File controls styled | tutorial / e2e markers |
-| Note alert not grey after submit | DOM order |
-| No block editor on portal edit | admin screenshot / e2e |
-| White menu icon | admin list shot |
-| Wizard can save definition | REST round-trip from UI or e2e |
-| `npm run ci:offline` green | stdout |
-| Public + admin e2e green on LocalWP | stdout |
+| Check                                     | Evidence                       |
+| ----------------------------------------- | ------------------------------ |
+| Closed public: one status sentence        | e2e + live shot                |
+| Force-closed never says deadline          | e2e force-only                 |
+| Preview banner tokenized; submit disabled | e2e                            |
+| Form centered; side labels desktop        | tutorial re-shot `05b` class   |
+| File controls styled                      | tutorial / e2e markers         |
+| Note alert not grey after submit          | DOM order                      |
+| No block editor on portal edit            | admin screenshot / e2e         |
+| White menu icon                           | admin list shot                |
+| Wizard can save definition                | REST round-trip from UI or e2e |
+| `npm run ci:offline` green                | stdout                         |
+| Public + admin e2e green on LocalWP       | stdout                         |
 
 ---
 
 ## Spec coverage matrix
 
-| UX-NEXT-STEPS ID | Task(s) |
-|------------------|---------|
-| UX-01 | Task 1 |
-| UX-02 | Task 2 |
-| UX-03 | Task 4 |
-| UX-04 | Task 6 |
-| UX-05 | Task 5 (+ 7 placement) |
-| UX-06 | Task 7 |
-| UX-07 | Task 3 |
-| UX-08 | Task 9 |
-| UX-09 | Task 10 |
-| UX-10 | Tasks 11–15 |
-| UX-11 | Task 4 |
-| UX-12 | Task 7 |
-| Preview view-only | Task 8 |
-| Best practices | Task 16–17 |
-| PORTAL-MODEL definition-first | Tasks 7, 11–15 |
-| TOKENS | Tasks 2–7 |
+| UX-NEXT-STEPS ID              | Task(s)                |
+| ----------------------------- | ---------------------- |
+| UX-01                         | Task 1                 |
+| UX-02                         | Task 2                 |
+| UX-03                         | Task 4                 |
+| UX-04                         | Task 6                 |
+| UX-05                         | Task 5 (+ 7 placement) |
+| UX-06                         | Task 7                 |
+| UX-07                         | Task 3                 |
+| UX-08                         | Task 9                 |
+| UX-09                         | Task 10                |
+| UX-10                         | Tasks 11–15            |
+| UX-11                         | Task 4                 |
+| UX-12                         | Task 7                 |
+| Preview view-only             | Task 8                 |
+| Best practices                | Task 16–17             |
+| PORTAL-MODEL definition-first | Tasks 7, 11–15         |
+| TOKENS                        | Tasks 2–7              |
 
 ## Explicit non-goals (restate)
 
@@ -738,13 +788,13 @@ All must be true:
 
 ## Risk notes
 
-| Risk | Mitigation |
-|------|------------|
+| Risk                                         | Mitigation                                                                     |
+| -------------------------------------------- | ------------------------------------------------------------------------------ |
 | Definition form + formstart double form tags | Own form entirely in definition path; silence formstart when definition exists |
-| Pipeline still needs legacy meta | Dual-write mapping in Map step until pipeline e2e is definition-only |
-| Admin edit without editor confuses WP | Title + wizard CSS; document in About if needed |
-| Wizard scope explosion | Ship 10a foundation before fancy DnD; Herbolzheimer field set first |
-| LocalWP flakiness | Prefer REST assertions; use pretty permalinks for preview |
+| Pipeline still needs legacy meta             | Dual-write mapping in Map step until pipeline e2e is definition-only           |
+| Admin edit without editor confuses WP        | Title + wizard CSS; document in About if needed                                |
+| Wizard scope explosion                       | Ship 10a foundation before fancy DnD; Herbolzheimer field set first            |
+| LocalWP flakiness                            | Prefer REST assertions; use pretty permalinks for preview                      |
 
 ## Suggested first execution order (one day slices)
 
@@ -756,4 +806,4 @@ All must be true:
 
 ---
 
-*Plan authored 2026-08-12 from session resume + live LocalWP verification + UX-NEXT-STEPS.md.*
+_Plan authored 2026-08-12 from session resume + live LocalWP verification + UX-NEXT-STEPS.md._

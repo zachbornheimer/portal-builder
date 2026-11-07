@@ -12,13 +12,13 @@ if ( ! class_exists( 'Portal_Access' ) ) {
 	 */
 	class Portal_Access {
 
-		const AUDIENCE_ANYONE     = 'anyone';
-		const AUDIENCE_LOGGED_IN  = 'logged_in';
-		const AUDIENCE_MEMBERS    = 'members';
-		const REASON_LOGIN        = 'login';
-		const REASON_MEMBERSHIP   = 'membership';
-		const REASON_PROFILE      = 'profile';
-		const ROLE_ADMINISTRATOR  = 'administrator';
+		const AUDIENCE_ANYONE    = 'anyone';
+		const AUDIENCE_LOGGED_IN = 'logged_in';
+		const AUDIENCE_MEMBERS   = 'members';
+		const REASON_LOGIN       = 'login';
+		const REASON_MEMBERSHIP  = 'membership';
+		const REASON_PROFILE     = 'profile';
+		const ROLE_ADMINISTRATOR = 'administrator';
 
 		/**
 		 * Decide whether this applicant may apply, and whether the fee is waived.
@@ -70,7 +70,7 @@ if ( ! class_exists( 'Portal_Access' ) ) {
 				$waive_plans = isset( $options['freeMembershipPlanIds'] ) && is_array( $options['freeMembershipPlanIds'] )
 					? array_map( 'strval', $options['freeMembershipPlanIds'] )
 					: array();
-				$fee_waived = self::holds_membership( $plan_ids, $waive_plans );
+				$fee_waived  = self::holds_membership( $plan_ids, $waive_plans );
 			}
 
 			return array(
@@ -143,10 +143,22 @@ if ( ! class_exists( 'Portal_Access' ) ) {
 			}
 
 			$fields = array(
-				array( 'key' => 'COUNTRY', 'label' => 'Country' ),
-				array( 'key' => 'INSTITUTION', 'label' => 'Institution' ),
-				array( 'key' => 'OCCUPATION', 'label' => 'Occupation' ),
-				array( 'key' => 'billing_country', 'label' => 'Billing country' ),
+				array(
+					'key'   => 'COUNTRY',
+					'label' => 'Country',
+				),
+				array(
+					'key'   => 'INSTITUTION',
+					'label' => 'Institution',
+				),
+				array(
+					'key'   => 'OCCUPATION',
+					'label' => 'Occupation',
+				),
+				array(
+					'key'   => 'billing_country',
+					'label' => 'Billing country',
+				),
 			);
 			return array(
 				'membershipPlans' => $plans,

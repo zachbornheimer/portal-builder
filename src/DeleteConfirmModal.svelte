@@ -1,7 +1,7 @@
 <script>
-  import ConfirmModal from './ConfirmModal.svelte';
+import ConfirmModal from './ConfirmModal.svelte';
   import { createEventDispatcher } from 'svelte';
-  
+
   /**
    * @typedef {Object} Props
    * @property {boolean} [isOpen]
@@ -11,17 +11,17 @@
 
   /** @type {Props} */
   let { isOpen = false, itemName = '', itemType = 'item' } = $props();
-  
+
   const dispatch = createEventDispatcher();
-  
+
   function handleConfirm() {
     dispatch('confirm');
   }
-  
+
   function handleCancel() {
     dispatch('cancel');
   }
-  
+
   let title = $derived(`Delete ${itemType}`);
   let message = $derived(`Are you sure you want to delete "${itemName}"? This action cannot be undone.`);
 </script>
@@ -37,4 +37,3 @@
   on:confirm={handleConfirm}
   on:cancel={handleCancel}
 />
-

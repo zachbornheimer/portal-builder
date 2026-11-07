@@ -1,5 +1,5 @@
 <script>
-	/** @typedef {'open' | 'current' | 'sealed'} GateState */
+/** @typedef {'open' | 'current' | 'sealed'} GateState */
 
 	/**
 	 * @typedef {Object} Props

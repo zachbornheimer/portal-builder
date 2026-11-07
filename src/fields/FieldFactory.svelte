@@ -1,9 +1,9 @@
 <script>
-  import TextField from './TextField.svelte';
+import TextField from './TextField.svelte';
   import IdField from './IdField.svelte';
   import TagsField from './TagsField.svelte';
   import { createEventDispatcher } from 'svelte';
-  
+
   /**
    * @typedef {Object} Props
    * @property {any} field
@@ -21,21 +21,20 @@
     sheetManager = null,
     sheetId = null
   } = $props();
-  
+
   const dispatch = createEventDispatcher();
-  
+
   function handleFieldChange(event) {
     dispatch('change', event.detail);
   }
-  
+
   function handleDelete() {
     dispatch('delete');
   }
-
 </script>
 
 {#if field.type === 'text'}
-  <TextField 
+  <TextField
     {field}
     {value}
     {hasDeleteButton}
@@ -43,13 +42,13 @@
     on:delete={handleDelete}
   />
 {:else if field.type === 'id'}
-  <IdField 
+  <IdField
     {field}
     {value}
     on:change={handleFieldChange}
   />
 {:else if field.type === 'tags'}
-  <TagsField 
+  <TagsField
     {field}
     {value}
     {sheetManager}

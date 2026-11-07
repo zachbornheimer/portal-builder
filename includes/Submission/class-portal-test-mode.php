@@ -18,15 +18,15 @@ if ( ! class_exists( 'Portal_Test_Mode' ) ) {
 	 */
 	class Portal_Test_Mode {
 
-		const ENV_FLAG           = 'DG_TEST_MODE';
-		const ENV_ARTIFACT_DIR   = 'DG_ARTIFACT_DIR';
-		const CONSTANT_FLAG      = 'DG_TEST_MODE';
-		const OPTION_KEY         = 'dg_test_mode';
-		const FILTER_NAME        = 'dg_test_mode';
-		const FILTER_ARTIFACT    = 'dg_artifact_dir';
-		const DEFAULT_ARTIFACT   = 'tests/.artifacts';
-		const MARKER_FILENAME    = '.dg-test-mode';
-		const TRUTHY_VALUES      = array( '1', 'true', 'yes', 'on' );
+		const ENV_FLAG         = 'DG_TEST_MODE';
+		const ENV_ARTIFACT_DIR = 'DG_ARTIFACT_DIR';
+		const CONSTANT_FLAG    = 'DG_TEST_MODE';
+		const OPTION_KEY       = 'dg_test_mode';
+		const FILTER_NAME      = 'dg_test_mode';
+		const FILTER_ARTIFACT  = 'dg_artifact_dir';
+		const DEFAULT_ARTIFACT = 'tests/.artifacts';
+		const MARKER_FILENAME  = '.dg-test-mode';
+		const TRUTHY_VALUES    = array( '1', 'true', 'yes', 'on' );
 
 		/**
 		 * Whether test mode is active.
@@ -115,7 +115,7 @@ if ( ! class_exists( 'Portal_Test_Mode' ) ) {
 			$base = is_string( $repo_root ) && '' !== $repo_root
 				? $repo_root
 				: self::default_repo_root();
-			return rtrim( $base, "/\\" ) . DIRECTORY_SEPARATOR . ltrim( $path, "/\\" );
+			return rtrim( $base, '/\\' ) . DIRECTORY_SEPARATOR . ltrim( $path, '/\\' );
 		}
 
 		/**

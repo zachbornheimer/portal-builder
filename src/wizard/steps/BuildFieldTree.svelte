@@ -1,5 +1,5 @@
 <script>
-	import { isBranchOptionOpen, pillForType } from '../definitionModel.js';
+import { isBranchOptionOpen, pillForType } from '../definitionModel.js';
 	import BuildFieldTree from './BuildFieldTree.svelte';
 
 	/**
@@ -105,147 +105,157 @@
 	}
 </script>
 
-<ul class="dg-field-list" class:dg-field-list--nested={depth > 0} data-dg-field-list={depth === 0 ? '' : undefined}>
-	{#each fields as f (f.id)}
-		<li
-			class="dg-field-row"
-			class:dg-field-row--selected={selectedId === f.id}
-			class:dg-field-row--container={f.type === 'group' || f.type === 'branch'}
-			data-field-id={f.id}
-			draggable="true"
-			ondragstart={(e) => onFieldDragStart(e, f.id)}
-			ondragover={allowDrop}
-			ondrop={(e) => onDrop(e, { kind: 'root' }, f.id)}
-		>
-			<span class="dg-drag-handle" aria-hidden="true">⋮⋮</span>
-			<button
-				type="button"
-				class="dg-field-row-main"
-				onclick={() => {
-					onSelect(f.id);
-					if (f.type === 'group') {
-						onSetInsertTarget({ kind: 'group', fieldId: f.id });
-					}
-				}}
-			>
-				<span class="dg-field-row-label">{f.label || f.id}</span>
-				{#if rowHelp(f)}
-					<span class="dg-field-row-help">{rowHelp(f)}</span>
-				{/if}
-			</button>
-			<span class="dg-field-type-pill">{pillForType(f.type)}</span>
-			<button
-				type="button"
-				class="dg-btn dg-btn-ghost dg-btn-icon"
-				aria-label={`Remove ${f.label}`}
-				onclick={() => onRemove(f.id)}
-			>
-				×
-			</button>
-		</li>
+<ul
+  class="dg-field-list"
+  class:dg-field-list--nested={depth > 0}
+  data-dg-field-list={depth === 0 ? '' : undefined}
+>
+  {#each fields as f (f.id)}
+    <li
+      class="dg-field-row"
+      class:dg-field-row--selected={selectedId === f.id}
+      class:dg-field-row--container={f.type === 'group' || f.type === 'branch'}
+      data-field-id={f.id}
+      draggable="true"
+      ondragstart={(e) => onFieldDragStart(e, f.id)}
+      ondragover={allowDrop}
+      ondrop={(e) => onDrop(e, { kind: 'root' }, f.id)}
+    >
+      <span class="dg-drag-handle" aria-hidden="true">⋮⋮</span>
+      <button
+        type="button"
+        class="dg-field-row-main"
+        onclick={() => {
+        	onSelect(f.id);
+        	if (f.type === 'group') {
+        		onSetInsertTarget({ kind: 'group', fieldId: f.id });
+        	}
+        }}
+      >
+        <span class="dg-field-row-label">{f.label || f.id}</span>
+        {#if rowHelp(f)}
+          <span class="dg-field-row-help">{rowHelp(f)}</span>
+        {/if}
+      </button>
+      <span class="dg-field-type-pill">{pillForType(f.type)}</span>
+      <button
+        type="button"
+        class="dg-btn dg-btn-ghost dg-btn-icon"
+        aria-label={`Remove ${f.label}`}
+        onclick={() => onRemove(f.id)}
+      >
+        ×
+      </button>
+    </li>
 
-		{#if f.type === 'group' && Array.isArray(f.children)}
-			<li
-				class="dg-field-nest"
-				class:dg-field-nest--insert={isInsertHere({ kind: 'group', fieldId: f.id })}
-				ondragover={allowDrop}
-				ondrop={(e) => onDrop(e, { kind: 'group', fieldId: f.id })}
-			>
-				<button
-					type="button"
-					class="dg-insert-target"
-					class:dg-insert-target--active={isInsertHere({ kind: 'group', fieldId: f.id })}
-					onclick={() => onSetInsertTarget({ kind: 'group', fieldId: f.id })}
-				>
-					Drop fields here
-				</button>
-				{#if f.children.length > 0}
-					<BuildFieldTree
-						fields={f.children}
-						{selectedId}
-						{insertTarget}
-						{onSelect}
-						{onRemove}
-						{onSetInsertTarget}
-						{onSelectOption}
-						{selectedOptionKey}
-						{expandAll}
-						{onDropType}
-						{onDropField}
-						depth={depth + 1}
-					/>
-				{/if}
-			</li>
-		{/if}
+    {#if f.type === 'group' && Array.isArray(f.children)}
+      <li
+        class="dg-field-nest"
+        class:dg-field-nest--insert={isInsertHere({ kind: 'group', fieldId: f.id })}
+        ondragover={allowDrop}
+        ondrop={(e) => onDrop(e, { kind: 'group', fieldId: f.id })}
+      >
+        <button
+          type="button"
+          class="dg-insert-target"
+          class:dg-insert-target--active={isInsertHere({ kind: 'group', fieldId: f.id })}
+          onclick={() => onSetInsertTarget({ kind: 'group', fieldId: f.id })}
+        >
+          Drop fields here
+        </button>
+        {#if f.children.length > 0}
+          <BuildFieldTree
+            fields={f.children}
+            {selectedId}
+            {insertTarget}
+            {onSelect}
+            {onRemove}
+            {onSetInsertTarget}
+            {onSelectOption}
+            {selectedOptionKey}
+            {expandAll}
+            {onDropType}
+            {onDropField}
+            depth={depth + 1}
+          />
+        {/if}
+      </li>
+    {/if}
 
-		{#if f.type === 'branch' && Array.isArray(f.options)}
-			<li class="dg-field-nest dg-field-nest--branch">
-				{#each f.options as opt (opt.id)}
-					{@const target = /** @type {const} */ ({ kind: 'option', branchId: f.id, optionId: opt.id })}
-					{@const key = optionKey(f.id, opt.id)}
-					{@const open = isBranchOptionOpen(
-						insertTarget,
-						selectedOptionKey,
-						f.id,
-						opt.id,
-						opt.children || [],
-						selectedId,
-						expandAll,
-					)}
-					{@const childCount = Array.isArray(opt.children) ? opt.children.length : 0}
-					<div
-						class="dg-branch-option-row"
-						class:dg-branch-option-row--selected={selectedOptionKey === key}
-						class:dg-branch-option-row--insert={isInsertHere(target)}
-						class:dg-branch-option-row--collapsed={!open}
-						data-dg-option={key}
-						role="group"
-						aria-label={`When ${opt.label || opt.id}`}
-						ondragover={allowDrop}
-						ondrop={(e) => onDrop(e, target)}
-					>
-						<button
-							type="button"
-							class="dg-branch-option-head"
-							aria-expanded={open}
-							onclick={() => {
-								onSelect(f.id);
-								onSelectOption(f.id, opt.id);
-								onSetInsertTarget(target);
-							}}
-						>
-							<span class="dg-field-row-label">When: {opt.label || opt.id}</span>
-							<span class="dg-field-row-help">
-								{open
-									? `Option id: ${opt.id}`
-									: childCount === 1
-										? '1 field'
-										: `${childCount} fields`}
-							</span>
-						</button>
-						{#if open}
-							{#if childCount > 0}
-								<BuildFieldTree
-									fields={opt.children}
-									{selectedId}
-									{insertTarget}
-									{onSelect}
-									{onRemove}
-									{onSetInsertTarget}
-									{onSelectOption}
-									{selectedOptionKey}
-									{expandAll}
-									{onDropType}
-									{onDropField}
-									depth={depth + 1}
-								/>
-							{:else}
-								<p class="dg-field-help">Drop a field here, or add one from the rail.</p>
-							{/if}
-						{/if}
-					</div>
-				{/each}
-			</li>
-		{/if}
-	{/each}
+    {#if f.type === 'branch' && Array.isArray(f.options)}
+      <li class="dg-field-nest dg-field-nest--branch">
+        {#each f.options as opt (opt.id)}
+          {@const target = /** @type {const} */ ({ kind: 'option', branchId: f.id, optionId: opt.id })}
+          {@const key = optionKey(f.id, opt.id)}
+          {@const open = isBranchOptionOpen(
+          	insertTarget,
+          	selectedOptionKey,
+          	f.id,
+          	opt.id,
+          	opt.children || [],
+          	selectedId,
+          	expandAll,
+          )}
+          {@const childCount = Array.isArray(opt.children) ? opt.children.length : 0}
+          <div
+            class="dg-branch-option-row"
+            class:dg-branch-option-row--selected={selectedOptionKey === key}
+            class:dg-branch-option-row--insert={isInsertHere(target)}
+            class:dg-branch-option-row--collapsed={!open}
+            data-dg-option={key}
+            role="group"
+            aria-label={`When ${opt.label || opt.id}`}
+            ondragover={allowDrop}
+            ondrop={(e) => onDrop(e, target)}
+          >
+            <button
+              type="button"
+              class="dg-branch-option-head"
+              aria-expanded={open}
+              onclick={() => {
+              	onSelect(f.id);
+              	onSelectOption(f.id, opt.id);
+              	onSetInsertTarget(target);
+              }}
+            >
+              <span class="dg-field-row-label">When: {
+                  opt.label || opt.id
+                }</span>
+              <span class="dg-field-row-help">
+                {
+                  open
+                  ? `Option id: ${opt.id}`
+                  : childCount === 1
+                  	? '1 field'
+                  	: `${childCount} fields`
+                }
+              </span>
+            </button>
+            {#if open}
+              {#if childCount > 0}
+                <BuildFieldTree
+                  fields={opt.children}
+                  {selectedId}
+                  {insertTarget}
+                  {onSelect}
+                  {onRemove}
+                  {onSetInsertTarget}
+                  {onSelectOption}
+                  {selectedOptionKey}
+                  {expandAll}
+                  {onDropType}
+                  {onDropField}
+                  depth={depth + 1}
+                />
+              {:else}
+                <p class="dg-field-help">
+                  Drop a field here, or add one from the rail.
+                </p>
+              {/if}
+            {/if}
+          </div>
+        {/each}
+      </li>
+    {/if}
+  {/each}
 </ul>

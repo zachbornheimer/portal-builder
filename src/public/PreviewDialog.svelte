@@ -1,5 +1,5 @@
 <script>
-  import { Dialog } from "bits-ui";
+import { Dialog } from "bits-ui";
   import { previewApi } from './preview-api.js';
 
   const DEFAULT_TITLE = 'Confirm this file';
@@ -46,7 +46,10 @@
 <Dialog.Root bind:open={isOpen}>
   <Dialog.Portal>
     <Dialog.Overlay class="dg-file-preview-backdrop" />
-    <Dialog.Content class="dg-file-preview-panel" onCloseAutoFocus={handleCloseAutoFocus}>
+    <Dialog.Content
+      class="dg-file-preview-panel"
+      onCloseAutoFocus={handleCloseAutoFocus}
+    >
       <div class="dg-file-preview-bar">
         <Dialog.Title class="dg-file-preview-title">{title}</Dialog.Title>
         <Dialog.Close class="dg-file-preview-close">{CLOSE_LABEL}</Dialog.Close>

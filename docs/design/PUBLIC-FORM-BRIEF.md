@@ -1,4 +1,5 @@
 # DragonGate — public application form
+
 ## Full brief for Grok Design (zero prior context)
 
 You are designing the **applicant-facing form** for DragonGate Portals. You have no other project files. Everything you need is in this brief. Do not invent a new brand, a new color system, or a new product.
@@ -42,14 +43,14 @@ The current live form **fails this**. It looks like a 2008 admin settings table 
 
 Use **one visual language**. You may explore **two or three low-fidelity directions** (layout / density / how files feel). Do **not** produce six polished alternatives. We will pick one direction, then mock it in HTML.
 
-| # | Screen | Must include |
-|---|--------|----------------|
-| A | **Open application** | Full form, ready to fill. Desktop **and** 360px. |
-| B | **Validation / error** | Same form after a failed submit: missing name, missing score PDF, invalid email. Errors in human language next to the field. |
-| C | **Uploading** | Score or recording in flight. User must see the system is working. |
-| D | **Preview (staff only)** | Same as A, plus an honest banner: “Preview — not a live submission.” |
-| E | **Closed** | Deadline passed. Title remains. One sentence why. **No fields.** |
-| F | **Receipt** | After success. Application ID, what they sent, what happens next, notification date if any. |
+| # | Screen                   | Must include                                                                                                                 |
+| - | ------------------------ | ---------------------------------------------------------------------------------------------------------------------------- |
+| A | **Open application**     | Full form, ready to fill. Desktop **and** 360px.                                                                             |
+| B | **Validation / error**   | Same form after a failed submit: missing name, missing score PDF, invalid email. Errors in human language next to the field. |
+| C | **Uploading**            | Score or recording in flight. User must see the system is working.                                                           |
+| D | **Preview (staff only)** | Same as A, plus an honest banner: “Preview — not a live submission.”                                                         |
+| E | **Closed**               | Deadline passed. Title remains. One sentence why. **No fields.**                                                             |
+| F | **Receipt**              | After success. Application ID, what they sent, what happens next, notification date if any.                                  |
 
 ### Out of scope
 
@@ -71,7 +72,7 @@ Use **one visual language**. You may explore **two or three low-fidelity directi
 - Optional guidelines link: `Read the call` → `https://example.org/dohnanyi-guidelines`
 - Deadline line (when set): `Closes 15 September 2026, 11:59 pm America/New York`
 - Fee line (when set): `Application fee $25` · if members free: `Free for members`
-- Intro (one or two sentences, not a wall):  
+- Intro (one or two sentences, not a wall):\
   `Submit one original work. PDF score and MP3 recording required. You will receive a receipt by email.`
 
 ### Applicant (persona)
@@ -86,53 +87,53 @@ Use **one visual language**. You may explore **two or three low-fidelity directi
 
 ### Field inventory (this is the form)
 
-**Section — Your information** (`applicant_pack`, required)  
+**Section — Your information** (`applicant_pack`, required)\
 Stacked fields, **label above input**, never a two-column admin table:
 
-| Label | Type | Required | Notes |
-|-------|------|----------|--------|
-| Title | short text | yes | honorific, short (`Ms.`, `Dr.`) |
-| Name | text | yes | |
-| Email address | email | yes | |
-| Institutional affiliation | text | no | caption: `(if any)` |
-| Address (home/work) | text | yes | |
-| City | text | yes | |
-| Country | select | yes | |
-| State / region | select | yes | depends on country |
-| Zip / postal code | text | no | |
-| Phone | tel | yes | |
+| Label                     | Type       | Required | Notes                           |
+| ------------------------- | ---------- | -------- | ------------------------------- |
+| Title                     | short text | yes      | honorific, short (`Ms.`, `Dr.`) |
+| Name                      | text       | yes      |                                 |
+| Email address             | email      | yes      |                                 |
+| Institutional affiliation | text       | no       | caption: `(if any)`             |
+| Address (home/work)       | text       | yes      |                                 |
+| City                      | text       | yes      |                                 |
+| Country                   | select     | yes      |                                 |
+| State / region            | select     | yes      | depends on country              |
+| Zip / postal code         | text       | no       |                                 |
+| Phone                     | tel        | yes      |                                 |
 
 **Section — Submission** (group)
 
-| Label | Type | Required | Help |
-|-------|------|----------|------|
-| Title of work | short text | yes | |
-| Full score | PDF file | yes | `PDF only` |
-| Recording | MP3 file | yes | `MP3 only` |
+| Label         | Type       | Required | Help       |
+| ------------- | ---------- | -------- | ---------- |
+| Title of work | short text | yes      |            |
+| Full score    | PDF file   | yes      | `PDF only` |
+| Recording     | MP3 file   | yes      | `MP3 only` |
 
-**After fields, before submit**
+#### After fields, before submit
 
-- Disclaimer (required checkbox) with short legal text, e.g.  
+- Disclaimer (required checkbox) with short legal text, e.g.\
   `I certify that this work is my own and that I have the right to submit it.`
 - Optional second disclaimer (recording permission) — keep secondary, not a gray dump.
 
-**Primary action (one):** `Submit application`  
+**Primary action (one):** `Submit application`\
 No “Continue” two-step. No second “Submit” later.
 
-**Receipt copy**
+#### Receipt copy
 
 - `Application received`
 - `Application ID: DG-2026-08-14-1842`
 - `We emailed a copy to elena.varga@example.com.`
 - `Decisions by 1 November 2026.` (from `applicantNotificationDate`)
 
-**Closed copy**
+#### Closed copy
 
 - Deadline: `The application deadline has passed.`
 - Force-closed: `This portal is closed.`
 - Draft/not published: `This portal is not currently accepting applications.`
 
-**Errors (plain language)**
+#### Errors (plain language)
 
 - `Enter your name.`
 - `Enter a valid email so we can send your receipt.`
@@ -148,27 +149,27 @@ Light only. Warm paper, warm ink. **One chromatic accent: ember.** Brass is deco
 
 ### Color
 
-| Token | Hex | Use |
-|-------|-----|-----|
-| ink | `#12140F` | Titles, primary text |
-| ink-800 | `#1C1F17` | Elevated dark (rare on public) |
-| ink-600 | `#454A3C` | Body |
-| ink-400 | `#6E7460` | Help, captions |
-| paper | `#F7F4EC` | Page ground |
-| paper-50 | `#FCFBF6` | Card / input fill |
-| paper-100 | `#EFEBDD` | Alt ground, chips |
-| ember-100 | `#F4E2D4` | Soft attention |
-| ember | `#B8501F` | The one action, focus, sealed |
-| ember-600 | `#963F16` | Hover / links on paper |
-| ember-flow | `linear-gradient(115deg, #C96A2E 0%, #B8501F 45%, #8B3A1A 100%)` | Primary button fill only |
-| brass | `#9C7A3C` | Eyebrows, unsealed rings — **not 14px body** |
-| brass-200 | `#E4D9BE` | Soft pills |
-| success | `#3F8A5C` | Receipt confirmation — large/icon, not small body |
-| success-100 | `#E1EEE4` | Receipt tint |
-| error | `#B8341F` | Validation (cooler than ember) |
-| error-100 | `#F4DCD6` | Error field tint |
-| rule | `rgba(18,20,15,0.10)` | Hairline |
-| rule-strong | `rgba(18,20,15,0.20)` | Input border |
+| Token       | Hex                                                              | Use                                               |
+| ----------- | ---------------------------------------------------------------- | ------------------------------------------------- |
+| ink         | `#12140F`                                                        | Titles, primary text                              |
+| ink-800     | `#1C1F17`                                                        | Elevated dark (rare on public)                    |
+| ink-600     | `#454A3C`                                                        | Body                                              |
+| ink-400     | `#6E7460`                                                        | Help, captions                                    |
+| paper       | `#F7F4EC`                                                        | Page ground                                       |
+| paper-50    | `#FCFBF6`                                                        | Card / input fill                                 |
+| paper-100   | `#EFEBDD`                                                        | Alt ground, chips                                 |
+| ember-100   | `#F4E2D4`                                                        | Soft attention                                    |
+| ember       | `#B8501F`                                                        | The one action, focus, sealed                     |
+| ember-600   | `#963F16`                                                        | Hover / links on paper                            |
+| ember-flow  | `linear-gradient(115deg, #C96A2E 0%, #B8501F 45%, #8B3A1A 100%)` | Primary button fill only                          |
+| brass       | `#9C7A3C`                                                        | Eyebrows, unsealed rings — **not 14px body**      |
+| brass-200   | `#E4D9BE`                                                        | Soft pills                                        |
+| success     | `#3F8A5C`                                                        | Receipt confirmation — large/icon, not small body |
+| success-100 | `#E1EEE4`                                                        | Receipt tint                                      |
+| error       | `#B8341F`                                                        | Validation (cooler than ember)                    |
+| error-100   | `#F4DCD6`                                                        | Error field tint                                  |
+| rule        | `rgba(18,20,15,0.10)`                                            | Hairline                                          |
+| rule-strong | `rgba(18,20,15,0.20)`                                            | Input border                                      |
 
 **No** `#000`, **no** `#fff` as brand surfaces. **No** Tailwind sky/indigo/blue CTAs. **No** Acceptd teal, **no** generic purple SaaS.
 
@@ -176,13 +177,13 @@ Optional page atmosphere: faint paper grain + a **small** ember radial wash in a
 
 ### Type
 
-| Role | Stack | Size |
-|------|--------|------|
-| Display / opportunity title | Fraunces, Georgia, serif | `clamp(28px, 3.4vw, 40px)` |
-| Section titles | Fraunces | 20px |
-| Field labels, body, button | Inter, system-ui, sans | 14px body, labels 14px semibold |
-| Eyebrows, deadlines, IDs | IBM Plex Mono, ui-monospace | 10.5–11px, letter-spacing ~0.08em, uppercase for eyebrows |
-| Help captions | Inter | 12.5px, ink-400 |
+| Role                        | Stack                       | Size                                                      |
+| --------------------------- | --------------------------- | --------------------------------------------------------- |
+| Display / opportunity title | Fraunces, Georgia, serif    | `clamp(28px, 3.4vw, 40px)`                                |
+| Section titles              | Fraunces                    | 20px                                                      |
+| Field labels, body, button  | Inter, system-ui, sans      | 14px body, labels 14px semibold                           |
+| Eyebrows, deadlines, IDs    | IBM Plex Mono, ui-monospace | 10.5–11px, letter-spacing ~0.08em, uppercase for eyebrows |
+| Help captions               | Inter                       | 12.5px, ink-400                                           |
 
 Line-height: titles tight (~1.05–1.2), body 1.55.
 
@@ -192,7 +193,7 @@ Spacing scale (4px): 4, 8, 12, 16, 24, 32, 48, 64, 96.
 
 Radius: 3 / 6 / 10 / pill 999.
 
-Card shadow: `0 1px 2px rgba(18,20,15,0.03), 0 6px 16px -10px rgba(18,20,15,0.16)`  
+Card shadow: `0 1px 2px rgba(18,20,15,0.03), 0 6px 16px -10px rgba(18,20,15,0.16)`\
 Button ember shadow (optional): `0 1px 1px rgba(184,80,31,0.25), 0 6px 16px -6px rgba(184,80,31,0.55)`
 
 Ease: `cubic-bezier(0.2, 0.8, 0.2, 1)`. Fast 120ms, base 180ms.
@@ -224,7 +225,7 @@ If you show a logo: circular **seal** — gate / pillars / threshold, dragon as 
 
 A direction that will implement cleanly:
 
-```
+```text
 [ optional site header ]
 
         APPLICATION                    ← mono eyebrow, brass

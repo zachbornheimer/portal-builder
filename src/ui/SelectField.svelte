@@ -1,5 +1,5 @@
 <script>
-	import { Select, Label } from 'bits-ui';
+import { Select, Label } from 'bits-ui';
 
 	/**
 	 * @typedef {{ value: string, label: string }} SelectOption
@@ -45,27 +45,29 @@
 </script>
 
 {#if label}
-	<Label.Root for={controlId} class={labelClass}>{label}</Label.Root>
+  <Label.Root for={controlId} class={labelClass}>{label}</Label.Root>
 {/if}
 <Select.Root type="single" {name} {value} onValueChange={handleChange}>
-	<Select.Trigger
-		id={controlId}
-		class={triggerClass}
-		aria-label={ariaLabel || label || undefined}
-	>
-		<Select.Value placeholder={placeholder}>{selectedLabel}</Select.Value>
-	</Select.Trigger>
-	<Select.Portal>
-		<Select.Content class="dg-select-content z-50 max-h-60 overflow-auto rounded-md bg-white py-1 shadow-lg outline outline-1 outline-black/5">
-			{#each options as opt (opt.value)}
-				<Select.Item
-					class="cursor-default select-none px-3 py-2 text-sm data-highlighted:bg-zysys-blue-50"
-					value={opt.value}
-					label={opt.label}
-				>
-					{opt.label}
-				</Select.Item>
-			{/each}
-		</Select.Content>
-	</Select.Portal>
+  <Select.Trigger
+    id={controlId}
+    class={triggerClass}
+    aria-label={ariaLabel || label || undefined}
+  >
+    <Select.Value placeholder={placeholder}>{selectedLabel}</Select.Value>
+  </Select.Trigger>
+  <Select.Portal>
+    <Select.Content
+      class="dg-select-content z-50 max-h-60 overflow-auto rounded-md bg-white py-1 shadow-lg outline outline-1 outline-black/5"
+    >
+      {#each options as opt (opt.value)}
+        <Select.Item
+          class="cursor-default select-none px-3 py-2 text-sm data-highlighted:bg-zysys-blue-50"
+          value={opt.value}
+          label={opt.label}
+        >
+          {opt.label}
+        </Select.Item>
+      {/each}
+    </Select.Content>
+  </Select.Portal>
 </Select.Root>

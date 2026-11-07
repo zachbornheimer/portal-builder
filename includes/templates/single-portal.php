@@ -17,8 +17,8 @@ if ( have_posts() ) :
 
 		<main class="dg-public-main wp-block-group alignfull">
 			<?php
-			$portal_id          = (int) get_the_ID();
-			$has_definition     = class_exists( 'Portal_Definition' )
+			$portal_id      = (int) get_the_ID();
+			$has_definition = class_exists( 'Portal_Definition' )
 				&& null !== Portal_Definition::load_for_post( $portal_id );
 			?>
 			<?php if ( $has_definition ) : ?>

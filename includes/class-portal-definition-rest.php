@@ -48,7 +48,7 @@ if ( ! class_exists( 'Portal_Definition_REST' ) ) {
 		 * @return WP_REST_Response|WP_Error
 		 */
 		public static function get_definition( $request ) {
-			$id = (int) $request['id'];
+			$id   = (int) $request['id'];
 			$post = get_post( $id );
 			if ( ! $post || 'portal' !== $post->post_type ) {
 				return new WP_Error( 'dg_not_found', 'Portal not found.', array( 'status' => 404 ) );
@@ -57,8 +57,8 @@ if ( ! class_exists( 'Portal_Definition_REST' ) ) {
 			if ( ! is_string( $raw ) || '' === $raw ) {
 				return rest_ensure_response(
 					array(
-						'object' => 'portal_definition',
-						'portal_id' => $id,
+						'object'     => 'portal_definition',
+						'portal_id'  => $id,
 						'definition' => null,
 					)
 				);
@@ -81,7 +81,7 @@ if ( ! class_exists( 'Portal_Definition_REST' ) ) {
 		 * @return WP_REST_Response|WP_Error
 		 */
 		public static function put_definition( $request ) {
-			$id = (int) $request['id'];
+			$id   = (int) $request['id'];
 			$post = get_post( $id );
 			if ( ! $post || 'portal' !== $post->post_type ) {
 				return new WP_Error( 'dg_not_found', 'Portal not found.', array( 'status' => 404 ) );
@@ -92,7 +92,7 @@ if ( ! class_exists( 'Portal_Definition_REST' ) ) {
 				return new WP_Error( 'dg_bad_body', 'JSON body required.', array( 'status' => 400 ) );
 			}
 			// Accept either { definition: {...} } or bare definition.
-			$data = isset( $body['definition'] ) && is_array( $body['definition'] ) ? $body['definition'] : $body;
+			$data      = isset( $body['definition'] ) && is_array( $body['definition'] ) ? $body['definition'] : $body;
 			$validated = Portal_Definition::validate( $data );
 			if ( is_wp_error( $validated ) ) {
 				$validated->add_data( array( 'status' => 400 ) );

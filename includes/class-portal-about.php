@@ -77,15 +77,19 @@ if ( ! class_exists( 'Portal_About' ) ) {
 
 			// Enqueue assets only on this screen.
 			if ( $hook ) {
-				add_action( "load-{$hook}", function () use ( $hook ) {
-					add_action( 'admin_enqueue_scripts', function () use ( $hook ) {
-						$screen = get_current_screen();
-						if ( ! $screen || $screen->id !== $hook ) {
-							return;
-						}
+				add_action(
+					"load-{$hook}",
+					function () use ( $hook ) {
+						add_action(
+							'admin_enqueue_scripts',
+							function () use ( $hook ) {
+								$screen = get_current_screen();
+								if ( ! $screen || $screen->id !== $hook ) {
+									return;
+								}
 
-						// Custom CSS for the about page - using Tailwind-inspired classes
-						$about_css = <<<CSS
+								// Custom CSS for the about page - using Tailwind-inspired classes
+								$about_css = <<<'CSS'
 						/* About page custom styles */
 						body.dg-portal-about .notice,
 						body.dg-portal-about .update-nag,
@@ -117,11 +121,11 @@ if ( ! class_exists( 'Portal_About' ) ) {
 							color: #9c7a3c;
 							margin-bottom: 4px;
 						}
-						
+
 						#dgp-about * {
 							box-sizing: border-box;
 						}
-						
+
 						/* Layout utilities */
 						#dgp-about .wrap { max-width: 1200px; margin: 0 auto; padding: 20px; }
 						#dgp-about .grid { display: grid; }
@@ -130,14 +134,14 @@ if ( ! class_exists( 'Portal_About' ) ) {
 						#dgp-about .gap-4 { gap: 1rem; }
 						#dgp-about .gap-6 { gap: 1.5rem; }
 						#dgp-about .gap-2 { gap: 0.5rem; }
-						
+
 						/* Flexbox utilities */
 						#dgp-about .flex { display: flex; }
 						#dgp-about .items-center { align-items: center; }
 						#dgp-about .items-start { align-items: flex-start; }
 						#dgp-about .justify-between { justify-content: space-between; }
 						#dgp-about .gap-4 { gap: 1rem; }
-						
+
 						/* Spacing utilities */
 						#dgp-about .mb-6 { margin-bottom: 1.5rem; }
 						#dgp-about .mb-4 { margin-bottom: 1rem; }
@@ -153,7 +157,7 @@ if ( ! class_exists( 'Portal_About' ) ) {
 						#dgp-about .py-1 { padding-top: 0.25rem; padding-bottom: 0.25rem; }
 						#dgp-about .py-0\.5 { padding-top: 0.125rem; padding-bottom: 0.125rem; }
 						#dgp-about .pl-5 { padding-left: 1.25rem; }
-						
+
 						/* Border utilities */
 						#dgp-about .border { border: 1px solid #e2e8f0; }
 						#dgp-about .border-slate-200 { border-color: #e2e8f0; }
@@ -161,14 +165,14 @@ if ( ! class_exists( 'Portal_About' ) ) {
 						#dgp-about .rounded-xl { border-radius: 0.75rem; }
 						#dgp-about .rounded-full { border-radius: 9999px; }
 						#dgp-about .rounded { border-radius: 0.25rem; }
-						
+
 						/* Background utilities */
 						#dgp-about .bg-white { background-color: #ffffff; }
 						#dgp-about .bg-slate-100 { background-color: #f1f5f9; }
-						
+
 						/* Shadow utilities */
 						#dgp-about .shadow-sm { box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); }
-						
+
 						/* Text utilities */
 						#dgp-about .text-2xl { font-size: 1.5rem; line-height: 2rem; }
 						#dgp-about .text-lg { font-size: 1.125rem; line-height: 1.75rem; }
@@ -184,61 +188,63 @@ if ( ! class_exists( 'Portal_About' ) ) {
 						#dgp-about .text-slate-500 { color: #64748b; }
 						#dgp-about .text-blue-600 { color: #2563eb; }
 						#dgp-about .text-blue-700 { color: #1d4ed8; }
-						
+
 						/* List utilities */
 						#dgp-about .list-disc { list-style-type: disc; }
 						#dgp-about .list-decimal { list-style-type: decimal; }
-						
+
 						/* Sizing utilities */
 						#dgp-about .h-12 { height: 3rem; }
 						#dgp-about .w-12 { width: 3rem; }
 						#dgp-about .inline-flex { display: inline-flex; }
 						#dgp-about .block { display: block; }
-						
+
 						/* Position utilities */
 						#dgp-about .relative { position: relative; }
 						#dgp-about .ml-auto { margin-left: auto; }
-						
+
 						/* Transitions */
 						#dgp-about .transition { transition-property: color, background-color, border-color, text-decoration-color, fill, stroke; transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); transition-duration: 150ms; }
-						
+
 						/* Hover states */
 						#dgp-about .hover\:border-slate-300:hover { border-color: #cbd5e1; }
 						#dgp-about .hover\:text-blue-700:hover { color: #1d4ed8; }
-						
+
 						/* Focus states */
 						#dgp-about .focus\:outline-none:focus { outline: 2px solid transparent; outline-offset: 2px; }
 						#dgp-about .focus\:ring-2:focus { box-shadow: 0 0 0 2px var(--tw-ring-color); }
 						#dgp-about .focus\:ring-blue-500:focus { --tw-ring-color: #3b82f6; }
-						
+
 						/* Responsive utilities */
 						@media (min-width: 768px) {
 							#dgp-about .md\:grid-cols-3 { grid-template-columns: repeat(3, 1fr); }
 						}
-						
+
 						@media (min-width: 1024px) {
 							#dgp-about .lg\:grid-cols-3 { grid-template-columns: repeat(3, 1fr); }
 							#dgp-about .lg\:col-span-2 { grid-column: span 2 / span 2; }
 						}
-						
+
 						/* Accessibility */
 						@media (prefers-reduced-motion: reduce) {
 							#dgp-about * { transition: none !important; animation: none !important; }
 						}
-						
+
 						/* Links */
 						#dgp-about a { text-decoration: none; }
 						#dgp-about a:hover { text-decoration: underline; }
-						
+
 						/* Code styling */
 						#dgp-about code { font-family: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace; }
-						CSS;
+                            CSS;
 
-						wp_register_style( 'dgp-about-custom', false );
-						wp_enqueue_style( 'dgp-about-custom' );
-						wp_add_inline_style( 'dgp-about-custom', $about_css );
-					} );
-				} );
+								wp_register_style( 'dgp-about-custom', false );
+								wp_enqueue_style( 'dgp-about-custom' );
+								wp_add_inline_style( 'dgp-about-custom', $about_css );
+							}
+						);
+					}
+				);
 			}
 		}
 
@@ -249,16 +255,16 @@ if ( ! class_exists( 'Portal_About' ) ) {
 		 */
 		public function render_about_screen(): void {
 			// Get plugin version from main plugin file
-			$plugin_data = get_file_data( plugin_dir_path( __FILE__ ) . '../portal-builder.php', array( 'Version' => 'Version' ) );
+			$plugin_data    = get_file_data( plugin_dir_path( __FILE__ ) . '../portal-builder.php', array( 'Version' => 'Version' ) );
 			$plugin_version = $plugin_data['Version'] ?: DG_VERSION;
 			$icon_file      = plugin_dir_path( __FILE__ ) . '../assets/icon.svg';
 			$icon_url       = plugins_url( '../assets/icon.svg', __FILE__ );
 			if ( is_readable( $icon_file ) ) {
 				$icon_url = add_query_arg( 'ver', (string) filemtime( $icon_file ), $icon_url );
 			}
-			$site_alli      = 'https://allintersections.com';
-			$site_zysys     = 'https://zysys.org';
-			$repo_releases  = 'https://github.com/zachbornheimer/portal-builder/releases';
+			$site_alli     = 'https://allintersections.com';
+			$site_zysys    = 'https://zysys.org';
+			$repo_releases = 'https://github.com/zachbornheimer/portal-builder/releases';
 			?>
 			<div id="dgp-about" class="wrap">
 				<?php

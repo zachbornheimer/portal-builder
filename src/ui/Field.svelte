@@ -1,5 +1,5 @@
 <script>
-	import { Label } from 'bits-ui';
+import { Label } from 'bits-ui';
 
 	/**
 	 * @typedef {Object} Props
@@ -46,41 +46,41 @@
 </script>
 
 {#if label}
-	{#if trailing}
-		<div class="mb-2 flex items-center justify-between gap-2">
-			<Label.Root for={controlId} class={labelClass}>{label}</Label.Root>
-			{@render trailing()}
-		</div>
-	{:else}
-		<Label.Root for={controlId} class={labelClass}>{label}</Label.Root>
-	{/if}
+  {#if trailing}
+    <div class="mb-2 flex items-center justify-between gap-2">
+      <Label.Root for={controlId} class={labelClass}>{label}</Label.Root>
+      {@render trailing()}
+    </div>
+  {:else}
+    <Label.Root for={controlId} class={labelClass}>{label}</Label.Root>
+  {/if}
 {/if}
 {#if multiline}
-	<textarea
-		id={controlId}
-		{name}
-		class={inputClass}
-		{required}
-		{disabled}
-		{placeholder}
-		{rows}
-		{value}
-		aria-label={ariaLabel || undefined}
-		{oninput}
-	></textarea>
+  <textarea
+    id={controlId}
+    {name}
+    class={inputClass}
+    {required}
+    {disabled}
+    {placeholder}
+    {rows}
+    {value}
+    aria-label={ariaLabel || undefined}
+    {oninput}
+  ></textarea>
 {:else}
-	<input
-		id={controlId}
-		{name}
-		{type}
-		class={inputClass}
-		{required}
-		{disabled}
-		{placeholder}
-		{value}
-		autocomplete={autocomplete || undefined}
-		maxlength={maxlength}
-		aria-label={ariaLabel || undefined}
-		{oninput}
-	/>
+  <input
+    id={controlId}
+    {name}
+    {type}
+    class={inputClass}
+    {required}
+    {disabled}
+    {placeholder}
+    {value}
+    autocomplete={autocomplete || undefined}
+    maxlength={maxlength}
+    aria-label={ariaLabel || undefined}
+    {oninput}
+  />
 {/if}
