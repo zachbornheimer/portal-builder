@@ -72,13 +72,23 @@ if ( ! class_exists( 'Portal_Definition' ) ) {
 			$publish = isset( $data['publish'] ) && is_array( $data['publish'] ) ? $data['publish'] : array();
 			$options = isset( $data['options'] ) && is_array( $data['options'] ) ? $data['options'] : array();
 
+			$field_dest = array();
+			if ( isset( $mapping['fieldDest'] ) && is_array( $mapping['fieldDest'] ) ) {
+				foreach ( $mapping['fieldDest'] as $fid => $dest ) {
+					if ( is_string( $fid ) && is_string( $dest ) ) {
+						$field_dest[ $fid ] = $dest;
+					}
+				}
+			}
+
 			return array(
 				'version' => isset( $data['version'] ) ? (int) $data['version'] : 1,
 				'title'   => isset( $data['title'] ) ? (string) $data['title'] : '',
 				'fields'  => $validated_fields,
 				'mapping' => array(
-					'sheets' => isset( $mapping['sheets'] ) && is_array( $mapping['sheets'] ) ? $mapping['sheets'] : array(),
-					'drive'  => isset( $mapping['drive'] ) && is_array( $mapping['drive'] ) ? $mapping['drive'] : array(),
+					'sheets'    => isset( $mapping['sheets'] ) && is_array( $mapping['sheets'] ) ? $mapping['sheets'] : array(),
+					'drive'     => isset( $mapping['drive'] ) && is_array( $mapping['drive'] ) ? $mapping['drive'] : array(),
+					'fieldDest' => $field_dest,
 				),
 				'publish' => array(
 					'deadline'        => array_key_exists( 'deadline', $publish ) ? $publish['deadline'] : null,
