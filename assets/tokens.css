@@ -77,7 +77,7 @@
 	--shadow-card: 0 1px 2px rgba(18, 20, 15, 0.03), 0 6px 16px -10px rgba(18, 20, 15, 0.16);
 	--shadow-shell: 0 1px 1px rgba(18, 20, 15, 0.04), 0 8px 24px -12px rgba(18, 20, 15, 0.18),
 		0 32px 64px -24px rgba(18, 20, 15, 0.22);
-	--shadow-ember: 0 1px 1px rgba(184, 80, 31, 0.25), 0 6px 16px -6px rgba(184, 80, 31, 0.55);
+	--shadow-ember: 0 1px 1px color-mix(in srgb, var(--ember) 25%, transparent), 0 6px 16px -6px color-mix(in srgb, var(--ember) 55%, transparent);
 
 	/* Motion */
 	--ease: cubic-bezier(0.2, 0.8, 0.2, 1);

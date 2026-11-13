@@ -160,7 +160,7 @@ if ( ! class_exists( 'Portal_Access' ) ) {
 				return 'Sign in to apply to this portal.';
 			}
 			if ( self::REASON_MEMBERSHIP === $reason ) {
-				return 'This portal is for members.';
+				return 'This application is for paid members.';
 			}
 			return 'Your profile does not match this portal’s requirements.';
 		}

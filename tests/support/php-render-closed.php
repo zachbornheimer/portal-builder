@@ -49,6 +49,16 @@ function wp_login_url( $redirect = '' ) {
 	}
 	return $base . '?redirect_to=' . rawurlencode( (string) $redirect );
 }
+function home_url( $path = '/' ) {
+	$path = (string) $path;
+	if ( '' === $path ) {
+		$path = '/';
+	}
+	if ( '/' !== $path[0] ) {
+		$path = '/' . $path;
+	}
+	return 'https://example.test' . $path;
+}
 function wp_kses_post( $s ) {
 	return strip_tags( (string) $s, '<p><br><em><strong><a><span><ul><ol><li>' );
 }

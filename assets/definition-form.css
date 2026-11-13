@@ -19,6 +19,20 @@ body.single-portal {
   transform: translateX(-50%);
 }
 
+body.single-portal .dg-public-main,
+body.single-portal .dg-public-main.alignfull,
+body.single-portal article.dg-packet,
+body.single-portal .dg-public-main > .dg-packet {
+  width: min(var(--measure), calc(100vw - 2.5rem));
+  max-width: var(--measure);
+  margin-inline: auto;
+}
+
+body.single-portal .dg-public-main.alignfull {
+  left: auto;
+  transform: none;
+}
+
 body.single-portal form.dg-portal-submit-form {
   max-width: var(--measure);
   width: min(var(--measure), 100%);

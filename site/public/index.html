@@ -4,169 +4,236 @@
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<title>DragonGate Portals — the door that opens for the right applicant</title>
-	<meta name="description" content="A WordPress plugin for application and intake portals. Build the form, map Google Drive and Sheets, publish. The door that opens for the right applicant.">
+	<meta name="description" content="A WordPress plugin for calls and intake portals. Build a form, map Google Drive and Sheets, publish a URL. Applicants meet one paper packet and one submit.">
 	<link rel="icon" href="/icon.svg" type="image/svg+xml">
 	<link rel="preconnect" href="https://fonts.bunny.net">
-	<link rel="stylesheet" href="https://fonts.bunny.net/css?family=fraunces:500,600,700|ibm-plex-mono:400,500|inter:400,500,600&display=swap">
-	<link rel="stylesheet" href="/css/tokens.css">
-	<link rel="stylesheet" href="/css/site.css">
+	<link rel="stylesheet" href="https://fonts.bunny.net/css?family=fraunces:400,500,600,700|ibm-plex-mono:400,500,600|inter:400,500,600,700&display=swap">
+	<link rel="stylesheet" href="/css/ds/colors.css">
+	<link rel="stylesheet" href="/css/ds/typography.css">
+	<link rel="stylesheet" href="/css/ds/spacing.css">
+	<link rel="stylesheet" href="/css/home.css">
 </head>
 <body>
 	<a class="skip" href="#main">Skip to content</a>
 	<header class="site-header">
-		<div class="frame site-header-inner">
+		<div class="site-header-inner">
 			<a class="wordmark" href="/">
-				<img src="/icon.svg" width="36" height="36" alt="">
-				DragonGate Portals
+				<img src="/icon.svg" width="22" height="22" alt="">
+				DragonGate <span class="wordmark-portals">Portals</span>
 			</a>
 			<nav class="nav" aria-label="Primary">
 				<a href="/product">Product</a>
 				<a href="/features">Features</a>
 				<a href="/hosts">Hosts</a>
 				<a href="/about">About</a>
-				<a class="nav-join" href="/waitlist">Join the list</a>
+				<a class="btn btn-primary btn-sm" href="/waitlist">Join the waitlist</a>
 			</nav>
 		</div>
 	</header>
 
 	<main id="main">
 		<section class="hero">
-			<div class="frame">
-				<p class="eyebrow">WordPress plugin</p>
-				<div class="hero-lockup">
-					<img src="/icon.svg" width="88" height="88" alt="">
-					<h1>DragonGate Portals</h1>
+			<div>
+				<p class="kicker">Applications, on paper terms</p>
+				<h1>The door that opens for the right applicant.</h1>
+				<p class="hero-lede">DragonGate Portals is a WordPress plugin for building calls and intake portals. Staff build a form, map it to Google Drive and Sheets, and publish a URL. Applicants meet one paper packet and one submit.</p>
+				<div class="hero-actions">
+					<a class="btn btn-primary btn-lg" href="/waitlist">Join the waitlist</a>
+					<a class="btn btn-outline btn-lg" href="/product">See how it works</a>
 				</div>
-				<p class="lede">The door that opens for the right applicant.</p>
-				<p>A WordPress plugin for application and intake portals — festivals, conservatories, and calls for scores. Staff build a form, map destinations, and publish. Applicants meet a paper packet. Files land in the host’s Google Drive; a row lands in Sheets.</p>
-				<form class="waitlist" data-waitlist>
-					<div class="waitlist-row">
-						<label class="sr-only" for="waitlist-email-hero">Email</label>
-						<input class="field" id="waitlist-email-hero" name="email" type="email" autocomplete="email" required placeholder="you@festival.org">
-						<button class="btn btn-primary" type="submit">Join the list</button>
-					</div>
-					<p class="waitlist-status" data-waitlist-status role="status" aria-live="polite"></p>
-				</form>
+				<p class="hero-note">No applications inbox · Your Drive, your Sheet · Self-hosted on WordPress</p>
 			</div>
-		</section>
-
-		<section class="section" aria-labelledby="how-heading">
-			<div class="frame">
-				<p class="eyebrow">How it works</p>
-				<h2 id="how-heading">Build, map, publish, receive.</h2>
-				<div class="steps">
-					<article class="step">
-						<span class="step-num">01</span>
-						<h3>Build</h3>
-						<p>Start from a template or a blank portal. Add the fields the call actually needs — text, files, groups, branches.</p>
-					</article>
-					<article class="step">
-						<span class="step-num">02</span>
-						<h3>Map</h3>
-						<p>Point each field at a Sheet header and a Drive folder. Destinations stay on the host’s Google, not ours.</p>
-					</article>
-					<article class="step">
-						<span class="step-num">03</span>
-						<h3>Publish</h3>
-						<p>Set the deadline, open the gate, share the URL. Preview stays honest when the call is closed.</p>
-					</article>
-					<article class="step">
-						<span class="step-num">04</span>
-						<h3>Receive</h3>
-						<p>Applicants submit a packet. Files go to Drive. A row goes to Sheets. They get a receipt.</p>
-					</article>
-				</div>
-			</div>
-		</section>
-
-		<section class="section" aria-labelledby="features-heading">
-			<div class="frame">
-				<p class="eyebrow">In the box</p>
-				<h2 id="features-heading">What the plugin actually does</h2>
-				<div class="tiles">
-					<article class="tile">
-						<h3>Google Drive &amp; Sheets</h3>
-						<p>Uploads land in the host’s Drive. Metadata writes to the host’s Sheet. DragonGate does not keep a second copy of the packet.</p>
-					</article>
-					<article class="tile">
-						<h3>Anonymize staged files</h3>
-						<p>Judge-facing PDFs and recordings can have identity stripped before they leave the gate. Fail-open if the anonymizer is down.</p>
-					</article>
-					<article class="tile">
-						<h3>Receipts</h3>
-						<p>Every successful submit emails a receipt with an application id. The applicant knows it landed.</p>
-					</article>
-					<article class="tile">
-						<h3>Dest-header mapping</h3>
-						<p>Human labels lead in the form. Sheet column headers are mapped in the wizard — not guessed from field ids.</p>
-					</article>
-					<article class="tile">
-						<h3>A paper packet</h3>
-						<p>The public form is Fraunces on parchment, not a settings table. One page. One submit.</p>
-					</article>
-					<article class="tile">
-						<h3>No Stripe</h3>
-						<p>Fees can be mentioned in copy. There is no checkout, no card form, no payment processor in the plugin.</p>
-					</article>
-				</div>
-			</div>
-		</section>
-
-		<section class="section" aria-labelledby="audience-heading">
-			<div class="frame">
-				<p class="eyebrow">Who it’s for</p>
-				<h2 id="audience-heading">Festivals, societies, conservatories</h2>
-				<div class="audience">
-					<article class="tile">
-						<h3>Calls for scores</h3>
-						<p>One original work. Score PDF, recording, composer notes. A prize committee should be proud to open this packet.</p>
-					</article>
-					<article class="tile">
-						<h3>Festival intake</h3>
-						<p>Volunteer staff, a deadline, a Drive folder that already exists. The wizard is four gates — start, build, map, publish.</p>
-					</article>
-					<article class="tile">
-						<h3>Conservatory applications</h3>
-						<p>Serious materials, named reviewers, receipts. Identity can stay off the judge-facing files.</p>
-					</article>
-				</div>
-			</div>
-		</section>
-
-		<section class="section">
-			<div class="frame">
-				<div class="cta-band">
-					<p class="eyebrow">Waitlist</p>
-					<h2>Be first when the plugin ships</h2>
-					<p>Leave an email. We’ll send launch notes — nothing else, and we won’t sell the list.</p>
-					<form class="waitlist" data-waitlist>
-						<div class="waitlist-row">
-							<label class="sr-only" for="waitlist-email-band">Email</label>
-							<input class="field" id="waitlist-email-band" name="email" type="email" autocomplete="email" required placeholder="you@festival.org">
-							<button class="btn btn-primary" type="submit">Join the list</button>
+			<div class="packet" aria-hidden="true">
+				<div class="packet-back"></div>
+				<div class="packet-front">
+					<span class="packet-tab"></span>
+					<div class="packet-body">
+						<div class="packet-meta">
+							<span class="packet-id">CALL-2026-0417</span>
+							<span class="badge"><span class="badge-dot"></span>Open until Mar 14</span>
 						</div>
-						<p class="waitlist-status" data-waitlist-status role="status" aria-live="polite"></p>
-					</form>
+						<h3>Your packet</h3>
+						<p>Everything on one page. Nothing is submitted until you press the button.</p>
+						<div class="packet-fields">
+							<div>
+								<span class="field-label">Title of work</span>
+								<div class="fake-input">Fault Lines</div>
+							</div>
+							<div>
+								<span class="field-label">Discipline</span>
+								<div class="tag-row">
+									<span class="tag">Composition</span>
+									<span class="tag">Chamber</span>
+								</div>
+							</div>
+							<div>
+								<span class="field-label">Score (PDF)</span>
+								<div class="fake-file">
+									<svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>
+									fault-lines-score.pdf
+								</div>
+							</div>
+						</div>
+						<div class="packet-actions">
+							<span class="btn btn-primary btn-sm">Submit packet</span>
+						</div>
+					</div>
 				</div>
+			</div>
+		</section>
+
+		<section class="ink-band">
+			<div class="ink-band-inner">
+				<div>
+					<p class="kicker">The quiet part</p>
+					<h2>No WordPress applications inbox. No copy of your applicants living on our servers.</h2>
+				</div>
+				<p>When someone submits, their files land in <strong>your</strong> Google Drive and a row appears in <strong>your</strong> Google Sheet. A receipt goes to the applicant. That's the whole journey — no dashboard to babysit, no data we hold on your behalf.</p>
+			</div>
+		</section>
+
+		<section class="steps" aria-labelledby="steps-heading">
+			<div class="section-head">
+				<p class="kicker">For staff</p>
+				<h2 id="steps-heading">Three steps to an open call</h2>
+			</div>
+			<div class="step-grid">
+				<article class="card">
+					<span class="step-num">01</span>
+					<div class="card-icon">
+						<svg class="icon" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M10 5H3"/><path d="M12 19H3"/><path d="M14 3v4"/><path d="M16 17v4"/><path d="M21 12h-9"/><path d="M21 5h-7"/><path d="M21 19h-5"/><circle cx="12" cy="5" r="2"/><circle cx="14" cy="19" r="2"/><circle cx="8" cy="12" r="2"/></svg>
+					</div>
+					<h3>Build a form</h3>
+					<p>Add the fields you need — nothing you don't. Text, files, tags, deadlines. It reads like a packet, not a survey.</p>
+				</article>
+				<article class="card">
+					<span class="step-num">02</span>
+					<div class="card-icon">
+						<svg class="icon" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/><path d="M12 10v6"/><path d="m15 13-3-3-3 3"/></svg>
+					</div>
+					<h3>Map Drive and Sheets</h3>
+					<p>Point each field at a folder in your Google Drive and a column in your Sheet. Connect once; it stays connected.</p>
+				</article>
+				<article class="card">
+					<span class="step-num">03</span>
+					<div class="card-icon">
+						<svg class="icon" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M13 4h3a2 2 0 0 1 2 2v14"/><path d="M2 20h3"/><path d="M13 20h9"/><path d="M10 12v.01"/><path d="M13 4.562v16.157a1 1 0 0 1-1.242.97L5 20V5.562a2 2 0 0 1 1.515-1.94l4-1A2 2 0 0 1 13 4.561Z"/></svg>
+					</div>
+					<h3>Publish a URL</h3>
+					<p>Share one link. Applicants open it, fill the packet, and submit. Your call is open.</p>
+				</article>
+			</div>
+		</section>
+
+		<section class="dests" aria-labelledby="dests-heading">
+			<div class="dests-panel">
+				<div class="dest-head">
+					<h2 id="dests-heading">One submit, three destinations</h2>
+					<p>When an applicant presses the button, everything routes itself.</p>
+				</div>
+				<div class="dest-grid">
+					<article class="dest-card">
+						<div class="card-icon">
+							<svg class="icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M22 12H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/><path d="M6 16h.01"/><path d="M10 16h.01"/></svg>
+						</div>
+						<h3>Files → your Drive</h3>
+						<p>Uploads land in the folder you chose, named and sorted your way.</p>
+					</article>
+					<article class="dest-card">
+						<div class="card-icon">
+							<svg class="icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2V9M9 21H5a2 2 0 0 1-2-2V9m0 0h18"/></svg>
+						</div>
+						<h3>A row → your Sheet</h3>
+						<p>Every answer becomes a column. Review, sort, and filter where you already work.</p>
+					</article>
+					<article class="dest-card">
+						<div class="card-icon">
+							<svg class="icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m22 13-2.5-2.5L17 13"/><path d="M22 7.5V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v12c0 1.1.9 2 2 2h8"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+						</div>
+						<h3>A receipt → the applicant</h3>
+						<p>They get confirmation with their submission ID. No account required.</p>
+					</article>
+				</div>
+			</div>
+		</section>
+
+		<section class="teasers" aria-labelledby="teasers-heading">
+			<div class="feature-head">
+				<div>
+					<p class="kicker">Built for the work</p>
+					<h2 id="teasers-heading">The details a call needs</h2>
+				</div>
+				<a class="btn btn-ghost" href="/features">All features</a>
+			</div>
+			<div class="teaser-grid">
+				<article class="teaser-card">
+					<div class="card-icon">
+						<svg class="icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 7.5V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3.5"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h5"/><path d="M17.5 17.5 16 16.3V14"/><circle cx="16" cy="16" r="6"/></svg>
+					</div>
+					<h3>Deadlines that close themselves</h3>
+					<p>Set an open and close date. The portal locks on time, every time.</p>
+				</article>
+				<article class="teaser-card">
+					<div class="card-icon">
+						<svg class="icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7"/><path d="M7 3v4a1 1 0 0 0 1 1h7"/></svg>
+					</div>
+					<h3>Drafts that wait</h3>
+					<p>Applicants save and come back. Nothing submits until they press the button.</p>
+				</article>
+				<article class="teaser-card">
+					<div class="card-icon">
+						<svg class="icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg>
+					</div>
+					<h3>Your data, your walls</h3>
+					<p>Everything lives in your Google Workspace and your WordPress site. Not ours.</p>
+				</article>
+			</div>
+		</section>
+
+		<section class="cta">
+			<div class="cta-band">
+				<h2>Be the first to open a portal.</h2>
+				<p>We're inviting hosts in rounds as we launch. Join the waitlist and we'll reach out when your seat is ready.</p>
+				<a class="btn btn-secondary btn-lg" href="/waitlist">Join the waitlist</a>
 			</div>
 		</section>
 	</main>
 
 	<footer class="site-footer">
-		<div class="frame site-footer-inner">
-			<nav aria-label="Footer">
-				<a href="/product">Product</a>
-				<a href="/features">Features</a>
-				<a href="/hosts">Hosts</a>
-				<a href="/about">About</a>
-				<a href="/privacy">Privacy</a>
-				<a href="/terms">Terms</a>
-				<a href="/subprocessors">Subprocessors</a>
-				<a href="/waitlist">Waitlist</a>
+		<span class="footer-rule"></span>
+		<div class="site-footer-grid">
+			<div class="footer-brand">
+				<a class="wordmark wordmark-md wordmark-paper" href="/">
+					<img src="/icon.svg" width="32" height="32" alt="">
+					DragonGate <span class="wordmark-portals">Portals</span>
+				</a>
+				<p class="footer-tagline">The door that opens for the right applicant.</p>
+				<p class="footer-blurb">A WordPress plugin for building application and intake portals. Host-agnostic by design.</p>
+			</div>
+			<nav aria-label="Footer" class="footer-nav">
+				<div class="footer-col">
+					<span class="footer-col-label">Product</span>
+					<a href="/product">How it works</a>
+					<a href="/features">Features</a>
+					<a href="/hosts">For hosts</a>
+				</div>
+				<div class="footer-col">
+					<span class="footer-col-label">Company</span>
+					<a href="/about">About</a>
+					<a href="/waitlist">Join the waitlist</a>
+				</div>
+				<div class="footer-col">
+					<span class="footer-col-label">Legal</span>
+					<a href="/terms">Terms</a>
+					<a href="/privacy">Privacy</a>
+					<a href="/subprocessors">Subprocessors</a>
+				</div>
 			</nav>
-			<p class="legal">© 2026 DragonGate Portals · ZYSYS</p>
+		</div>
+		<div class="footer-bar">
+			<span class="legal">© 2026 DragonGate Portals</span>
+			<span class="footer-note">Files stay in your Google Drive. A row goes to your Sheet. We never see your applicants.</span>
 		</div>
 	</footer>
-	<script src="/js/waitlist.js" type="module"></script>
 </body>
 </html>
