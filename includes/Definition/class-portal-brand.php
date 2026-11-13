@@ -14,7 +14,7 @@ if ( ! class_exists( 'Portal_Brand' ) ) {
 	 */
 	class Portal_Brand {
 
-		const OPTION_DEFAULT  = 'pb_default_brand';
+		const OPTION_DEFAULT  = 'dg_default_brand';
 		const PRESET_PRODUCT  = 'product';
 		const PRESET_CUSTOM   = 'custom';
 		const PRESET_ISJAC    = 'isjac';

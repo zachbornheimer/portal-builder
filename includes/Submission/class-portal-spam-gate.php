@@ -5,6 +5,10 @@
  * @package DragonGate
  */
 
+if ( ! class_exists( 'Portal_Options' ) ) {
+	require_once dirname( __DIR__ ) . '/class-portal-options.php';
+}
+
 if ( ! class_exists( 'Portal_Spam_Gate' ) ) {
 
 	/**
@@ -79,10 +83,9 @@ if ( ! class_exists( 'Portal_Spam_Gate' ) ) {
 		 * @return string
 		 */
 		public static function site_key() {
-			if ( ! function_exists( 'get_option' ) ) {
-				return '';
-			}
-			$key = get_option( self::OPTION_SITE, '' );
+			$key = class_exists( 'Portal_Options' )
+				? Portal_Options::get( self::OPTION_SITE, '' )
+				: '';
 			return is_string( $key ) ? trim( $key ) : '';
 		}
 
@@ -90,10 +93,9 @@ if ( ! class_exists( 'Portal_Spam_Gate' ) ) {
 		 * @return string
 		 */
 		public static function secret() {
-			if ( ! function_exists( 'get_option' ) ) {
-				return '';
-			}
-			$key = get_option( self::OPTION_SECRET, '' );
+			$key = class_exists( 'Portal_Options' )
+				? Portal_Options::get( self::OPTION_SECRET, '' )
+				: '';
 			return is_string( $key ) ? trim( $key ) : '';
 		}
 

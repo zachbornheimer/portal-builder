@@ -77,6 +77,7 @@ function plugins_url( $path = '', $plugin = '' ) {
 
 $repo_root = dirname( __DIR__, 2 );
 
+require_once $repo_root . '/includes/class-portal-options.php';
 require_once $repo_root . '/includes/Submission/class-portal-files.php';
 require_once $repo_root . '/includes/Submission/class-portal-test-mode.php';
 require_once $repo_root . '/includes/Submission/class-portal-mailer.php';

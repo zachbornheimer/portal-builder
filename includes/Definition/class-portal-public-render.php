@@ -64,14 +64,14 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 		 * @param int $post_id Portal post ID.
 		 */
 		private static function define_closed_request_flags( $post_id ) {
-			if ( ! defined( 'PB_APPLICATION_CLOSED' ) ) {
-				define( 'PB_APPLICATION_CLOSED', true );
+			if ( ! defined( 'DG_APPLICATION_CLOSED' ) ) {
+				define( 'DG_APPLICATION_CLOSED', true );
 			}
 			$reason = class_exists( 'Portal_Open_State' )
 				? Portal_Open_State::closed_reason( (int) $post_id )
 				: null;
-			if ( 'deadline' === $reason && ! defined( 'PB_APPLICATION_DEADLINE_PASSED' ) ) {
-				define( 'PB_APPLICATION_DEADLINE_PASSED', true );
+			if ( 'deadline' === $reason && ! defined( 'DG_APPLICATION_DEADLINE_PASSED' ) ) {
+				define( 'DG_APPLICATION_DEADLINE_PASSED', true );
 			}
 		}
 
@@ -81,10 +81,10 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 		 * @return bool
 		 */
 		public static function form_chrome_hidden() {
-			if ( defined( 'PB_APPLICATION_CLOSED' ) && PB_APPLICATION_CLOSED ) {
+			if ( defined( 'DG_APPLICATION_CLOSED' ) && DG_APPLICATION_CLOSED ) {
 				return true;
 			}
-			return defined( 'PB_APPLICATION_DEADLINE_PASSED' ) && PB_APPLICATION_DEADLINE_PASSED;
+			return defined( 'DG_APPLICATION_DEADLINE_PASSED' ) && DG_APPLICATION_DEADLINE_PASSED;
 		}
 
 		/**
@@ -136,7 +136,7 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 			}
 
 			// Legacy submission success / review flows own the content.
-			if ( defined( 'PB_APPLICATION_SUBMITTED' ) && PB_APPLICATION_SUBMITTED ) {
+			if ( defined( 'DG_APPLICATION_SUBMITTED' ) && DG_APPLICATION_SUBMITTED ) {
 				return $content;
 			}
 
@@ -405,7 +405,7 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 			if ( defined( 'DG_DEFINITION_SUBMIT_OK' ) && DG_DEFINITION_SUBMIT_OK ) {
 				return false;
 			}
-			if ( defined( 'PB_APPLICATION_SUBMITTED' ) && PB_APPLICATION_SUBMITTED ) {
+			if ( defined( 'DG_APPLICATION_SUBMITTED' ) && DG_APPLICATION_SUBMITTED ) {
 				return false;
 			}
 			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- receipt view flag.
@@ -823,7 +823,7 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 					$post_id,
 					static function ( $rel ) use ( $plugin_dir ) {
 						$path = $plugin_dir . '/' . $rel;
-						return is_readable( $path ) ? (string) filemtime( $path ) : PB_VERSION;
+						return is_readable( $path ) ? (string) filemtime( $path ) : DG_VERSION;
 					}
 				);
 			}
@@ -862,7 +862,7 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 		}
 
 		/**
-		 * Filemtime so a deploy is visible without bumping PB_VERSION.
+		 * Filemtime so a deploy is visible without bumping DG_VERSION.
 		 *
 		 * @param string $path Absolute path.
 		 * @return string
@@ -871,7 +871,7 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 			if ( is_readable( $path ) ) {
 				return (string) filemtime( $path );
 			}
-			return PB_VERSION;
+			return DG_VERSION;
 		}
 
 		/**

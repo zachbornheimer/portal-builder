@@ -42,6 +42,7 @@ if ( is_readable( $repo_root . '/vendor/autoload.php' ) ) {
 }
 require_once $repo_root . '/gsuite-filestore/vendor/autoload.php';
 require_once $repo_root . '/gsuite-filestore/zysys-file-store.class.php';
+require_once $repo_root . '/includes/class-portal-options.php';
 require_once $repo_root . '/includes/Definition/class-portal-definition.php';
 require_once $repo_root . '/includes/Definition/class-portal-site-defaults.php';
 require_once $repo_root . '/includes/Submission/class-portal-files.php';
@@ -103,6 +104,10 @@ function load_wp_options() {
 		return array();
 	}
 	$names = array(
+		'dg_google_access_key',
+		'dg_google_secret_key',
+		'dg_default_anonymize_api_key',
+		'dg_default_anonymize_endpoint',
 		'pb_google_access_key',
 		'pb_google_secret_key',
 		'pb_default_anonymize_api_key',
@@ -134,7 +139,10 @@ function load_wp_options() {
  */
 function prove_anonymizer( array $opts, $root ) {
 	echo "== anonymizer ==\n";
-	$key = isset( $opts['pb_default_anonymize_api_key'] ) ? trim( $opts['pb_default_anonymize_api_key'] ) : '';
+	$key = isset( $opts['dg_default_anonymize_api_key'] ) ? trim( $opts['dg_default_anonymize_api_key'] ) : '';
+	if ( '' === $key ) {
+		$key = isset( $opts['pb_default_anonymize_api_key'] ) ? trim( $opts['pb_default_anonymize_api_key'] ) : '';
+	}
 	if ( '' === $key ) {
 		echo "SKIP: no site API key (set Default Settings or ANONYMIZER_LIVE_KEY)\n";
 		return true;
@@ -148,9 +156,11 @@ function prove_anonymizer( array $opts, $root ) {
 	$owner  = new Portal_Anonymizer(
 		array(
 			'anonymize'         => true,
-			'anonymizeEndpoint' => isset( $opts['pb_default_anonymize_endpoint'] )
-				? $opts['pb_default_anonymize_endpoint']
-				: null,
+			'anonymizeEndpoint' => isset( $opts['dg_default_anonymize_endpoint'] )
+				? $opts['dg_default_anonymize_endpoint']
+				: ( isset( $opts['pb_default_anonymize_endpoint'] )
+					? $opts['pb_default_anonymize_endpoint']
+					: null ),
 			'anonymizeApiKey'   => $key,
 		)
 	);
@@ -176,10 +186,16 @@ function prove_anonymizer( array $opts, $root ) {
  */
 function prove_google( array $opts, array $env, $ids_path, $root ) {
 	echo "== google ==\n";
-	$access = isset( $opts['pb_google_access_key'] ) ? $opts['pb_google_access_key'] : '';
-	$secret = isset( $opts['pb_google_secret_key'] ) ? $opts['pb_google_secret_key'] : '';
+	$access = isset( $opts['dg_google_access_key'] ) ? $opts['dg_google_access_key'] : '';
+	if ( '' === $access ) {
+		$access = isset( $opts['pb_google_access_key'] ) ? $opts['pb_google_access_key'] : '';
+	}
+	$secret = isset( $opts['dg_google_secret_key'] ) ? $opts['dg_google_secret_key'] : '';
 	if ( '' === $secret ) {
-		echo "FAIL: pb_google_secret_key missing in WP options\n";
+		$secret = isset( $opts['pb_google_secret_key'] ) ? $opts['pb_google_secret_key'] : '';
+	}
+	if ( '' === $secret ) {
+		echo "FAIL: google secret key missing in WP options\n";
 		return false;
 	}
 

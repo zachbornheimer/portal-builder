@@ -107,14 +107,14 @@ test('ZYS-614: ready_to_submit Exception does not attach the success filter', ()
   assert.equal(
     data.unconditionalLegacySuccess,
     false,
-    'handle_submissions still defines PB_RECEIPT_LINK after process_submission without checking the result',
+    'handle_submissions still defines DG_RECEIPT_LINK after process_submission without checking the result',
   );
   assert.equal(data.hasFinishPublicSubmit, true, 'finish_public_submit is missing');
   assert.equal(data.completed, false, `process_submission completed=${data.completed}`);
   assert.equal(data.outcome, 'error', `outcome=${data.outcome}`);
   assert.equal(data.died, false, `wp_die: ${data.dieMessage || out}`);
-  assert.equal(data.successFilterAttached, false, 'pb_post_submitted_content_filter was attached');
-  assert.equal(data.receiptDefined, false, 'PB_RECEIPT_LINK was defined on failure');
+  assert.equal(data.successFilterAttached, false, 'dg_post_submitted_content_filter was attached');
+  assert.equal(data.receiptDefined, false, 'DG_RECEIPT_LINK was defined on failure');
   assert.equal(data.definedErrors, true, 'DG_DEFINITION_SUBMIT_ERRORS was not defined');
   const human = String(data.humanMessage || '');
   assert.match(human, /try again/i);
@@ -192,7 +192,7 @@ test('ZYS-631: ready_to_submit POST without a definition never enters Portal_Sub
   );
   assert.equal(data.died, false, `wp_die: ${data.dieMessage || out}`);
   assert.equal(data.definedErrors, true, 'DG_DEFINITION_SUBMIT_ERRORS was not defined');
-  assert.equal(data.receiptDefined, false, 'PB_RECEIPT_LINK was defined without a definition');
+  assert.equal(data.receiptDefined, false, 'DG_RECEIPT_LINK was defined without a definition');
   const human = String(data.humanMessage || '');
   assert.match(human, /this portal is not configured/i);
   const rendered = String(data.rendered || '');
@@ -227,11 +227,11 @@ test('ZYS-619: tmp and permanent uploads resolve under uploads, not ABSPATH web 
   assert.equal(code, 0, out);
   assert.ok(data, out);
   assert.equal(data.ok, true, out);
-  assert.equal(data.abspathTmpConcat, false, 'PB_TMP_UPLOADS_DIR still concatenates ABSPATH');
+  assert.equal(data.abspathTmpConcat, false, 'DG_TMP_UPLOADS_DIR still concatenates ABSPATH');
   assert.equal(
     data.abspathStoreConcat,
     false,
-    'PB_PERMANENT_UPLOADS_DIR still concatenates ABSPATH',
+    'DG_PERMANENT_UPLOADS_DIR still concatenates ABSPATH',
   );
   assert.equal(data.tmpIsLegacy, false, `tmp still ${data.tmpDir}`);
   assert.equal(data.storeIsLegacy, false, `store still ${data.storeDir}`);

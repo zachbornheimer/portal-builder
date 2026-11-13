@@ -160,7 +160,7 @@ if ( ! class_exists( 'Portal_Update' ) ) {
 				return $transient;
 			}
 			$plugin = self::plugin_file();
-			$have   = defined( 'PB_VERSION' ) ? PB_VERSION : '0.0.0';
+			$have   = defined( 'DG_VERSION' ) ? DG_VERSION : '0.0.0';
 			$offer  = self::offer_from_release( self::fetch_latest(), $have );
 			if ( ! is_array( $offer ) ) {
 				return $transient;
@@ -186,7 +186,7 @@ if ( ! class_exists( 'Portal_Update' ) ) {
 			return (object) array(
 				'name'          => 'DragonGate Portals',
 				'slug'          => 'dragongate-portals',
-				'version'       => $version ? $version : ( defined( 'PB_VERSION' ) ? PB_VERSION : '' ),
+				'version'       => $version ? $version : ( defined( 'DG_VERSION' ) ? DG_VERSION : '' ),
 				'download_link' => self::zip_url( $release ),
 				'sections'      => array(
 					'description' => 'Application portals that write Google Sheets and Drive. Updates come from GitHub Releases.',
@@ -329,14 +329,18 @@ if ( ! class_exists( 'Portal_Update' ) ) {
 		 * @return string
 		 */
 		private static function github_token() {
-			if ( defined( 'PB_GITHUB_TOKEN' ) && is_string( PB_GITHUB_TOKEN ) ) {
-				return PB_GITHUB_TOKEN;
+			if ( defined( 'DG_GITHUB_TOKEN' ) && is_string( DG_GITHUB_TOKEN ) ) {
+				return DG_GITHUB_TOKEN;
 			}
-			if ( function_exists( 'get_option' ) ) {
-				$stored = get_option( 'pb_github_token', '' );
-				return is_string( $stored ) ? $stored : '';
+			$legacy_define = str_replace( 'DG_', 'PB_', 'DG_GITHUB_TOKEN' );
+			if ( defined( $legacy_define ) ) {
+				$from_wp_config = constant( $legacy_define );
+				if ( is_string( $from_wp_config ) ) {
+					return $from_wp_config;
+				}
 			}
-			return '';
+			$stored = Portal_Options::get( 'dg_github_token', '' );
+			return is_string( $stored ) ? $stored : '';
 		}
 	}
 

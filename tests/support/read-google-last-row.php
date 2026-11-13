@@ -43,6 +43,28 @@ if ( '' === $sheet_id ) {
 echo wp_json_encode( last_named_row( $store, $sheet_id ), JSON_UNESCAPED_SLASHES ) . "\n";
 
 /**
+ * First stored option among $names.
+ *
+ * @param mysqli         $m     Live WP connection.
+ * @param array<int,string> $names Canonical then legacy keys.
+ * @return string
+ */
+function wp_option_first( $m, array $names ) {
+	foreach ( $names as $name ) {
+		$q = $m->prepare( 'SELECT option_value FROM B3sRggSMK1_options WHERE option_name = ? LIMIT 1' );
+		$q->bind_param( 's', $name );
+		$q->execute();
+		$q->bind_result( $got );
+		if ( $q->fetch() && is_string( $got ) && '' !== $got ) {
+			$q->close();
+			return $got;
+		}
+		$q->close();
+	}
+	return '';
+}
+
+/**
  * @return Zysys_FileStore
  */
 function file_store_from_wp() {
@@ -54,22 +76,11 @@ function file_store_from_wp() {
 	if ( $m->connect_error ) {
 		throw new Exception( $m->connect_error );
 	}
-	$access = '';
-	$secret = '';
-	foreach ( array( 'pb_google_access_key' => &$access, 'pb_google_secret_key' => &$secret ) as $name => &$val ) {
-		$q = $m->prepare( 'SELECT option_value FROM B3sRggSMK1_options WHERE option_name = ? LIMIT 1' );
-		$q->bind_param( 's', $name );
-		$q->execute();
-		$q->bind_result( $got );
-		if ( $q->fetch() && is_string( $got ) ) {
-			$val = $got;
-		}
-		$q->close();
-	}
-	unset( $val );
+	$access = wp_option_first( $m, array( 'dg_google_access_key', 'pb_google_access_key' ) );
+	$secret = wp_option_first( $m, array( 'dg_google_secret_key', 'pb_google_secret_key' ) );
 	$m->close();
 	if ( '' === $secret ) {
-		throw new Exception( 'pb_google_secret_key missing' );
+		throw new Exception( 'google secret key missing' );
 	}
 	return new Zysys_FileStore(
 		array(

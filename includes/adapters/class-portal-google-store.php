@@ -5,6 +5,10 @@
  * @package DragonGate
  */
 
+if ( ! class_exists( 'Portal_Options' ) ) {
+	require_once dirname( __DIR__ ) . '/class-portal-options.php';
+}
+
 if ( ! class_exists( 'Portal_Google_Store' ) ) {
 
 	/**
@@ -12,8 +16,8 @@ if ( ! class_exists( 'Portal_Google_Store' ) ) {
 	 */
 	class Portal_Google_Store {
 
-		const OPTION_ACCESS_KEY = 'pb_google_access_key';
-		const OPTION_SECRET_KEY = 'pb_google_secret_key';
+		const OPTION_ACCESS_KEY = 'dg_google_access_key';
+		const OPTION_SECRET_KEY = 'dg_google_secret_key';
 		const TEMP_DIR_NAME     = 'dg-google-store';
 
 		/** @var object FileStore (Zysys_FileStore or test fake). */
@@ -58,12 +62,12 @@ if ( ! class_exists( 'Portal_Google_Store' ) ) {
 				require_once $autoload;
 			}
 			$credentials = array(
-				'access_key'    => function_exists( 'get_option' ) ? (string) get_option( self::OPTION_ACCESS_KEY, '' ) : '',
-				'client_secret' => function_exists( 'get_option' ) ? (string) get_option( self::OPTION_SECRET_KEY, '' ) : '',
+				'access_key'    => (string) Portal_Options::get( self::OPTION_ACCESS_KEY, '' ),
+				'client_secret' => (string) Portal_Options::get( self::OPTION_SECRET_KEY, '' ),
 			);
 			$store       = new Zysys_FileStore( $credentials );
-			if ( $store->__get( 'update_access_token' ) && function_exists( 'update_option' ) ) {
-				update_option( self::OPTION_ACCESS_KEY, $store->__get( 'update_access_token' ) );
+			if ( $store->__get( 'update_access_token' ) ) {
+				Portal_Options::set( self::OPTION_ACCESS_KEY, $store->__get( 'update_access_token' ) );
 			}
 			return $store;
 		}

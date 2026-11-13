@@ -250,7 +250,7 @@ if ( ! class_exists( 'Portal_About' ) ) {
 		public function render_about_screen(): void {
 			// Get plugin version from main plugin file
 			$plugin_data = get_file_data( plugin_dir_path( __FILE__ ) . '../portal-builder.php', array( 'Version' => 'Version' ) );
-			$plugin_version = $plugin_data['Version'] ?: PB_VERSION;
+			$plugin_version = $plugin_data['Version'] ?: DG_VERSION;
 			$icon_file      = plugin_dir_path( __FILE__ ) . '../assets/icon.svg';
 			$icon_url       = plugins_url( '../assets/icon.svg', __FILE__ );
 			if ( is_readable( $icon_file ) ) {

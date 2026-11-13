@@ -106,8 +106,8 @@ if ( ! class_exists( 'Portal_Google_Probe' ) ) {
 		 * @return array{ok:bool,message:string,code?:string,row?:string[],listed?:mixed}
 		 */
 		public function run( $folder_id, $sheet_id ) {
-			$secret_key = class_exists( 'Portal_Google_Store' ) ? Portal_Google_Store::OPTION_SECRET_KEY : 'pb_google_secret_key';
-			$token_key  = class_exists( 'Portal_Google_Store' ) ? Portal_Google_Store::OPTION_ACCESS_KEY : 'pb_google_access_key';
+			$secret_key = class_exists( 'Portal_Google_Store' ) ? Portal_Google_Store::OPTION_SECRET_KEY : 'dg_google_secret_key';
+			$token_key  = class_exists( 'Portal_Google_Store' ) ? Portal_Google_Store::OPTION_ACCESS_KEY : 'dg_google_access_key';
 			if ( '' === trim( (string) $this->option( $secret_key ) ) ) {
 				return $this->fail( Portal_Google_Probe_Failure::MISSING_SECRET );
 			}
@@ -138,10 +138,10 @@ if ( ! class_exists( 'Portal_Google_Probe' ) ) {
 
 			$this->remember_success( $row[1] );
 			$message = '' === $folder_id
-				? __( 'Appended a DRAGONGATE_TEST row. Delete that row from the Sheet.', 'portal-builder' )
+				? __( 'Appended a DRAGONGATE_TEST row. Delete that row from the Sheet.', 'dragongate-portals' )
 				: sprintf(
 					/* translators: %d: number of files listed in the folder */
-					__( 'Listed %d item(s) and appended a DRAGONGATE_TEST row. Delete that row from the Sheet.', 'portal-builder' ),
+					__( 'Listed %d item(s) and appended a DRAGONGATE_TEST row. Delete that row from the Sheet.', 'dragongate-portals' ),
 					is_array( $listed ) ? count( $listed ) : 0
 				);
 			return array(
@@ -160,21 +160,21 @@ if ( ! class_exists( 'Portal_Google_Probe' ) ) {
 		public static function render_admin() {
 			$last = function_exists( 'get_option' ) ? (string) get_option( self::SUCCESS_OPTION, '' ) : '';
 			echo '<div id="dg-google-probe">';
-			echo '<p><label for="dg-google-probe-folder-id">' . esc_html__( 'Drive folder ID (optional)', 'portal-builder' ) . '</label><br />';
+			echo '<p><label for="dg-google-probe-folder-id">' . esc_html__( 'Drive folder ID (optional)', 'dragongate-portals' ) . '</label><br />';
 			echo '<input type="text" class="regular-text" id="dg-google-probe-folder-id" name="' . esc_attr( self::FOLDER_FIELD ) . '" value="" autocomplete="off" /></p>';
-			echo '<p><label for="dg-google-probe-sheet-id">' . esc_html__( 'Sheet ID (required to append a test row)', 'portal-builder' ) . '</label><br />';
+			echo '<p><label for="dg-google-probe-sheet-id">' . esc_html__( 'Sheet ID (required to append a test row)', 'dragongate-portals' ) . '</label><br />';
 			echo '<input type="text" class="regular-text" id="dg-google-probe-sheet-id" name="' . esc_attr( self::SHEET_FIELD ) . '" value="" autocomplete="off" /></p>';
 			if ( function_exists( 'wp_nonce_field' ) ) {
 				wp_nonce_field( self::NONCE_ACTION, self::NONCE_FIELD );
 			}
-			echo '<p><button type="button" class="button" id="dg-google-probe-submit">' . esc_html__( 'Test Google connection', 'portal-builder' ) . '</button></p>';
-			echo '<p class="description">' . esc_html__( 'This appends one row labeled DRAGONGATE_TEST plus a timestamp. Delete this row after the test.', 'portal-builder' ) . '</p>';
+			echo '<p><button type="button" class="button" id="dg-google-probe-submit">' . esc_html__( 'Test Google connection', 'dragongate-portals' ) . '</button></p>';
+			echo '<p class="description">' . esc_html__( 'This appends one row labeled DRAGONGATE_TEST plus a timestamp. Delete this row after the test.', 'dragongate-portals' ) . '</p>';
 			echo '<div id="dg-google-probe-result" class="notice inline" hidden></div>';
 			if ( '' !== $last ) {
 				echo '<p class="description">' . esc_html(
 					sprintf(
 						/* translators: %s: ISO timestamp of last successful probe */
-						__( 'Last successful test: %s', 'portal-builder' ),
+						__( 'Last successful test: %s', 'dragongate-portals' ),
 						$last
 					)
 				) . '</p>';
@@ -235,6 +235,9 @@ if ( ! class_exists( 'Portal_Google_Probe' ) ) {
 		private function option( $name, $fallback = '' ) {
 			if ( is_object( $this->options ) && method_exists( $this->options, 'get' ) ) {
 				return $this->options->get( $name, $fallback );
+			}
+			if ( class_exists( 'Portal_Options' ) ) {
+				return Portal_Options::get( $name, $fallback );
 			}
 			return function_exists( 'get_option' ) ? get_option( $name, $fallback ) : $fallback;
 		}

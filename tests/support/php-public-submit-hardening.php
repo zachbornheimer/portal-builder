@@ -94,6 +94,7 @@ if ( ! defined( 'WP_DEBUG' ) ) {
 
 $repo_root = dirname( __DIR__, 2 );
 
+require_once $repo_root . '/includes/class-portal-options.php';
 require_once $repo_root . '/includes/Definition/class-portal-definition.php';
 require_once $repo_root . '/includes/Definition/class-portal-site-defaults.php';
 require_once $repo_root . '/includes/Submission/class-portal-files.php';
@@ -208,27 +209,30 @@ function inspect_public_submit_sources( $repo_root ) {
 	$public_wp_die_raw = (bool) preg_match( '/wp_die\s*\(\s*\$e\s*->\s*getMessage\s*\(/', $catch );
 	$public_rethrows   = (bool) preg_match( '/throw\s+\$e\b/', $catch );
 	$public_records    = (bool) preg_match(
-		'/pb_record_public_submit_failure|record_public_failure|mark_public_errors/',
+		'/dg_record_public_submit_failure|pb_record_public_submit_failure|record_public_failure|mark_public_errors/',
 		$catch
 	);
 	$submission_raw    = (bool) preg_match( '/wp_die\s*\(\s*\$e\s*->\s*getMessage\s*\(/', $submission );
 	$abspath_tmp       = (bool) preg_match(
-		'/ABSPATH\s*\.\s*(PB_RELATIVE_TMP_UPLOADS_DIR|[\'"]\/tmp-uploads\/)/',
+		'/ABSPATH\s*\.\s*(DG_RELATIVE_TMP_UPLOADS_DIR|PB_RELATIVE_TMP_UPLOADS_DIR|[\'"]\/tmp-uploads\/)/',
 		$plugin
 	);
 	$abspath_store     = (bool) preg_match(
-		'/ABSPATH\s*\.\s*(PB_RELATIVE_PERMANENT_UPLOADS_DIR|[\'"]\/file-storage\/)/',
+		'/ABSPATH\s*\.\s*(DG_RELATIVE_PERMANENT_UPLOADS_DIR|PB_RELATIVE_PERMANENT_UPLOADS_DIR|[\'"]\/file-storage\/)/',
 		$plugin
 	);
 	$schedules         = (bool) preg_match( '/wp_schedule_event\s*\(/', $wired );
 	$clears            = (bool) preg_match( '/wp_clear_scheduled_hook\s*\(/', $wired );
 	$cleanup_hook      = (bool) preg_match( '/purge|cleanup|dg_purge_staged/', $wired );
 	$unconditional     = (bool) preg_match(
-		'/process_submission\s*\([^;]+\)\s*;\s*define\s*\(\s*[\'"]PB_RECEIPT_LINK/',
+		'/process_submission\s*\([^;]+\)\s*;\s*define\s*\(\s*[\'"](?:DG|PB)_RECEIPT_LINK/',
 		$plugin
 	);
 	$handler_src       = extract_php_function( $plugin, 'handle_submissions' );
-	$try_src           = extract_php_function( $plugin, 'pb_try_definition_submission' );
+	$try_src           = extract_php_function( $plugin, 'dg_try_definition_submission' );
+	if ( '' === $try_src ) {
+		$try_src = extract_php_function( $plugin, 'pb_try_definition_submission' );
+	}
 	$public_src        = $handler_src . "\n" . $try_src;
 	$source_constructs = (bool) preg_match( '/new\s+Portal_Submission\s*\(/', $public_src );
 	$source_processes  = (bool) preg_match( '/->\s*process_submission\s*\(/', $public_src );
@@ -367,14 +371,14 @@ function run_public_failure( array $scenario, $repo_root ) {
 		Portal_Submission_Pipeline::record_public_failure( new Exception( $secret ) );
 		if ( method_exists( 'Portal_Submission_Pipeline', 'mark_public_errors' ) ) {
 			Portal_Submission_Pipeline::mark_public_errors();
-		} elseif ( function_exists( 'pb_record_public_submit_failure' ) ) {
+		} elseif ( function_exists( 'dg_record_public_submit_failure' ) ) {
 			// Already recorded; mark if the wrapper is the only define path.
 		} elseif ( ! defined( 'DG_DEFINITION_SUBMIT_ERRORS' ) ) {
 			// Leave undefined so the test can fail if the shipped path never defines it.
 		}
-		if ( function_exists( 'pb_record_public_submit_failure' ) ) {
+		if ( function_exists( 'dg_record_public_submit_failure' ) ) {
 			// Drive the plugin wrapper when present (idempotent re-record).
-			pb_record_public_submit_failure( new Exception( $secret ) );
+			dg_record_public_submit_failure( new Exception( $secret ) );
 		}
 	} catch ( RuntimeException $e ) {
 		if ( 0 === strpos( $e->getMessage(), 'wp_die:' ) ) {
@@ -478,10 +482,10 @@ function run_legacy_submit_failure( array $scenario, $repo_root ) {
 		$outcome = Portal_Submission_Pipeline::finish_public_submit( (bool) $completed );
 	} else {
 		// Current handle_submissions treats a returned process_submission as success.
-		if ( ! defined( 'PB_RECEIPT_LINK' ) ) {
-			define( 'PB_RECEIPT_LINK', '' );
+		if ( ! defined( 'DG_RECEIPT_LINK' ) ) {
+			define( 'DG_RECEIPT_LINK', '' );
 		}
-		add_filter( 'the_content', 'pb_post_submitted_content_filter', 10, 1 );
+		add_filter( 'the_content', 'dg_post_submitted_content_filter', 10, 1 );
 		$outcome = 'success';
 	}
 
@@ -514,9 +518,10 @@ function run_legacy_submit_failure( array $scenario, $repo_root ) {
 		'outcome'                    => $outcome,
 		'died'                       => $died || ! empty( $GLOBALS['wp_died'] ),
 		'dieMessage'                 => $die_message,
-		'successFilterAttached'      => in_array( 'pb_post_submitted_content_filter', $success_fns, true ),
+		'successFilterAttached'      => in_array( 'dg_post_submitted_content_filter', $success_fns, true )
+			|| in_array( 'pb_post_submitted_content_filter', $success_fns, true ),
 		'successFilters'             => $success_fns,
-		'receiptDefined'             => defined( 'PB_RECEIPT_LINK' ),
+		'receiptDefined'             => defined( 'DG_RECEIPT_LINK' ) || defined( 'PB_RECEIPT_LINK' ),
 		'definedErrors'              => defined( 'DG_DEFINITION_SUBMIT_ERRORS' ) && DG_DEFINITION_SUBMIT_ERRORS,
 		'humanMessage'               => $human,
 		'rendered'                   => $rendered,
@@ -540,8 +545,8 @@ function run_ready_to_submit_no_definition( array $scenario, $repo_root ) {
 
 	$needed = array(
 		'handle_submissions',
-		'pb_try_definition_submission',
-		'pb_record_public_submit_failure',
+		'dg_try_definition_submission',
+		'dg_record_public_submit_failure',
 	);
 	foreach ( $needed as $name ) {
 		$src = extract_php_function( $plugin, $name );
@@ -565,11 +570,11 @@ function run_ready_to_submit_no_definition( array $scenario, $repo_root ) {
 		require_once $handler_path;
 	}
 
-	if ( ! defined( 'PB_TMP_UPLOADS_DIR' ) ) {
-		define( 'PB_TMP_UPLOADS_DIR', sys_get_temp_dir() . '/dg-zys631-tmp' );
+	if ( ! defined( 'DG_TMP_UPLOADS_DIR' ) ) {
+		define( 'DG_TMP_UPLOADS_DIR', sys_get_temp_dir() . '/dg-zys631-tmp' );
 	}
-	if ( ! defined( 'PB_PERMANENT_UPLOADS_DIR' ) ) {
-		define( 'PB_PERMANENT_UPLOADS_DIR', sys_get_temp_dir() . '/dg-zys631-store' );
+	if ( ! defined( 'DG_PERMANENT_UPLOADS_DIR' ) ) {
+		define( 'DG_PERMANENT_UPLOADS_DIR', sys_get_temp_dir() . '/dg-zys631-store' );
 	}
 
 	$_SERVER['REQUEST_METHOD'] = 'POST';
@@ -617,7 +622,7 @@ function run_ready_to_submit_no_definition( array $scenario, $repo_root ) {
 		'humanMessage'           => $human,
 		'rendered'               => $rendered,
 		'lastErrors'             => $errors,
-		'receiptDefined'         => defined( 'PB_RECEIPT_LINK' ),
+		'receiptDefined'         => defined( 'DG_RECEIPT_LINK' ) || defined( 'PB_RECEIPT_LINK' ),
 	);
 }
 
@@ -639,8 +644,8 @@ function stub_ready_to_submit_runtime( $repo_root ) {
 			return $value;
 		}
 	}
-	if ( ! function_exists( 'pb_decrypt_str' ) ) {
-		function pb_decrypt_str( $string ) {
+	if ( ! function_exists( 'dg_decrypt_str' ) ) {
+		function dg_decrypt_str( $string ) {
 			return $string;
 		}
 	}

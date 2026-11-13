@@ -180,6 +180,7 @@ class Harness_Probe_Store {
 }
 
 $repo_root = dirname( __DIR__, 2 );
+require_once $repo_root . '/includes/class-portal-options.php';
 require_once $repo_root . '/includes/class-portal-secret-field.php';
 require_once $repo_root . '/includes/Submission/class-portal-spam-gate.php';
 require_once $repo_root . '/includes/class-portal-settings.php';

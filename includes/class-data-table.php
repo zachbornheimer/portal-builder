@@ -49,7 +49,9 @@ if ( ! class_exists( 'Data_Table' ) ) {
 		public function render( $post = null ) {
 			// Retrieve the stored data based on context (post meta or option)
 			if ( $this->is_option ) {
-				$values = get_option( $this->meta_key, json_encode( array( $this->sample_row ) ) );
+				$values = class_exists( 'Portal_Options' )
+					? Portal_Options::get( $this->meta_key, json_encode( array( $this->sample_row ) ) )
+					: get_option( $this->meta_key, json_encode( array( $this->sample_row ) ) );
 			} else {
 				$values = get_post_meta( $post->ID, $this->meta_key, true );
 			}

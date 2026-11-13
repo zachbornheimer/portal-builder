@@ -1,6 +1,6 @@
 <?php
 // Shortcode for text input
-function pb_text_shortcode( $atts ) {
+function dg_text_shortcode( $atts ) {
 	$atts = shortcode_atts(
 		array(
 			'label'    => '',
@@ -38,4 +38,4 @@ function pb_text_shortcode( $atts ) {
 
 	return $output;
 }
-add_shortcode( 'pb_text', 'pb_text_shortcode' );
+add_shortcode( 'pb_text', 'dg_text_shortcode' );

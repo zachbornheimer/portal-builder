@@ -103,9 +103,9 @@ if ( ! class_exists( 'Portal_Post_Type' ) ) {
 			}
 
 			wp_enqueue_style( 'dashicons' );
-			wp_enqueue_script( 'pb-admin-js', plugins_url( '../assets/admin.js', __FILE__ ), array( 'jquery' ), PB_VERSION, true );
-			wp_enqueue_style( 'pb-admin-css', plugins_url( '../assets/admin.css', __FILE__ ), array(), PB_VERSION );
-			wp_enqueue_style( 'pb-data-table-css', plugins_url( '../assets/data-table.css', __FILE__ ), array(), PB_VERSION );
+			wp_enqueue_script( 'dg-admin-js', plugins_url( '../assets/admin.js', __FILE__ ), array( 'jquery' ), DG_VERSION, true );
+			wp_enqueue_style( 'dg-admin-css', plugins_url( '../assets/admin.css', __FILE__ ), array(), DG_VERSION );
+			wp_enqueue_style( 'dg-data-table-css', plugins_url( '../assets/data-table.css', __FILE__ ), array(), DG_VERSION );
 		}
 
 		/**

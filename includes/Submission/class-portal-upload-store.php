@@ -163,8 +163,8 @@ if ( ! class_exists( 'Portal_Upload_Store' ) ) {
 					$roots[] = $legacy;
 				}
 			}
-			if ( defined( 'PB_TMP_UPLOADS_DIR' ) ) {
-				$current = rtrim( (string) PB_TMP_UPLOADS_DIR, '/\\' );
+			if ( defined( 'DG_TMP_UPLOADS_DIR' ) ) {
+				$current = rtrim( (string) DG_TMP_UPLOADS_DIR, '/\\' );
 				if ( self::is_new_root( $current, $roots ) ) {
 					$roots[] = $current;
 				}

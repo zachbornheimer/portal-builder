@@ -1,6 +1,6 @@
 <?php
-function pb_application_upload_notes_shortcode() {
-	if ( defined( 'PB_APPLICATION_SUBMITTED' ) && PB_APPLICATION_SUBMITTED ) {
+function dg_application_upload_notes_shortcode() {
+	if ( defined( 'DG_APPLICATION_SUBMITTED' ) && DG_APPLICATION_SUBMITTED ) {
 		return;
 	}
 	if ( class_exists( 'Portal_Public_Render' ) && Portal_Public_Render::leftover_shortcode_is_silent() ) {
@@ -25,4 +25,4 @@ function pb_application_upload_notes_shortcode() {
 	<?php
 	return ob_get_clean();
 }
-add_shortcode( 'portal-application-upload-notes', 'pb_application_upload_notes_shortcode' );
+add_shortcode( 'portal-application-upload-notes', 'dg_application_upload_notes_shortcode' );
