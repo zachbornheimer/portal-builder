@@ -417,6 +417,10 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 				$row[ $field_id . '_link' ] = $path;
 			}
 
+			foreach ( Portal_Submission_Selections::columns( $definition, $validated['values'] ) as $key => $val ) {
+				$row[ $key ] = $val;
+			}
+
 			if ( isset( $definition['title'] ) ) {
 				$row['portalTitle'] = (string) $definition['title'];
 			}

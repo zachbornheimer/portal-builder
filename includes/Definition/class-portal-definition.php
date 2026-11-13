@@ -30,6 +30,8 @@ if ( ! class_exists( 'Portal_Definition' ) ) {
 			'static_html',
 		);
 
+		const SHEET_ROLES = array( 'housekeeping', 'adjudicator' );
+
 		/**
 		 * Decode JSON string into array or WP_Error.
 		 *
@@ -72,13 +74,30 @@ if ( ! class_exists( 'Portal_Definition' ) ) {
 			$publish = isset( $data['publish'] ) && is_array( $data['publish'] ) ? $data['publish'] : array();
 			$options = isset( $data['options'] ) && is_array( $data['options'] ) ? $data['options'] : array();
 
+			$field_dest = array();
+			if ( isset( $mapping['fieldDest'] ) && is_array( $mapping['fieldDest'] ) ) {
+				foreach ( $mapping['fieldDest'] as $fid => $dest ) {
+					if ( is_string( $fid ) && is_string( $dest ) ) {
+						$field_dest[ $fid ] = $dest;
+					}
+				}
+			}
+
+			$sheets = isset( $mapping['sheets'] ) && is_array( $mapping['sheets'] )
+				? self::normalize_sheets( $mapping['sheets'] )
+				: array();
+			$drive  = isset( $mapping['drive'] ) && is_array( $mapping['drive'] )
+				? self::normalize_drive( $mapping['drive'] )
+				: array();
+
 			return array(
 				'version' => isset( $data['version'] ) ? (int) $data['version'] : 1,
 				'title'   => isset( $data['title'] ) ? (string) $data['title'] : '',
 				'fields'  => $validated_fields,
 				'mapping' => array(
-					'sheets' => isset( $mapping['sheets'] ) && is_array( $mapping['sheets'] ) ? $mapping['sheets'] : array(),
-					'drive'  => isset( $mapping['drive'] ) && is_array( $mapping['drive'] ) ? $mapping['drive'] : array(),
+					'sheets'    => $sheets,
+					'drive'     => $drive,
+					'fieldDest' => $field_dest,
 				),
 				'publish' => array(
 					'deadline'        => array_key_exists( 'deadline', $publish ) ? $publish['deadline'] : null,
@@ -92,8 +111,76 @@ if ( ! class_exists( 'Portal_Definition' ) ) {
 					'guidelinesUrl'             => isset( $options['guidelinesUrl'] ) ? $options['guidelinesUrl'] : null,
 					'applicantNotificationDate' => isset( $options['applicantNotificationDate'] ) ? $options['applicantNotificationDate'] : null,
 					'freeForMembers'            => ! empty( $options['freeForMembers'] ),
+					'anonymizeEndpoint'         => self::nullable_url(
+						array_key_exists( 'anonymizeEndpoint', $options ) ? $options['anonymizeEndpoint'] : null
+					),
 				),
 			);
+		}
+
+		/**
+		 * Copy known sheet fields; keep old un-roled ids; drop invalid roles.
+		 *
+		 * @param array $sheets Raw sheet targets.
+		 * @return array
+		 */
+		private static function normalize_sheets( $sheets ) {
+			$out = array();
+			foreach ( $sheets as $sheet ) {
+				if ( ! is_array( $sheet ) ) {
+					continue;
+				}
+				$row = array(
+					'id'            => isset( $sheet['id'] ) ? (string) $sheet['id'] : '',
+					'name'          => isset( $sheet['name'] ) ? (string) $sheet['name'] : '',
+					'spreadsheetId' => isset( $sheet['spreadsheetId'] ) ? (string) $sheet['spreadsheetId'] : '',
+				);
+				if ( isset( $sheet['role'] ) && is_string( $sheet['role'] ) && in_array( $sheet['role'], self::SHEET_ROLES, true ) ) {
+					$row['role'] = $sheet['role'];
+				}
+				if ( isset( $sheet['columns'] ) && is_array( $sheet['columns'] ) ) {
+					$row['columns'] = $sheet['columns'];
+				}
+				$out[] = $row;
+			}
+			return $out;
+		}
+
+		/**
+		 * @param array $drive Raw drive targets.
+		 * @return array
+		 */
+		private static function normalize_drive( $drive ) {
+			$out = array();
+			foreach ( $drive as $folder ) {
+				if ( ! is_array( $folder ) ) {
+					continue;
+				}
+				$row = array(
+					'id'       => isset( $folder['id'] ) ? (string) $folder['id'] : '',
+					'name'     => isset( $folder['name'] ) ? (string) $folder['name'] : '',
+					'folderId' => isset( $folder['folderId'] ) ? (string) $folder['folderId'] : '',
+				);
+				if ( isset( $folder['fieldIds'] ) && is_array( $folder['fieldIds'] ) ) {
+					$row['fieldIds'] = $folder['fieldIds'];
+				}
+				$out[] = $row;
+			}
+			return $out;
+		}
+
+		/**
+		 * Empty string → null. Non-strings → null. Do not invent a URL.
+		 *
+		 * @param mixed $value Raw option.
+		 * @return string|null
+		 */
+		private static function nullable_url( $value ) {
+			if ( ! is_string( $value ) ) {
+				return null;
+			}
+			$trimmed = trim( $value );
+			return '' === $trimmed ? null : $trimmed;
 		}
 
 		/**

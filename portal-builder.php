@@ -61,8 +61,10 @@ require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-dri
 require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-mailer.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-submission-field-rules.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-submission-validator.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-submission-selections.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-submission-pipeline.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-portal-definition-rest.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/class-portal-setup-screen.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/templates.php';
 require_once plugin_dir_path( __FILE__ ) . 'gsuite-filestore/zysys-file-store.class.php';
 

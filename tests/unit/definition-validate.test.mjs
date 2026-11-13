@@ -55,3 +55,130 @@ test('duplicate field ids rejected', () => {
   const { code, out } = runPhp(bad);
   assert.notEqual(code, 0, out);
 });
+
+test('sheet roles and anonymizeEndpoint persist', () => {
+  const file = path.join(root, 'tests/.artifacts/roles-endpoint-definition.json');
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(
+    file,
+    JSON.stringify({
+      version: 1,
+      title: 'Dohnányi',
+      fields: [{ id: 'work_title', type: 'short_text', label: 'Title' }],
+      mapping: {
+        sheets: [
+          {
+            id: 'sheet_housekeeping',
+            name: 'Housekeeping',
+            role: 'housekeeping',
+            spreadsheetId: '1a2B3c4D5e6F7g8H9i0Jklmnopqrstuvwx',
+          },
+          {
+            id: 'sheet_adjudicator',
+            name: 'Adjudicator',
+            role: 'adjudicator',
+            spreadsheetId: '1zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz',
+          },
+        ],
+        drive: [
+          {
+            id: 'drive_submissions',
+            name: 'Submissions',
+            folderId: '1folderfolderfolderfolderfoldr',
+          },
+        ],
+      },
+      options: {
+        anonymize: true,
+        anonymizeEndpoint: 'https://anon.example.com/v1/strip',
+      },
+    })
+  );
+  const { code, out } = runPhp(file);
+  assert.equal(code, 0, out);
+  const data = JSON.parse(out.trim());
+  assert.equal(data.ok, true);
+  assert.equal(data.definition.mapping.sheets[0].role, 'housekeeping');
+  assert.equal(data.definition.mapping.sheets[1].role, 'adjudicator');
+  assert.equal(data.definition.options.anonymize, true);
+  assert.equal(
+    data.definition.options.anonymizeEndpoint,
+    'https://anon.example.com/v1/strip'
+  );
+});
+
+test('empty anonymizeEndpoint persists as null', () => {
+  const file = path.join(root, 'tests/.artifacts/empty-endpoint-definition.json');
+  fs.writeFileSync(
+    file,
+    JSON.stringify({
+      version: 1,
+      fields: [{ id: 'work_title', type: 'short_text', label: 'Title' }],
+      options: { anonymize: true, anonymizeEndpoint: '' },
+    })
+  );
+  const { code, out } = runPhp(file);
+  assert.equal(code, 0, out);
+  const data = JSON.parse(out.trim());
+  assert.equal(data.definition.options.anonymizeEndpoint, null);
+});
+
+test('call-for-scores definition validates', () => {
+  const cfs = path.join(root, 'tests/fixtures/portals/call-for-scores.definition.json');
+  const { code, out } = runPhp(cfs);
+  assert.equal(code, 0, out);
+  const data = JSON.parse(out.trim());
+  assert.equal(data.ok, true);
+  const category = data.definition.fields.find((f) => f.id === 'category');
+  assert.equal(category.type, 'branch');
+  assert.ok(category.options.some((o) => o.id === 'scores'));
+});
+
+test('branch option missing id is rejected', () => {
+  const bad = path.join(root, 'tests/.artifacts/bad-branch-option.json');
+  fs.mkdirSync(path.dirname(bad), { recursive: true });
+  fs.writeFileSync(
+    bad,
+    JSON.stringify({
+      version: 1,
+      fields: [
+        {
+          id: 'category',
+          type: 'branch',
+          label: 'Category',
+          required: true,
+          options: [
+            { label: 'Poster', children: [] },
+            { id: 'papers', label: 'Papers', children: [] },
+          ],
+        },
+      ],
+    })
+  );
+  const { code, out } = runPhp(bad);
+  assert.notEqual(code, 0, out);
+  assert.match(out, /dg_definition_branch|Invalid branch option/i);
+});
+
+test('old un-roled sheet id is kept; invalid role does not crash', () => {
+  const file = path.join(root, 'tests/.artifacts/legacy-sheet-definition.json');
+  fs.writeFileSync(
+    file,
+    JSON.stringify({
+      version: 1,
+      fields: [{ id: 'work_title', type: 'short_text', label: 'Title' }],
+      mapping: {
+        sheets: [
+          { id: 'sheet_main', name: 'All Records', spreadsheetId: 'kept-id-value-here-20xx' },
+          { id: 'sheet_bad', name: 'Nope', role: 'not-a-role', spreadsheetId: 'x' },
+        ],
+      },
+    })
+  );
+  const { code, out } = runPhp(file);
+  assert.equal(code, 0, out);
+  const data = JSON.parse(out.trim());
+  assert.equal(data.definition.mapping.sheets[0].spreadsheetId, 'kept-id-value-here-20xx');
+  assert.equal(data.definition.mapping.sheets[0].id, 'sheet_main');
+  assert.ok(!data.definition.mapping.sheets[1].role);
+});
