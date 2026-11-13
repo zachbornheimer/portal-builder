@@ -10,8 +10,8 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 	/**
 	 * Logical pipeline from PORTAL-MODEL §5 for definition-based forms.
 	 *
-	 * In test mode (default for this foundation), Sheet / Drive / Mail write
-	 * file-backed artifacts under the configured artifact directory.
+	 * Test mode selects file Sheet / Drive adapters. Otherwise the same
+	 * verbs write through the Google store (Zysys_FileStore).
 	 */
 	class Portal_Submission_Pipeline {
 
@@ -73,19 +73,8 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 				return array( 'ok' => false, 'errors' => self::$last_errors );
 			}
 
-			if ( ! Portal_Test_Mode::is_enabled() ) {
-				self::$last_errors = array(
-					array(
-						'code'     => 'test_mode',
-						'field_id' => '',
-						'message'  => 'Definition submit requires DG_TEST_MODE until live adapters ship.',
-					),
-				);
-				return array( 'ok' => false, 'errors' => self::$last_errors );
-			}
-
 			$file_meta = self::normalize_uploaded_files( $files );
-			$pipeline  = self::for_artifacts( Portal_Test_Mode::artifact_dir() );
+			$pipeline  = self::for_environment( $definition );
 			$result    = $pipeline->process( $portal_id, $definition, $post, $file_meta );
 
 			if ( is_wp_error( $result ) ) {
@@ -221,10 +210,10 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 			return add_query_arg( $args, $permalink );
 		}
 
-		/** @var Portal_Sheet_Store */
+		/** @var object Sheet port (append_row). */
 		private $sheets;
 
-		/** @var Portal_Drive_Store */
+		/** @var object Drive port (store_file). */
 		private $drive;
 
 		/** @var Portal_Mailer */
@@ -233,17 +222,45 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 		/** @var Portal_Files */
 		private $files;
 
+		/** @var array|object|null Injected open/preview probe. */
+		private $open_state;
+
+		/** @var object|null Transport with send(array $request). */
+		private $transport;
+
 		/**
-		 * @param Portal_Sheet_Store $sheets Sheet store.
-		 * @param Portal_Drive_Store $drive  Drive store.
-		 * @param Portal_Mailer      $mailer Mailer.
-		 * @param Portal_Files|null  $files  Filesystem for reading upload paths.
+		 * @param object            $sheets     Sheet port (append_row).
+		 * @param object            $drive      Drive port (store_file).
+		 * @param Portal_Mailer     $mailer     Mailer.
+		 * @param Portal_Files|null $files      Filesystem for reading upload paths.
+		 * @param array|object|null $open_state Injected open/preview probe.
+		 * @param object|null       $transport  Injected anonymize transport.
 		 */
-		public function __construct( Portal_Sheet_Store $sheets, Portal_Drive_Store $drive, Portal_Mailer $mailer, $files = null ) {
-			$this->sheets = $sheets;
-			$this->drive  = $drive;
-			$this->mailer = $mailer;
-			$this->files  = $files instanceof Portal_Files ? $files : new Portal_Files();
+		public function __construct( $sheets, $drive, Portal_Mailer $mailer, $files = null, $open_state = null, $transport = null ) {
+			$this->sheets     = $sheets;
+			$this->drive      = $drive;
+			$this->mailer     = $mailer;
+			$this->files      = $files instanceof Portal_Files ? $files : new Portal_Files();
+			$this->open_state = $open_state;
+			$this->transport  = $transport;
+		}
+
+		/**
+		 * @param array|object|null $open_state Injected open/preview probe.
+		 * @return self
+		 */
+		public function with_open_state( $open_state ) {
+			$this->open_state = $open_state;
+			return $this;
+		}
+
+		/**
+		 * @param object|null $transport Injected anonymize transport.
+		 * @return self
+		 */
+		public function with_transport( $transport ) {
+			$this->transport = $transport;
+			return $this;
 		}
 
 		/**
@@ -263,18 +280,59 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 		}
 
 		/**
+		 * File adapters when test mode is on; Google adapters otherwise.
+		 *
+		 * @param array             $definition Validated definition.
+		 * @param Portal_Files|null $files      Injectable FS.
+		 * @param callable|null     $now_ms     Injectable clock.
+		 * @param object|null       $file_store Injected FileStore (tests).
+		 * @param array|object|null $open_state Injected open/preview probe.
+		 * @return self
+		 */
+		public static function for_environment( array $definition, $files = null, $now_ms = null, $file_store = null, $open_state = null ) {
+			if ( Portal_Test_Mode::is_enabled() ) {
+				$pipeline = self::for_artifacts( Portal_Test_Mode::artifact_dir(), $files, $now_ms );
+				if ( null !== $open_state ) {
+					$pipeline->with_open_state( $open_state );
+				}
+				return $pipeline;
+			}
+			return self::for_live( $definition, $files, $now_ms, $file_store, $open_state );
+		}
+
+		/**
+		 * Google Sheet/Drive ports; mail stays the file capture adapter.
+		 *
+		 * @param array             $definition Validated definition.
+		 * @param Portal_Files|null $files      Injectable FS.
+		 * @param callable|null     $now_ms     Injectable clock.
+		 * @param object|null       $file_store Injected FileStore (tests).
+		 * @param array|object|null $open_state Injected open/preview probe.
+		 * @return self
+		 */
+		public static function for_live( array $definition, $files = null, $now_ms = null, $file_store = null, $open_state = null ) {
+			$files = $files instanceof Portal_Files ? $files : new Portal_Files();
+			if ( null === $file_store ) {
+				$file_store = Portal_Google_Store::file_store_from_options();
+			}
+			$google = new Portal_Google_Store( $file_store, $definition, $files );
+			$mailer = new Portal_Mailer( Portal_Test_Mode::artifact_dir(), $files, $now_ms );
+			return new self( $google, $google, $mailer, $files, $open_state );
+		}
+
+		/**
 		 * Process a portal post when a definition is present (WP runtime helper).
 		 *
-		 * Loads `_portal_definition`, builds artifact stores when test mode is on,
-		 * and runs the pipeline. Returns WP_Error when definition is missing or
-		 * test mode is off (production Google adapters land later).
+		 * Loads `_portal_definition` and runs the pipeline with file or Google
+		 * adapters selected from test mode.
 		 *
 		 * @param int                 $post_id Portal post ID.
 		 * @param array<string,mixed> $values  Form values (sub_* keys).
 		 * @param array<string,mixed> $files   Map fieldId => file meta.
+		 * @param array               $options Optional file_store / open_state.
 		 * @return array|WP_Error
 		 */
-		public static function process_for_post( $post_id, array $values, array $files = array() ) {
+		public static function process_for_post( $post_id, array $values, array $files = array(), array $options = array() ) {
 			$post_id = (int) $post_id;
 			if ( $post_id <= 0 ) {
 				return new WP_Error( 'dg_submission_portal', 'Invalid portal id.' );
@@ -286,14 +344,24 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 			if ( null === $definition ) {
 				return new WP_Error( 'dg_submission_no_definition', 'Portal has no valid definition.' );
 			}
-			if ( ! Portal_Test_Mode::is_enabled() ) {
-				return new WP_Error(
-					'dg_submission_not_test_mode',
-					'Definition submit requires DG_TEST_MODE until live Sheet/Drive adapters ship.'
-				);
+			if ( class_exists( 'Portal_Access' ) ) {
+				$access              = isset( $definition['access'] ) && is_array( $definition['access'] )
+					? $definition['access']
+					: array();
+				$definition_options  = isset( $definition['options'] ) && is_array( $definition['options'] )
+					? $definition['options']
+					: array();
+				$decision            = Portal_Access::decide( $access, $definition_options, Portal_Access::current_applicant() );
+				if ( empty( $decision['allowed'] ) ) {
+					return new WP_Error(
+						'dg_submission_forbidden',
+						Portal_Access::message_for( $access, isset( $decision['reason'] ) ? $decision['reason'] : 'profile' )
+					);
+				}
 			}
-			$artifact_dir = Portal_Test_Mode::artifact_dir();
-			$pipeline     = self::for_artifacts( $artifact_dir );
+			$file_store = isset( $options['file_store'] ) ? $options['file_store'] : null;
+			$open_state = isset( $options['open_state'] ) ? $options['open_state'] : null;
+			$pipeline   = self::for_environment( $definition, null, null, $file_store, $open_state );
 			return $pipeline->process( $post_id, $definition, $values, $files );
 		}
 
@@ -313,6 +381,19 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 				return $validated;
 			}
 
+			$blocked = $this->admission_error( $portal_id );
+			if ( is_wp_error( $blocked ) ) {
+				return $blocked;
+			}
+
+			$submission_id = self::resolve_submission_id( $values );
+			if ( is_object( $this->drive ) && method_exists( $this->drive, 'set_submission_id' ) ) {
+				$this->drive->set_submission_id( $submission_id );
+			}
+			if ( is_object( $this->sheets ) && method_exists( $this->sheets, 'set_submission_id' ) ) {
+				$this->sheets->set_submission_id( $submission_id );
+			}
+
 			$drive_paths = array();
 			$file_meta   = array();
 
@@ -325,6 +406,7 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 						sprintf( 'Could not read upload for field "%s".', $field_id )
 					);
 				}
+				$buffer                     = $this->anonymize_judge_bytes( $definition, $buffer, $filename, $meta );
 				$path                       = $this->drive->store_file( $portal_id, $field_id, $buffer, $filename );
 				$drive_paths[ $field_id ]   = $path;
 				$file_meta[ $field_id ]     = array(
@@ -335,7 +417,17 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 				);
 			}
 
-			$row = $this->build_sheet_row( $portal_id, $definition, $validated, $drive_paths );
+			$row                  = $this->build_sheet_row( $portal_id, $definition, $validated, $drive_paths );
+			$row['applicationId'] = $submission_id;
+			if ( is_object( $this->drive ) && method_exists( $this->drive, 'ensure_application_folder' ) ) {
+				$this->drive->ensure_application_folder( $portal_id );
+			}
+			if ( is_object( $this->drive ) && method_exists( $this->drive, 'folder_url' ) ) {
+				$folder_url = (string) $this->drive->folder_url();
+				if ( '' !== $folder_url ) {
+					$row['files'] = $folder_url;
+				}
+			}
 			$sheet_path = $this->sheets->append_row( $portal_id, $row );
 
 			$to = isset( $validated['applicant']['sub_email'] )
@@ -417,11 +509,89 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 				$row[ $field_id . '_link' ] = $path;
 			}
 
+			foreach ( Portal_Submission_Selections::columns( $definition, $validated['values'] ) as $key => $val ) {
+				$row[ $key ] = $val;
+			}
+
 			if ( isset( $definition['title'] ) ) {
 				$row['portalTitle'] = (string) $definition['title'];
 			}
 
 			return $row;
+		}
+
+		/**
+		 * Reject preview / closed before the first write. Skip when WP is absent
+		 * and no open-state was injected (CLI harness).
+		 *
+		 * @param string|int $portal_id Portal id.
+		 * @return WP_Error|null
+		 */
+		private function admission_error( $portal_id ) {
+			if ( is_array( $this->open_state ) ) {
+				return Portal_Submit_Admission::decide(
+					! empty( $this->open_state['preview'] ),
+					! empty( $this->open_state['open'] )
+				);
+			}
+			if ( is_object( $this->open_state ) ) {
+				$preview = method_exists( $this->open_state, 'is_preview_request' )
+					? (bool) $this->open_state->is_preview_request( $portal_id )
+					: false;
+				$open    = method_exists( $this->open_state, 'is_open' )
+					? (bool) $this->open_state->is_open( $portal_id )
+					: true;
+				return Portal_Submit_Admission::decide( $preview, $open );
+			}
+			if ( ! function_exists( 'get_post' ) || ! class_exists( 'Portal_Open_State' ) ) {
+				return null;
+			}
+			$id = (int) $portal_id;
+			if ( $id <= 0 ) {
+				return null;
+			}
+			return Portal_Submit_Admission::decide(
+				Portal_Open_State::is_preview_request( $id ),
+				Portal_Open_State::is_open( $id )
+			);
+		}
+
+		/**
+		 * Reuse a file-handler app id when the request already has one.
+		 *
+		 * @param array $values Form values.
+		 * @return string
+		 */
+		private static function resolve_submission_id( array $values ) {
+			foreach ( array( 'APPID', 'appId', 'app_id' ) as $key ) {
+				if ( ! empty( $values[ $key ] ) && is_scalar( $values[ $key ] ) ) {
+					return (string) $values[ $key ];
+				}
+			}
+			return uniqid( 'dg_', true );
+		}
+
+		/**
+		 * Strip identity from judge-facing bytes. Fail-open to $buffer.
+		 *
+		 * @param array  $definition Definition document.
+		 * @param string $buffer     Original upload bytes.
+		 * @param string $filename   Original filename.
+		 * @param array  $meta       File meta.
+		 * @return string
+		 */
+		private function anonymize_judge_bytes( array $definition, $buffer, $filename, array $meta ) {
+			if ( ! class_exists( 'Portal_Anonymizer' ) ) {
+				return $buffer;
+			}
+			$options = class_exists( 'Portal_Site_Defaults' )
+				? Portal_Site_Defaults::resolve_for_site( $definition )
+				: ( isset( $definition['options'] ) && is_array( $definition['options'] )
+					? $definition['options']
+					: array() );
+			$type    = isset( $meta['type'] ) ? (string) $meta['type'] : null;
+			$owner   = new Portal_Anonymizer( $options, $this->transport );
+			return $owner->maybe_anonymize( $buffer, $filename, $type );
 		}
 
 		/**

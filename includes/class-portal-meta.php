@@ -24,9 +24,11 @@ if ( ! class_exists( 'Portal_Meta' ) ) {
 		}
 
 		public function add_meta_boxes() {
+			// Wizard is the only product surface. Legacy field meta boxes stay registered
+			// for save_post compatibility but are hidden via portal-admin CSS.
 			add_meta_box(
 				'portal_setup_wizard',
-				'Portal setup',
+				__( 'Portal setup', 'dragongate-portals' ),
 				array( $this, 'render_wizard_mount' ),
 				'portal',
 				'normal',
@@ -47,12 +49,23 @@ if ( ! class_exists( 'Portal_Meta' ) ) {
 		}
 
 		/**
-		 * Svelte wizard shell mount point (Start → Build → Map → Publish).
+		 * Svelte wizard mount (Start → Build → Map → Publish).
 		 *
 		 * @param WP_Post $post Current post.
 		 */
 		public function render_wizard_mount( $post ) {
-			echo '<div data-portal-wizard class="dg-wizard-root"></div>';
+			$portal_id = (int) $post->ID;
+			$rest_root = esc_url_raw( rest_url( 'dragongate/v1' ) );
+			$nonce     = wp_create_nonce( 'wp_rest' );
+			$title     = get_the_title( $portal_id );
+			printf(
+				'<div data-portal-wizard class="dg-wizard-root" data-portal-id="%1$d" data-rest-root="%2$s" data-rest-nonce="%3$s" data-portal-title="%4$s" data-wp-rest-root="%5$s"></div>',
+				$portal_id,
+				esc_attr( $rest_root ),
+				esc_attr( $nonce ),
+				esc_attr( $title ),
+				esc_attr( esc_url_raw( rest_url() ) )
+			);
 		}
 
 		public function render_meta_box( $post, $meta_box ) {
@@ -212,11 +225,22 @@ if ( ! class_exists( 'Portal_Meta' ) ) {
 			if ( ! $screen || 'portal' !== $screen->post_type ) {
 				return;
 			}
+			// edit.php list table: Tailwind preflight + Svelte bundle break WP sticky thead/scroll.
+			if ( 'edit' === $screen->base ) {
+				return;
+			}
 
 			wp_enqueue_style(
 				'dragongate-portal-css',
 				plugins_url( '../assets/dist/dragongate-portal.css', __FILE__ ),
 				array(),
+				PB_VERSION
+			);
+
+			wp_enqueue_style(
+				'dg-portal-admin',
+				plugins_url( '../assets/portal-admin.css', __FILE__ ),
+				array( 'dragongate-portal-css' ),
 				PB_VERSION
 			);
 
