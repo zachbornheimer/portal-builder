@@ -20,6 +20,8 @@ if ( ! class_exists( 'Portal_Definition_Renderer' ) ) {
 		const ACCEPT_RECORDING = 'audio/mpeg,.mp3';
 		const ACCEPT_BIO       = 'application/pdf';
 
+		const FILE_SIZE_CAPTION = 'keep under 32 MB';
+
 		const NAME_PREFIX = 'sub_';
 
 		/**
@@ -136,49 +138,55 @@ if ( ! class_exists( 'Portal_Definition_Renderer' ) ) {
 
 			ob_start();
 			?>
-			<div class="portal-group dg-field dg-field--applicant_pack" data-dg-field-id="<?php echo esc_attr( $field['id'] ); ?>" data-dg-field-type="applicant_pack">
+			<div class="portal-group dg-field dg-field--applicant_pack dg-section" data-dg-field-id="<?php echo esc_attr( $field['id'] ); ?>" data-dg-field-type="applicant_pack">
 				<fieldset>
 					<legend><?php echo esc_html( $label ); ?></legend>
-					<div class="form-grid">
+					<div class="dg-grid dg-grid-title-name">
 						<div class="form-group">
-							<label for="sub_title" id="sub_title_label">Title<?php echo $required ? '*' : ''; ?></label>
-							<input style="width: auto;" maxlength="5" name="sub_title" id="sub_title" size="5" type="text"<?php echo $req; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> aria-labelledby="sub_title_label" autocomplete="honorific-prefix" />
+							<label for="sub_title" id="sub_title_label">Title<?php self::echo_required_mark( $required ); ?></label>
+							<input class="dg-control" maxlength="5" name="sub_title" id="sub_title" size="5" type="text"<?php echo $req; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> aria-labelledby="sub_title_label" autocomplete="honorific-prefix" />
 						</div>
 						<div class="form-group">
-							<label for="sub_name" id="sub_name_label">Name<?php echo $required ? '*' : ''; ?></label>
-							<input name="sub_name" id="sub_name" type="text"<?php echo $req; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> aria-labelledby="sub_name_label" autocomplete="name" />
+							<label for="sub_name" id="sub_name_label">Name<?php self::echo_required_mark( $required ); ?></label>
+							<input class="dg-control" name="sub_name" id="sub_name" type="text"<?php echo $req; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> aria-labelledby="sub_name_label" autocomplete="name" />
+						</div>
+					</div>
+					<div class="dg-grid dg-grid-2">
+						<div class="form-group">
+							<label for="sub_email" id="sub_email_label">Email Address<?php self::echo_required_mark( $required ); ?></label>
+							<input class="dg-control" name="sub_email" id="sub_email" type="email"<?php echo $req; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> aria-labelledby="sub_email_label" autocomplete="email" />
 						</div>
 						<div class="form-group">
-							<label for="sub_email" id="sub_email_label">Email Address<?php echo $required ? '*' : ''; ?></label>
-							<input name="sub_email" id="sub_email" type="email"<?php echo $req; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> aria-labelledby="sub_email_label" autocomplete="email" />
+							<label for="sub_inst_affil" id="sub_inst_affil_label">Institutional Affiliation <span class="caption">(optional)</span></label>
+							<input class="dg-control" name="sub_inst_affil" id="sub_inst_affil" type="text" aria-labelledby="sub_inst_affil_label" autocomplete="organization" />
+						</div>
+					</div>
+					<div class="form-group">
+						<label for="sub_address_first_part" id="sub_address_first_part_label">Address (Home/Work)<?php self::echo_required_mark( $required ); ?></label>
+						<input class="dg-control" name="sub_address_first_part" id="sub_address_first_part" type="text"<?php echo $req; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> aria-labelledby="sub_address_first_part_label" autocomplete="street-address" />
+					</div>
+					<div class="dg-grid dg-grid-3">
+						<div class="form-group">
+							<label for="sub_city" id="sub_city_label">City<?php self::echo_required_mark( $required ); ?></label>
+							<input class="dg-control" name="sub_city" id="sub_city" type="text"<?php echo $req; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> aria-labelledby="sub_city_label" autocomplete="address-level2" />
 						</div>
 						<div class="form-group">
-							<label for="sub_inst_affil" id="sub_inst_affil_label">Institutional Affiliation<br /><span class="caption">(if any)</span></label>
-							<input name="sub_inst_affil" id="sub_inst_affil" type="text" aria-labelledby="sub_inst_affil_label" autocomplete="organization" />
+							<label for="sub_country" id="sub_country_label">Country<?php self::echo_required_mark( $required ); ?></label>
+							<select class="gds-cr dg-control" country-data-region-id="gds-cr-one" data-language="en" name="sub_country" id="sub_country"<?php echo $req; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> aria-labelledby="sub_country_label" autocomplete="country"></select>
 						</div>
 						<div class="form-group">
-							<label for="sub_address_first_part" id="sub_address_first_part_label">Address (Home/Work)<?php echo $required ? '*' : ''; ?></label>
-							<input name="sub_address_first_part" id="sub_address_first_part" type="text"<?php echo $req; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> aria-labelledby="sub_address_first_part_label" autocomplete="street-address" />
+							<label for="sub_state" id="sub_state_label">State/Region<?php self::echo_required_mark( $required ); ?></label>
+							<select class="dg-control" id="gds-cr-one" name="sub_state"<?php echo $req; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> aria-labelledby="sub_state_label" autocomplete="address-level1"></select>
 						</div>
-						<div class="form-group">
-							<label for="sub_city" id="sub_city_label">City<?php echo $required ? '*' : ''; ?></label>
-							<input name="sub_city" id="sub_city" type="text"<?php echo $req; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> aria-labelledby="sub_city_label" autocomplete="address-level2" />
-						</div>
-						<div class="form-group">
-							<label for="sub_country" id="sub_country_label">Country<?php echo $required ? '*' : ''; ?></label>
-							<select class="gds-cr" country-data-region-id="gds-cr-one" data-language="en" name="sub_country" id="sub_country"<?php echo $req; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> aria-labelledby="sub_country_label" autocomplete="country"></select>
-						</div>
-						<div class="form-group">
-							<label for="sub_state" id="sub_state_label">State/Region<?php echo $required ? '*' : ''; ?></label>
-							<select id="gds-cr-one" name="sub_state"<?php echo $req; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> aria-labelledby="sub_state_label" autocomplete="address-level1"></select>
-						</div>
+					</div>
+					<div class="dg-grid dg-grid-zip-phone">
 						<div class="form-group">
 							<label for="sub_zip" id="sub_zip_label">Zip</label>
-							<input name="sub_zip" id="sub_zip" type="text" aria-labelledby="sub_zip_label" autocomplete="postal-code" />
+							<input class="dg-control" name="sub_zip" id="sub_zip" type="text" aria-labelledby="sub_zip_label" autocomplete="postal-code" />
 						</div>
 						<div class="form-group">
-							<label for="sub_phone" id="sub_phone_label">Phone<?php echo $required ? '*' : ''; ?></label>
-							<input name="sub_phone" id="sub_phone" type="tel"<?php echo $req; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> aria-labelledby="sub_phone_label" autocomplete="tel" />
+							<label for="sub_phone" id="sub_phone_label">Phone<?php self::echo_required_mark( $required ); ?></label>
+							<input class="dg-control" name="sub_phone" id="sub_phone" type="tel"<?php echo $req; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> aria-labelledby="sub_phone_label" autocomplete="tel" />
 						</div>
 					</div>
 				</fieldset>
@@ -197,7 +205,7 @@ if ( ! class_exists( 'Portal_Definition_Renderer' ) ) {
 			$inner    = self::render_fields( $children );
 
 			return sprintf(
-				'<div class="portal-group dg-field dg-field--group" data-dg-field-id="%1$s" data-dg-field-type="group"><fieldset><legend>%2$s</legend><div class="form-grid">%3$s</div></fieldset></div>',
+				'<div class="portal-group dg-field dg-field--group dg-section" data-dg-field-id="%1$s" data-dg-field-type="group"><fieldset><legend>%2$s</legend><div class="form-grid dg-stack">%3$s</div></fieldset></div>',
 				esc_attr( $field['id'] ),
 				esc_html( $label ),
 				$inner
@@ -268,12 +276,15 @@ if ( ! class_exists( 'Portal_Definition_Renderer' ) ) {
 				$input_type = 'tel';
 			}
 
+			$req_mark = ! empty( $field['required'] ) ? self::required_mark_html() : '';
+
 			return sprintf(
-				'<div class="form-group dg-field dg-field--%1$s" data-dg-field-id="%2$s" data-dg-field-type="%1$s"><label for="%3$s">%4$s%5$s</label><input type="%6$s" id="%3$s" name="%3$s"%7$s /></div>',
+				'<div class="form-group dg-field dg-field--%1$s" data-dg-field-id="%2$s" data-dg-field-type="%1$s"><label for="%3$s">%4$s%5$s%6$s</label><input class="dg-control" type="%7$s" id="%3$s" name="%3$s"%8$s /></div>',
 				esc_attr( $field['type'] ),
 				esc_attr( $field['id'] ),
 				esc_attr( $name ),
 				esc_html( $label ),
+				$req_mark,
 				$help,
 				esc_attr( $input_type ),
 				$required
@@ -290,11 +301,14 @@ if ( ! class_exists( 'Portal_Definition_Renderer' ) ) {
 			$help     = self::help_html( $field );
 			$required = ! empty( $field['required'] ) ? ' required aria-required="true"' : '';
 
+			$req_mark = ! empty( $field['required'] ) ? self::required_mark_html() : '';
+
 			return sprintf(
-				'<div class="form-group dg-field dg-field--long_text full-span" data-dg-field-id="%1$s" data-dg-field-type="long_text"><label for="%2$s">%3$s%4$s</label><textarea id="%2$s" name="%2$s" rows="5"%5$s></textarea></div>',
+				'<div class="form-group dg-field dg-field--long_text full-span" data-dg-field-id="%1$s" data-dg-field-type="long_text"><label for="%2$s">%3$s%4$s%5$s</label><textarea class="dg-control" id="%2$s" name="%2$s" rows="5"%6$s></textarea></div>',
 				esc_attr( $field['id'] ),
 				esc_attr( $name ),
 				esc_html( $label ),
+				$req_mark,
 				$help,
 				$required
 			);
@@ -308,19 +322,36 @@ if ( ! class_exists( 'Portal_Definition_Renderer' ) ) {
 		private static function render_file_input( $field, $accept ) {
 			$name     = self::input_name( $field['id'] );
 			$label    = self::label_text( $field );
-			$help     = self::help_html( $field );
-			$required = ! empty( $field['required'] ) ? ' required aria-required="true"' : '';
+			$required = ! empty( $field['required'] );
+			$req_a    = $required ? ' required aria-required="true"' : '';
 			$accept_a = '' !== $accept ? sprintf( ' accept="%s"', esc_attr( $accept ) ) : '';
+			$hint     = self::file_hint( $field, $accept );
+			$icon     = self::file_icon_label( $accept );
+			$prompt   = self::file_drop_prompt( $accept );
+
+			$open_label    = self::translate( 'Open to confirm' );
+			$confirm_idle  = self::translate( 'Open the file to confirm it isn’t corrupt.' );
+			$confirm_ready = self::translate( 'This file opened and is readable.' );
+			$replace_label = self::translate( 'Replace' );
+			$error_label   = self::translate( 'Open the file and confirm it isn’t corrupt.' );
 
 			return sprintf(
-				'<div class="form-group dg-field dg-field--%1$s" data-dg-field-id="%2$s" data-dg-field-type="%1$s"><label for="%3$s">%4$s%5$s</label><input type="file" id="%3$s" name="%3$s"%6$s%7$s /></div>',
+				'<div class="form-group dg-field dg-field--%1$s dg-file is-empty" data-dg-field-id="%2$s" data-dg-field-type="%1$s"><div class="dg-file-spec"><label class="dg-field-label" for="%3$s">%4$s%5$s</label><span class="dg-file-hint">%6$s</span></div><div class="dg-file-body"><div class="dg-file-pick"><input type="file" class="dg-file-input" id="%3$s" name="%3$s"%7$s%8$s /><span class="dg-file-empty">%9$s</span><span class="dg-file-ready"><span class="dg-file-icon" aria-hidden="true">%10$s</span><span class="dg-file-meta"><span class="dg-file-name" data-dg-file-name></span><span class="dg-file-size" data-dg-file-size></span></span></span></div><div class="dg-file-confirm"><button type="button" class="dg-file-open" data-dg-file-open>%11$s</button><span class="dg-file-confirm-copy" data-dg-file-confirm-copy data-idle="%12$s" data-ready="%13$s">%12$s</span><label class="dg-file-confirm-label"><input type="checkbox" class="dg-file-confirm-input" data-dg-file-confirm value="1" disabled /><span class="screen-reader-text">%13$s</span></label><button type="button" class="dg-file-swap" data-dg-file-swap>%14$s</button></div><p class="dg-file-error" role="alert">%15$s</p></div></div>',
 				esc_attr( $field['type'] ),
 				esc_attr( $field['id'] ),
 				esc_attr( $name ),
 				esc_html( $label ),
-				$help,
+				$required ? self::required_mark_html() : '',
+				esc_html( $hint ),
 				$accept_a,
-				$required
+				$req_a,
+				$prompt,
+				esc_html( $icon ),
+				$open_label,
+				$confirm_idle,
+				$confirm_ready,
+				$replace_label,
+				$error_label
 			);
 		}
 
@@ -335,7 +366,7 @@ if ( ! class_exists( 'Portal_Definition_Renderer' ) ) {
 			$req   = ! empty( $field['required'] ) ? ' required aria-required="true"' : '';
 
 			return sprintf(
-				'<div class="form-group dg-field dg-field--disclaimer full-span" data-dg-field-id="%1$s" data-dg-field-type="disclaimer"><label for="%2$s"><input type="checkbox" id="%2$s" name="%2$s" value="1"%3$s /> %4$s</label>%5$s</div>',
+				'<div class="form-group dg-field dg-field--disclaimer full-span" data-dg-field-id="%1$s" data-dg-field-type="disclaimer"><label class="dg-check" for="%2$s"><input type="checkbox" id="%2$s" name="%2$s" value="1"%3$s /><span>%4$s</span></label>%5$s</div>',
 				esc_attr( $field['id'] ),
 				esc_attr( $name ),
 				$req,
@@ -362,14 +393,95 @@ if ( ! class_exists( 'Portal_Definition_Renderer' ) ) {
 
 		/**
 		 * @param array $field Field.
-		 * @return string Label including required marker.
+		 * @return string Label text without the required marker.
 		 */
 		private static function label_text( $field ) {
-			$label = isset( $field['label'] ) ? (string) $field['label'] : (string) $field['id'];
-			if ( ! empty( $field['required'] ) ) {
-				$label .= '*';
+			return isset( $field['label'] ) ? (string) $field['label'] : (string) $field['id'];
+		}
+
+		/**
+		 * Visible required marker. Color is not the only signal.
+		 *
+		 * @return string
+		 */
+		private static function required_mark_html() {
+			return '<span class="dg-req" aria-hidden="true">*</span>';
+		}
+
+		/**
+		 * Translate when WordPress is loaded; stay usable in the PHP CLI harness.
+		 *
+		 * @param string $text Source string.
+		 * @return string Escaped.
+		 */
+		private static function translate( $text ) {
+			if ( function_exists( 'esc_html__' ) ) {
+				return esc_html__( $text, 'dragongate-portals' );
 			}
-			return $label;
+			return esc_html( $text );
+		}
+
+		/**
+		 * @param bool $required Whether the field is required.
+		 */
+		private static function echo_required_mark( $required ) {
+			if ( $required ) {
+				echo self::required_mark_html(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- constant markup.
+			}
+		}
+
+		/**
+		 * @param array  $field  Field.
+		 * @param string $accept Accept attribute.
+		 * @return string
+		 */
+		private static function file_hint( $field, $accept ) {
+			if ( ! empty( $field['help'] ) ) {
+				return (string) $field['help'];
+			}
+			if ( false !== strpos( $accept, 'pdf' ) ) {
+				return 'PDF only · ' . self::FILE_SIZE_CAPTION;
+			}
+			if ( false !== strpos( $accept, 'mpeg' ) || false !== strpos( $accept, 'mp3' ) ) {
+				return 'MP3 only · ' . self::FILE_SIZE_CAPTION;
+			}
+			return self::FILE_SIZE_CAPTION;
+		}
+
+		/**
+		 * @param string $accept Accept attribute.
+		 * @return string
+		 */
+		private static function file_icon_label( $accept ) {
+			if ( false !== strpos( $accept, 'pdf' ) ) {
+				return 'PDF';
+			}
+			if ( false !== strpos( $accept, 'mpeg' ) || false !== strpos( $accept, 'mp3' ) ) {
+				return 'MP3';
+			}
+			return 'FILE';
+		}
+
+		/**
+		 * @param string $accept Accept attribute.
+		 * @return string Safe HTML prompt.
+		 */
+		private static function file_drop_prompt( $accept ) {
+			if ( false !== strpos( $accept, 'pdf' ) ) {
+				$kind = 'PDF';
+				$art  = 'a';
+			} elseif ( false !== strpos( $accept, 'mpeg' ) || false !== strpos( $accept, 'mp3' ) ) {
+				$kind = 'MP3';
+				$art  = 'an';
+			} else {
+				$kind = 'file';
+				$art  = 'a';
+			}
+			return sprintf(
+				'Drop %1$s %2$s or <em>browse</em>',
+				esc_html( $art ),
+				esc_html( $kind )
+			);
 		}
 
 		/**

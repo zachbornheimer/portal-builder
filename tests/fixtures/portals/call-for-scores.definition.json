@@ -1,0 +1,222 @@
+{
+  "version": 1,
+  "title": "Call for Scores and Papers",
+  "fields": [
+    {
+      "id": "applicant",
+      "type": "applicant_pack",
+      "label": "Your Information",
+      "required": true
+    },
+    {
+      "id": "bio",
+      "type": "bio_file",
+      "label": "Bio (PDF)",
+      "required": true,
+      "fileSuffix": "_BIO"
+    },
+    {
+      "id": "category",
+      "type": "branch",
+      "label": "Application Category",
+      "required": true,
+      "options": [
+        {
+          "id": "poster",
+          "label": "Poster Sessions",
+          "children": [
+            {
+              "id": "poster_description",
+              "type": "score_file",
+              "label": "Session description (PDF)",
+              "required": true,
+              "fileSuffix": "_POSTER"
+            }
+          ]
+        },
+        {
+          "id": "papers",
+          "label": "Research / Analysis Papers",
+          "children": [
+            {
+              "id": "paper_title",
+              "type": "short_text",
+              "label": "Paper title",
+              "required": true
+            },
+            {
+              "id": "paper_abstract",
+              "type": "score_file",
+              "label": "Abstract (PDF)",
+              "required": true,
+              "fileSuffix": "_ABSTRACT"
+            }
+          ]
+        },
+        {
+          "id": "scores",
+          "label": "Scores / Recordings",
+          "children": [
+            {
+              "id": "score_kind",
+              "type": "branch",
+              "label": "Score category",
+              "required": true,
+              "options": [
+                {
+                  "id": "large",
+                  "label": "Large ensemble masterclass",
+                  "children": [
+                    {
+                      "id": "large_title",
+                      "type": "short_text",
+                      "label": "Title of work",
+                      "required": true
+                    },
+                    {
+                      "id": "large_score",
+                      "type": "score_file",
+                      "label": "Score (PDF)",
+                      "required": true,
+                      "fileSuffix": "_LARGE_SCORE"
+                    },
+                    {
+                      "id": "large_rec",
+                      "type": "recording_file",
+                      "label": "Recording (MP3)",
+                      "required": true,
+                      "fileSuffix": "_LARGE_REC"
+                    }
+                  ]
+                },
+                {
+                  "id": "small",
+                  "label": "Small ensemble masterclass",
+                  "children": [
+                    {
+                      "id": "small_title",
+                      "type": "short_text",
+                      "label": "Title of work",
+                      "required": true
+                    },
+                    {
+                      "id": "small_score",
+                      "type": "score_file",
+                      "label": "Score (PDF)",
+                      "required": true,
+                      "fileSuffix": "_SMALL_SCORE"
+                    },
+                    {
+                      "id": "small_rec",
+                      "type": "recording_file",
+                      "label": "Recording (MP3)",
+                      "required": true,
+                      "fileSuffix": "_SMALL_REC"
+                    }
+                  ]
+                },
+                {
+                  "id": "arrangement",
+                  "label": "Arrangement masterclass",
+                  "children": [
+                    {
+                      "id": "arrangement_title",
+                      "type": "short_text",
+                      "label": "Title of work",
+                      "required": true
+                    },
+                    {
+                      "id": "arrangement_score",
+                      "type": "score_file",
+                      "label": "Score (PDF)",
+                      "required": true,
+                      "fileSuffix": "_ARRANGEMENT_SCORE"
+                    },
+                    {
+                      "id": "arrangement_rec",
+                      "type": "recording_file",
+                      "label": "Recording (MP3)",
+                      "required": true,
+                      "fileSuffix": "_ARRANGEMENT_REC"
+                    }
+                  ]
+                },
+                {
+                  "id": "first_takes",
+                  "label": "First Takes",
+                  "children": [
+                    {
+                      "id": "first_takes_title",
+                      "type": "short_text",
+                      "label": "Title of work",
+                      "required": true
+                    },
+                    {
+                      "id": "first_takes_score",
+                      "type": "score_file",
+                      "label": "Score (PDF)",
+                      "required": true,
+                      "fileSuffix": "_FIRST_TAKES_SCORE"
+                    },
+                    {
+                      "id": "first_takes_rec",
+                      "type": "recording_file",
+                      "label": "Recording (MP3)",
+                      "required": true,
+                      "fileSuffix": "_FIRST_TAKES_REC"
+                    }
+                  ]
+                },
+                {
+                  "id": "student",
+                  "label": "Student / Young Artist",
+                  "children": [
+                    {
+                      "id": "student_title",
+                      "type": "short_text",
+                      "label": "Title of work",
+                      "required": true
+                    },
+                    {
+                      "id": "student_score",
+                      "type": "score_file",
+                      "label": "Score (PDF)",
+                      "required": true,
+                      "fileSuffix": "_STUDENT_SCORE"
+                    },
+                    {
+                      "id": "student_rec",
+                      "type": "recording_file",
+                      "label": "Recording (MP3)",
+                      "required": true,
+                      "fileSuffix": "_STUDENT_REC"
+                    },
+                    {
+                      "id": "student_enrollment",
+                      "type": "short_text",
+                      "label": "Enrollment note",
+                      "required": true,
+                      "help": "Student / Young Artist entries should include a brief note of current enrollment."
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "mapping": { "sheets": [], "drive": [] },
+  "publish": {
+    "deadline": null,
+    "timezone": "America/New_York",
+    "applicationFee": null,
+    "forceClosed": false
+  },
+  "options": {
+    "anonymize": false,
+    "skipHeader": false,
+    "guidelinesUrl": null
+  }
+}
