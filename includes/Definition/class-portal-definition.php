@@ -109,6 +109,9 @@ if ( ! class_exists( 'Portal_Definition' ) ) {
 					'guidelinesUrl'             => self::nullable_string(
 						array_key_exists( 'guidelinesUrl', $options ) ? $options['guidelinesUrl'] : null
 					),
+					'guidelinesLinkLabel'       => self::nullable_string(
+						array_key_exists( 'guidelinesLinkLabel', $options ) ? $options['guidelinesLinkLabel'] : null
+					),
 					'applicantNotificationDate' => isset( $options['applicantNotificationDate'] ) ? $options['applicantNotificationDate'] : null,
 					'freeForMembers'            => self::nullable_bool(
 						array_key_exists( 'freeForMembers', $options ) ? $options['freeForMembers'] : null
