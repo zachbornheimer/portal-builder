@@ -60,6 +60,7 @@ require_once $repo_root . '/includes/Submission/class-portal-submission-validato
 require_once $repo_root . '/includes/Submission/class-portal-submission-selections.php';
 require_once $repo_root . '/includes/Submission/class-portal-submit-admission.php';
 require_once $repo_root . '/includes/Submission/class-portal-submission-destinations.php';
+require_once $repo_root . '/includes/Submission/class-portal-staged-file.php';
 require_once $repo_root . '/includes/Submission/class-portal-submission-pipeline.php';
 require_once $repo_root . '/includes/adapters/class-portal-google-store.php';
 

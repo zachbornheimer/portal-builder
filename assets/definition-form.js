@@ -1,9 +1,9 @@
 /**
  * Public definition form — file enclosure + open-to-confirm + branch paths.
  *
- * After a file is chosen: show name/size, open a local blob so the applicant
- * can prove it isn’t corrupt, then require an explicit confirm. Anonymize
- * (strip identifiers before Drive) is a hook — `window.dgPrepareUploadedFile`.
+ * After a file is chosen: stage bytes (XHR progress → anonymize spinner →
+ * retained server name), open the staged file to prove it isn’t corrupt, then
+ * require an explicit confirm.
  *
  * Branch radios show only the selected path’s `.dg-branch-children` and disable
  * hidden controls so HTML5 `required` cannot block submit.
@@ -13,6 +13,9 @@
 
 	var KB = 1024;
 	var MB = 1024 * 1024;
+	var STATUS_ANON = 'Removing identifying information…';
+	var STATUS_FINISH = 'Finishing upload…';
+	var STAGE_FAIL = 'Upload failed. Replace the file and try again.';
 
 	/**
 	 * DOM-free visibility plan (mirrors src/wizard/branchVisibility.js).
@@ -44,12 +47,27 @@
 		return value.toFixed(1).replace(/\.0$/, '');
 	}
 
-	function prepareUploadedFile(file, card) {
-		var hook = window.dgPrepareUploadedFile;
-		if (typeof hook !== 'function') {
-			return Promise.resolve(file);
+	function publicConfig() {
+		return window.dgPublicForm && typeof window.dgPublicForm === 'object'
+			? window.dgPublicForm
+			: {};
+	}
+
+	function formAnonymize(card) {
+		var cfg = publicConfig();
+		if (cfg.anonymize === true || cfg.anonymize === 1 || cfg.anonymize === '1') {
+			return true;
 		}
-		return Promise.resolve(hook(file, card));
+		var form = card.closest('.dg-form') || card.closest('form');
+		if (form && form.getAttribute('data-dg-anonymize') === '1') {
+			return true;
+		}
+		return card.getAttribute('data-dg-anonymize') === '1';
+	}
+
+	function stageUrl() {
+		var cfg = publicConfig();
+		return cfg.stageUrl ? String(cfg.stageUrl) : '';
 	}
 
 	function bindFileCard(card) {
@@ -59,11 +77,20 @@
 		}
 		var nameEl = card.querySelector('[data-dg-file-name]');
 		var sizeEl = card.querySelector('[data-dg-file-size]');
+		var originalEl = card.querySelector('[data-dg-file-original]');
+		var sepEl = card.querySelector('[data-dg-file-sep]');
 		var openBtn = card.querySelector('[data-dg-file-open]');
 		var swapBtn = card.querySelector('[data-dg-file-swap]');
 		var confirm = card.querySelector('[data-dg-file-confirm]');
 		var copyEl = card.querySelector('[data-dg-file-confirm-copy]');
+		var stagedInput = card.querySelector('[data-dg-file-staged]');
+		var progressWrap = card.querySelector('[data-dg-file-progress]');
+		var progressBar = card.querySelector('[data-dg-file-progress-bar]');
+		var statusEl = card.querySelector('[data-dg-file-status]');
 		var objectUrl = '';
+		var stagedUrl = '';
+		var xhr = null;
+		var stagedToken = '';
 
 		function revokeUrl() {
 			if (objectUrl) {
@@ -81,6 +108,84 @@
 			copyEl.textContent = mode === 'ready' ? ready : idle;
 		}
 
+		function setProgress(pct) {
+			if (progressBar) {
+				progressBar.style.width = Math.max(0, Math.min(100, pct)) + '%';
+			}
+			if (progressWrap) {
+				if (pct >= 0) {
+					progressWrap.hidden = false;
+					progressWrap.removeAttribute('hidden');
+				} else {
+					progressWrap.hidden = true;
+					progressWrap.setAttribute('hidden', '');
+				}
+			}
+		}
+
+		function setStatus(text) {
+			if (!statusEl) {
+				return;
+			}
+			if (text) {
+				statusEl.textContent = text;
+				statusEl.hidden = false;
+				statusEl.removeAttribute('hidden');
+			} else {
+				statusEl.textContent = '';
+				statusEl.hidden = true;
+				statusEl.setAttribute('hidden', '');
+			}
+		}
+
+		function forgetRemoteToken(token) {
+			if (!token) {
+				return;
+			}
+			var cfg = publicConfig();
+			var base = cfg.stageUrl
+				? String(cfg.stageUrl).replace(/\/portals\/\d+\/files\/?$/, '/files/')
+				: '';
+			if (!base || typeof XMLHttpRequest === 'undefined') {
+				return;
+			}
+			try {
+				var del = new XMLHttpRequest();
+				del.open('DELETE', base + encodeURIComponent(token), true);
+				if (cfg.nonce) {
+					del.setRequestHeader('X-WP-Nonce', cfg.nonce);
+				}
+				del.send();
+			} catch (err) {
+				/* best-effort */
+			}
+		}
+
+		function clearStaged(forgetRemote) {
+			if (forgetRemote && stagedToken) {
+				forgetRemoteToken(stagedToken);
+			}
+			stagedToken = '';
+			stagedUrl = '';
+			if (stagedInput) {
+				stagedInput.value = '';
+			}
+			card.classList.remove('is-staged', 'is-uploading', 'is-working');
+			setProgress(-1);
+			setStatus('');
+		}
+
+		function abortXhr() {
+			if (xhr) {
+				try {
+					xhr.abort();
+				} catch (err) {
+					/* ignore */
+				}
+				xhr = null;
+			}
+		}
+
 		function resetConfirm() {
 			card.classList.remove('is-opened', 'is-confirmed', 'is-invalid');
 			if (confirm) {
@@ -91,22 +196,166 @@
 			setCopy('idle');
 		}
 
-		function sync() {
-			var file = input.files && input.files[0];
-			card.classList.toggle('is-empty', !file);
-			card.classList.toggle('is-ready', !!file);
+		function showLocalMeta(file) {
 			if (nameEl) {
 				nameEl.textContent = file ? file.name : '';
 			}
 			if (sizeEl) {
 				sizeEl.textContent = file ? formatSize(file.size) : '';
 			}
+			if (originalEl) {
+				originalEl.textContent = '';
+			}
+			if (sepEl) {
+				sepEl.hidden = true;
+				sepEl.setAttribute('hidden', '');
+			}
+		}
+
+		function showStagedMeta(payload, localFile) {
+			var stored = payload.storedName || (localFile && localFile.name) || '';
+			var original = payload.originalName || (localFile && localFile.name) || '';
+			var bytes = typeof payload.bytes === 'number' ? payload.bytes : (localFile ? localFile.size : 0);
+			if (nameEl) {
+				nameEl.textContent = stored;
+			}
+			if (sizeEl) {
+				sizeEl.textContent = formatSize(bytes);
+			}
+			if (originalEl) {
+				originalEl.textContent = original;
+			}
+			if (sepEl) {
+				sepEl.hidden = false;
+				sepEl.removeAttribute('hidden');
+			}
+		}
+
+		function setError(message) {
+			card.classList.add('is-invalid');
+			var err = card.querySelector('.dg-file-error');
+			if (err && message) {
+				err.textContent = message;
+			}
+		}
+
+		function stageFile(file) {
+			var url = stageUrl();
+			if (!url) {
+				// No stage endpoint configured (CLI/static render): local-only path.
+				card.classList.add('is-ready');
+				return;
+			}
+
+			abortXhr();
+			clearStaged(true);
+			card.classList.add('is-ready', 'is-uploading');
+			card.classList.remove('is-invalid', 'is-working', 'is-staged');
+			setProgress(0);
+			setStatus('');
+
+			var fieldId = card.getAttribute('data-dg-field-id') || '';
+			var body = new FormData();
+			body.append('file', file, file.name);
+			body.append('field_id', fieldId);
+			var cfg = publicConfig();
+			if (cfg.nonce) {
+				body.append('_wpnonce', cfg.nonce);
+			}
+
+			xhr = new XMLHttpRequest();
+			xhr.open('POST', url, true);
+			if (cfg.nonce) {
+				xhr.setRequestHeader('X-WP-Nonce', cfg.nonce);
+			}
+
+			function enterWorking() {
+				card.classList.remove('is-uploading');
+				card.classList.add('is-working');
+				setProgress(-1);
+				setStatus(formAnonymize(card) ? STATUS_ANON : STATUS_FINISH);
+			}
+
+			xhr.upload.addEventListener('progress', function (event) {
+				if (!event.lengthComputable) {
+					return;
+				}
+				var pct = event.total ? (event.loaded / event.total) * 100 : 0;
+				setProgress(pct);
+				// Progress may report 100% before the request finishes sending.
+				if (event.loaded >= event.total) {
+					enterWorking();
+				}
+			});
+
+			// Bytes finished sending; server is still anonymizing / responding.
+			// Tiny uploads often never fire progress at 100% — this is the reliable edge.
+			xhr.upload.addEventListener('load', function () {
+				enterWorking();
+			});
+
+			xhr.addEventListener('load', function () {
+				var req = xhr;
+				xhr = null;
+				card.classList.remove('is-uploading');
+				var ok = req.status >= 200 && req.status < 300;
+				var payload = null;
+				try {
+					payload = JSON.parse(req.responseText || '{}');
+				} catch (err) {
+					payload = null;
+				}
+				if (!ok || !payload || !payload.token) {
+					card.classList.remove('is-working', 'is-staged');
+					setProgress(-1);
+					setStatus('');
+					setError(STAGE_FAIL);
+					return;
+				}
+				stagedToken = String(payload.token);
+				stagedUrl = payload.url ? String(payload.url) : '';
+				if (stagedInput) {
+					stagedInput.value = stagedToken;
+				}
+				card.classList.remove('is-working');
+				card.classList.add('is-ready', 'is-staged');
+				setProgress(-1);
+				setStatus('');
+				showStagedMeta(payload, file);
+			});
+
+			xhr.addEventListener('error', function () {
+				xhr = null;
+				card.classList.remove('is-uploading', 'is-working', 'is-staged');
+				setProgress(-1);
+				setStatus('');
+				setError(STAGE_FAIL);
+			});
+
+			xhr.addEventListener('abort', function () {
+				xhr = null;
+				card.classList.remove('is-uploading', 'is-working');
+				setProgress(-1);
+				setStatus('');
+			});
+
+			xhr.send(body);
+		}
+
+		function sync() {
+			var file = input.files && input.files[0];
+			abortXhr();
+			// stageFile clears+forgets; empty pick only clears local state.
+			if (!file) {
+				clearStaged(true);
+			}
+			card.classList.toggle('is-empty', !file);
+			card.classList.toggle('is-ready', !!file);
+			showLocalMeta(file);
 			revokeUrl();
 			resetConfirm();
 			if (file) {
-				prepareUploadedFile(file, card).catch(function () {
-					/* Anonymize is optional until the API exists. */
-				});
+				stageFile(file);
 			}
 		}
 
@@ -115,6 +364,46 @@
 		if (openBtn) {
 			openBtn.addEventListener('click', function () {
 				var file = input.files && input.files[0];
+				var requiresStage = !!stageUrl();
+				// When staging is configured, wait for a successful stage before open.
+				if (requiresStage && !stagedToken) {
+					return;
+				}
+				// Prefer staged bytes when available.
+				if (stagedUrl) {
+					var openedStaged = window.open(stagedUrl, '_blank', 'noopener');
+					if (!openedStaged) {
+						window.location.assign(stagedUrl);
+					}
+					card.classList.add('is-opened');
+					card.classList.remove('is-invalid');
+					if (confirm) {
+						confirm.disabled = false;
+						confirm.required = true;
+					}
+					setCopy('ready');
+					return;
+				}
+				if (requiresStage && stagedToken && !stagedUrl) {
+					// Token without URL: build GET from stage root when possible.
+					var cfg = publicConfig();
+					var base = cfg.stageUrl ? String(cfg.stageUrl).replace(/\/portals\/\d+\/files\/?$/, '/files/') : '';
+					if (base) {
+						var tokenUrl = base + encodeURIComponent(stagedToken);
+						var openedTok = window.open(tokenUrl, '_blank', 'noopener');
+						if (!openedTok) {
+							window.location.assign(tokenUrl);
+						}
+						card.classList.add('is-opened');
+						card.classList.remove('is-invalid');
+						if (confirm) {
+							confirm.disabled = false;
+							confirm.required = true;
+						}
+						setCopy('ready');
+						return;
+					}
+				}
 				if (!file) {
 					return;
 				}
@@ -136,6 +425,8 @@
 
 		if (swapBtn) {
 			swapBtn.addEventListener('click', function () {
+				abortXhr();
+				clearStaged(true);
 				input.click();
 			});
 		}
@@ -188,10 +479,15 @@
 		form.addEventListener('submit', function (event) {
 			var cards = form.querySelectorAll('.dg-file.is-ready');
 			var blocked = false;
+			var requireStage = !!stageUrl();
 			for (var i = 0; i < cards.length; i += 1) {
-				var confirm = cards[i].querySelector('[data-dg-file-confirm]');
-				if (confirm && !confirm.checked) {
-					cards[i].classList.add('is-invalid');
+				var card = cards[i];
+				var confirm = card.querySelector('[data-dg-file-confirm]');
+				var staged = card.querySelector('[data-dg-file-staged]');
+				var missingConfirm = confirm && !confirm.checked;
+				var missingToken = requireStage && staged && !staged.value;
+				if (missingConfirm || missingToken) {
+					card.classList.add('is-invalid');
 					blocked = true;
 				}
 			}
