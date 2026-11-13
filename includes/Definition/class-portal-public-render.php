@@ -140,7 +140,7 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 				return self::wrap_packet(
 					$banner
 					. self::render_packet_head( $title )
-					. self::render_packet_meta( $definition )
+					. self::render_packet_meta( $definition, $site )
 					. $errors_html
 					. Portal_Definition_Renderer::render( $definition, $site )
 				);
@@ -377,9 +377,10 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 		 * Scored meta row from definition publish/options. Omits empty items.
 		 *
 		 * @param array|null $definition Definition document or null.
+		 * @param array|null $site       Site bag. Null reads live WP options.
 		 * @return string
 		 */
-		public static function render_packet_meta( $definition ) {
+		public static function render_packet_meta( $definition, $site = null ) {
 			if ( ! is_array( $definition ) ) {
 				return '';
 			}
@@ -403,7 +404,7 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 				$items[] = sprintf(
 					'<a class="dg-meta-link" href="%1$s" target="_blank" rel="noopener noreferrer">%2$s</a>',
 					esc_url( $guidelines ),
-					esc_html__( 'Read the call →', 'dragongate-portals' )
+					esc_html( self::guidelines_link_label( $definition, $site ) )
 				);
 			}
 
@@ -412,6 +413,23 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 			}
 
 			return '<div class="dg-meta">' . implode( '<span class="dg-meta-split" aria-hidden="true"></span>', $items ) . '</div>';
+		}
+
+		/**
+		 * Portal label, else site, else built-in. Never appends an arrow.
+		 *
+		 * @param array      $definition Definition document.
+		 * @param array|null $site       Site bag or null for live WP options.
+		 * @return string
+		 */
+		private static function guidelines_link_label( array $definition, $site ) {
+			if ( ! class_exists( 'Portal_Site_Defaults' ) ) {
+				return 'Link to Guidelines';
+			}
+			$site_bag = is_array( $site ) ? $site : Portal_Site_Defaults::read_site();
+			$resolved = Portal_Site_Defaults::resolve( $definition, $site_bag );
+			$label    = isset( $resolved['guidelinesLinkLabel'] ) ? (string) $resolved['guidelinesLinkLabel'] : '';
+			return '' !== $label ? $label : Portal_Site_Defaults::BUILTIN_GUIDELINES_LINK_LABEL;
 		}
 
 		/**
