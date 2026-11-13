@@ -75,6 +75,21 @@ function plugins_url( $path = '', $plugin = '' ) {
 	return 'http://localhost:10033/wp-content/plugins/portal-builder/' . ltrim( (string) $path, '/' );
 }
 
+$GLOBALS['dg_option_store'] = array();
+
+/**
+ * @param string $key     Option name.
+ * @param mixed  $default Default when unset.
+ * @return mixed
+ */
+function get_option( $key, $default = false ) {
+	$store = $GLOBALS['dg_option_store'];
+	if ( is_array( $store ) && array_key_exists( $key, $store ) ) {
+		return $store[ $key ];
+	}
+	return $default;
+}
+
 $repo_root = dirname( __DIR__, 2 );
 
 require_once $repo_root . '/includes/class-portal-options.php';
@@ -183,6 +198,11 @@ function run_receipt_op( $op, array $args ) {
 		if ( '' === $artifact ) {
 			throw new Exception( 'artifact dir required' );
 		}
+		if ( isset( $message['options'] ) && is_array( $message['options'] ) ) {
+			$GLOBALS['dg_option_store'] = $message['options'];
+			unset( $message['options'] );
+		}
+		unset( $message['name'] );
 		$mailer = new Portal_Mailer( $artifact );
 		$path   = $mailer->send( $message );
 		$body   = is_readable( $path ) ? file_get_contents( $path ) : '{}';

@@ -132,7 +132,7 @@ if ( ! class_exists( 'Portal_Submission' ) ) {
 			$link = $this->generate_receipt_link();
 
 			$fromEmail      = Portal_Options::get( 'dg_receipt_from_email', '' );
-			$fromName       = Portal_Options::get( 'dg_receipt_from_name', '' );
+			$fromName       = Portal_Mailer::from_name();
 			$receiptSubject = Portal_Options::get( 'dg_receipt_subject', '' );
 			$receiptBody    = Portal_Options::get( 'dg_receipt_body', '' );
 			$receiptAltBody = Portal_Options::get( 'dg_receipt_alt_body', '' );
@@ -157,7 +157,7 @@ if ( ! class_exists( 'Portal_Submission' ) ) {
 			$receiptBody = wpautop( $receiptBody );
 
 			try {
-				$mail->setFrom( $fromEmail, $portal_name . ' Application Automated Receipt' );
+				$mail->setFrom( $fromEmail, $fromName );
 				$mail->addAddress( $data['sub_email'] );
 				// $mail->addAttachment($outdir . 'Application_' . $appId . '.pdf');
 				$mail->Subject = $receiptSubject;

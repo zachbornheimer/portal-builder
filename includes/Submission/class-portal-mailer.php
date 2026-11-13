@@ -26,6 +26,7 @@ if ( ! class_exists( 'Portal_Mailer' ) ) {
 		const DEFAULT_OPERATOR_BODY    = "Portal: {{portal_title}}\nApplication: {{application_id}}\nApplicant: {{applicant_email}}\nReceipt: {{receipt_url}}";
 		const OPTION_FROM_EMAIL        = 'dg_receipt_from_email';
 		const OPTION_FROM_NAME         = 'dg_receipt_from_name';
+		const DEFAULT_FROM_NAME        = 'Portal Submissions';
 		const OPTION_SUBJECT           = 'dg_receipt_subject';
 		const OPTION_BODY              = 'dg_receipt_body';
 		const OPTION_OPERATOR_EMAIL    = 'dg_operator_notify_email';
@@ -187,9 +188,11 @@ if ( ! class_exists( 'Portal_Mailer' ) ) {
 			if ( function_exists( 'wpautop' ) ) {
 				$body = wpautop( $body );
 			}
-			$message['subject'] = $subject;
-			$message['body']    = $body;
-			$message['tokens']  = $tokens;
+			$message['subject']    = $subject;
+			$message['body']       = $body;
+			$message['tokens']     = $tokens;
+			$message['from']       = self::from_name();
+			$message['fromHeader'] = $this->from_header();
 			return $message;
 		}
 
@@ -224,7 +227,22 @@ if ( ! class_exists( 'Portal_Mailer' ) ) {
 		}
 
 		/**
-		 * From header from site options, or empty.
+		 * From display name: site option, or Portal Submissions when empty.
+		 *
+		 * @return string
+		 */
+		public static function from_name() {
+			$configured = class_exists( 'Portal_Options' )
+				? Portal_Options::get( self::OPTION_FROM_NAME, '' )
+				: '';
+			if ( is_string( $configured ) && '' !== trim( $configured ) ) {
+				return trim( $configured );
+			}
+			return self::DEFAULT_FROM_NAME;
+		}
+
+		/**
+		 * From header from site options, or empty when the From email is unset.
 		 *
 		 * @return string
 		 */
@@ -233,11 +251,7 @@ if ( ! class_exists( 'Portal_Mailer' ) ) {
 			if ( '' === $email ) {
 				return '';
 			}
-			$name = $this->site_option( self::OPTION_FROM_NAME, '' );
-			if ( '' === $name ) {
-				return $email;
-			}
-			return $name . ' <' . $email . '>';
+			return self::from_name() . ' <' . $email . '>';
 		}
 
 		/**

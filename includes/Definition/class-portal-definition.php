@@ -214,6 +214,9 @@ if ( ! class_exists( 'Portal_Definition' ) ) {
 				'capabilities'      => self::string_id_list(
 					isset( $access['capabilities'] ) ? $access['capabilities'] : array()
 				),
+				'viewAsRoles'       => self::string_id_list(
+					isset( $access['viewAsRoles'] ) ? $access['viewAsRoles'] : array()
+				),
 				'profileRules'      => $rules,
 				'denyMessage'       => isset( $access['denyMessage'] ) ? (string) $access['denyMessage'] : '',
 			);

@@ -783,10 +783,12 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 		 * @return WP_Error|null
 		 */
 		private function admission_error( $portal_id ) {
+			$view_as = class_exists( 'Portal_View_As' ) && Portal_View_As::is_active( $portal_id );
 			if ( is_array( $this->open_state ) ) {
 				return Portal_Submit_Admission::decide(
 					! empty( $this->open_state['preview'] ),
-					! empty( $this->open_state['open'] )
+					! empty( $this->open_state['open'] ),
+					$view_as
 				);
 			}
 			if ( is_object( $this->open_state ) ) {
@@ -796,10 +798,12 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 				$open    = method_exists( $this->open_state, 'is_open' )
 					? (bool) $this->open_state->is_open( $portal_id )
 					: true;
-				return Portal_Submit_Admission::decide( $preview, $open );
+				return Portal_Submit_Admission::decide( $preview, $open, $view_as );
 			}
 			if ( ! function_exists( 'get_post' ) || ! class_exists( 'Portal_Open_State' ) ) {
-				return null;
+				return $view_as
+					? Portal_Submit_Admission::decide( false, true, true )
+					: null;
 			}
 			$id = (int) $portal_id;
 			if ( $id <= 0 ) {
@@ -807,7 +811,8 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 			}
 			return Portal_Submit_Admission::decide(
 				Portal_Open_State::is_preview_request( $id ),
-				Portal_Open_State::is_open( $id )
+				Portal_Open_State::is_open( $id ),
+				$view_as
 			);
 		}
 

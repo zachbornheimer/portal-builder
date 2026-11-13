@@ -207,6 +207,18 @@
 		setAccess({ roles: next });
 	}
 
+	/**
+	 * @param {string} roleId
+	 * @param {boolean} on
+	 */
+	function toggleViewAsRole(roleId, on) {
+		const current = access.viewAsRoles;
+		const next = on
+			? Array.from(new Set([...current, roleId]))
+			: current.filter((id) => id !== roleId);
+		setAccess({ viewAsRoles: next });
+	}
+
 	function addProfileRule() {
 		const first = profileFields[0]?.key || 'COUNTRY';
 		setAccess({
@@ -545,6 +557,20 @@
 				{/each}
 			</div>
 		{/if}
+	</div>
+	<div class="dg-publish-block">
+		<p class="dg-field-label">Who may use View Portal as</p>
+		<p class="dg-field-help">Leave unchecked to use Default Settings.</p>
+		<div class="dg-plan-list">
+			{#each siteRoles as role (role.id)}
+				<CheckField
+					id={`dg-view-as-role-${role.id}`}
+					label={role.name}
+					checked={access.viewAsRoles.includes(String(role.id))}
+					onchange={(e) => toggleViewAsRole(String(role.id), e.currentTarget.checked)}
+				/>
+			{/each}
+		</div>
 	</div>
 	<div class="dg-publish-block">
 		<p class="dg-field-label">Profile requirements</p>
