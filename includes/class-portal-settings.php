@@ -299,6 +299,15 @@ if (! class_exists('Portal_Settings')) {
             );
             register_setting(
                 'pb_settings_group',
+                'pb_default_guidelines_link_label',
+                array(
+                    'type'              => 'string',
+                    'sanitize_callback' => 'sanitize_text_field',
+                    'default'           => '',
+                )
+            );
+            register_setting(
+                'pb_settings_group',
                 'pb_default_timezone',
                 array(
                     'type'              => 'string',
@@ -359,6 +368,13 @@ if (! class_exists('Portal_Settings')) {
                 'pb_default_guidelines_url',
                 __( 'Guidelines URL', 'portal-builder' ),
                 array( $this, 'render_default_guidelines_url_field' ),
+                'portal-default-settings',
+                'pb_anonymizer_defaults_section'
+            );
+            add_settings_field(
+                'pb_default_guidelines_link_label',
+                __( 'Guidelines link label', 'portal-builder' ),
+                array( $this, 'render_default_guidelines_link_label_field' ),
                 'portal-default-settings',
                 'pb_anonymizer_defaults_section'
             );
@@ -515,6 +531,18 @@ if (! class_exists('Portal_Settings')) {
         public function render_default_guidelines_url_field() {
             $value = (string) get_option( 'pb_default_guidelines_url', '' );
             echo '<input type="url" name="pb_default_guidelines_url" class="regular-text" value="' . esc_attr( $value ) . '" placeholder="https://" />';
+        }
+
+        /**
+         * @return void
+         */
+        public function render_default_guidelines_link_label_field() {
+            $value   = (string) get_option( 'pb_default_guidelines_link_label', '' );
+            $builtin = class_exists( 'Portal_Site_Defaults' )
+                ? Portal_Site_Defaults::BUILTIN_GUIDELINES_LINK_LABEL
+                : 'Link to Guidelines';
+            echo '<input type="text" name="pb_default_guidelines_link_label" class="regular-text" value="' . esc_attr( $value ) . '" placeholder="' . esc_attr( $builtin ) . '" />';
+            echo '<p class="description">' . esc_html__( 'Text of the public guidelines link. Leave blank to use the built-in label. Portals may override.', 'portal-builder' ) . '</p>';
         }
 
         /**
