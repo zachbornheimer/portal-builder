@@ -1,7 +1,7 @@
 # DragonGate Portals — Domain Model Contract
 
 **Status:** accepted (v0.1) — rewrite target, not a description of the shortcode era  
-**Framework:** Svelte 5 + Vite (admin + public UI)  
+**Framework:** Svelte 5 + Vite (admin + public product UI) — locked; not Alpine/React/Vue  
 **Design tokens:** `docs/design/TOKENS.md`  
 **Companion:** mockups in `docs/design/mockups/`
 
@@ -39,11 +39,13 @@ A Portal is the single aggregate. Stable id = WordPress post ID while we stay on
 
 | Field | Type | Notes |
 |-------|------|--------|
-| `anonymize` | bool | Strip identity from judge-facing exports when true |
+| `anonymize` | bool \| null | Strip identity from judge-facing exports when true. `null`/missing **inherits** the site default (then off). `true`/`false` override. |
+| `anonymizeEndpoint` | url? | Optional API that receives each file and returns the anonymized bytes. Empty/`null` inherits site, then All Intersections (`https://api.allintersections.com`). A failed call **fail-opens** — keep the original file. Custom hosts must implement the same two POSTs; see `ANONYMIZER.md`. Local exiftool/qpdf/lame stripping still runs when anonymize is on. |
+| `anonymizeApiKey` | string? | Secret for the anonymize endpoint. Empty persists as null and inherits the site key. **Never** rendered on the public form or sent to the public-page client. |
 | `skipHeader` | bool | Sheet write behavior |
-| `guidelinesUrl` | url? | Linked from title/header |
+| `guidelinesUrl` | url? | Linked from title/header. Empty/`null` inherits the site default. |
 | `applicantNotificationDate` | date? | Copy on success message |
-| `freeForMembers` | bool | Fee waiver rule (Woo/membership integration optional) |
+| `freeForMembers` | bool \| null | Fee waiver rule. `null`/missing inherits the site default; `true`/`false` override. |
 
 ### PublishConfig
 
@@ -52,8 +54,10 @@ A Portal is the single aggregate. Stable id = WordPress post ID while we stay on
 | `deadline` | datetime? | Portal tz; null = no deadline |
 | `timezone` | IANA string | e.g. `America/New_York` (not a raw offset index long-term) |
 | `applicationFee` | money? | Minor units + currency later; number today |
-| `isOpen` | bool | Derived: published ∧ (no deadline ∨ now ≤ deadline) ∧ not force-closed |
-| `forceClosed` | bool | Admin override |
+| `launchAt` | datetime? | When applicants may start. Missing/null on old defs = no launch gate. A blank wizard field writes today 00:00 in the portal timezone on save. |
+| `enabled` | bool | Accepting submissions. Default true. Dual-written with `forceClosed` (`forceClosed = !enabled`). |
+| `isOpen` | bool | Derived: published ∧ ¬forceClosed ∧ (`enabled` is not false) ∧ (no `launchAt` ∨ now ≥ `launchAt`) ∧ (no deadline ∨ now ≤ deadline) |
+| `forceClosed` | bool | Stored dual-write of `!enabled`. Kept so older readers still close. |
 
 **Preview rule:** Authenticated users with `edit_post` on the portal MAY open a **preview** that renders the form even when `isOpen` is false (deadline passed / draft). Preview MUST NOT create production submissions unless explicitly labeled “test submit” (v1: preview is view-only of form UI, or submits to a test flag — decide at implement; default **view-only + client validation only** for v1).
 
@@ -140,6 +144,7 @@ Fields are a **ordered list**. No shortcodes. Nested structure uses group / bran
 |-------|------|--------|
 | `id` | string | Local id |
 | `name` | string | Admin label |
+| `role` | `housekeeping` \| `adjudicator` | Required on new sheet targets. **housekeeping** = internal identity/fees; **adjudicator** = judge-facing (may omit identity when anonymize is on). Old single-sheet defs without `role` keep their id. |
 | `spreadsheetId` | string | Google spreadsheet id |
 | `columns` | `ColumnMap[]` | |
 
@@ -291,7 +296,7 @@ Atomic save: one `update_post_meta` for definition JSON with proper JSON sanitiz
 | Decision | Choice | Why |
 |----------|--------|-----|
 | Authoring | Structured fields, not shortcodes | Maintainability + wizard + a11y |
-| UI stack | Svelte 5 everywhere for product UI | Already chosen; one language |
+| UI stack | **Svelte 5 + Vite** for all product UI (admin wizard, field builders, any interactive public chrome) | Complex UI (form builder, mapping, gate state) needs components and compile-time guarantees. Vite build is intentional. **Rejected (2026-07 design session, confirmed 2026-08):** Alpine.js was floated for “zero build / WP sprinkle” maintainability — inferior for structured builder/canvas; Svelte is the better fit. React/Vue add stack cost with no gain. Do not re-open without a product reason. |
 | Legacy | Import then delete path | User not locked to shortcodes |
 | Preview | Capability-based, ignores closed for editors | Design without fighting deadlines |
 | Mapping | Keep Google Sheets/Drive as backends | Core value of the product |

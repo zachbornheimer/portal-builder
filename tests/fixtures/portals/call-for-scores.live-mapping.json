@@ -1,0 +1,28 @@
+{
+  "sheets": [
+    {
+      "id": "sheet_housekeeping",
+      "name": "Housekeeping",
+      "role": "housekeeping",
+      "spreadsheetId": ""
+    }
+  ],
+  "drive": [
+    {
+      "id": "drive_submissions",
+      "name": "Submissions",
+      "folderId": ""
+    }
+  ],
+  "fieldDest": {
+    "applicant": "sheet:Housekeeping:Applicant Name",
+    "category": "sheet:Housekeeping:Application Category",
+    "large_title": "sheet:Housekeeping:Title",
+    "large_score": "drive:Submissions|sheet:Housekeeping:Score Link",
+    "large_rec": "drive:Submissions|sheet:Housekeeping:Rec Link",
+    "bio": "drive:Submissions",
+    "poster_description": "drive:Submissions",
+    "files": "sheet:Housekeeping:Files",
+    "applicationId": "sheet:Housekeeping:Application ID"
+  }
+}
