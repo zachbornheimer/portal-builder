@@ -55,6 +55,7 @@ require_once $repo_root . '/includes/Submission/class-portal-drive-store.php';
 require_once $repo_root . '/includes/Submission/class-portal-mailer.php';
 require_once $repo_root . '/includes/Submission/class-portal-submission-field-rules.php';
 require_once $repo_root . '/includes/Submission/class-portal-submission-validator.php';
+require_once $repo_root . '/includes/Submission/class-portal-submission-selections.php';
 require_once $repo_root . '/includes/Submission/class-portal-submission-pipeline.php';
 
 $def_path  = $argv[1] ?? '';

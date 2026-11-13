@@ -233,17 +233,22 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 		/** @var Portal_Files */
 		private $files;
 
+		/** @var object|null Transport with send(array $request); tests inject a fake. */
+		private $transport;
+
 		/**
-		 * @param Portal_Sheet_Store $sheets Sheet store.
-		 * @param Portal_Drive_Store $drive  Drive store.
-		 * @param Portal_Mailer      $mailer Mailer.
-		 * @param Portal_Files|null  $files  Filesystem for reading upload paths.
+		 * @param Portal_Sheet_Store $sheets    Sheet store.
+		 * @param Portal_Drive_Store $drive     Drive store.
+		 * @param Portal_Mailer      $mailer    Mailer.
+		 * @param Portal_Files|null  $files     Filesystem for reading upload paths.
+		 * @param object|null        $transport Optional anonymize transport.
 		 */
-		public function __construct( Portal_Sheet_Store $sheets, Portal_Drive_Store $drive, Portal_Mailer $mailer, $files = null ) {
-			$this->sheets = $sheets;
-			$this->drive  = $drive;
-			$this->mailer = $mailer;
-			$this->files  = $files instanceof Portal_Files ? $files : new Portal_Files();
+		public function __construct( Portal_Sheet_Store $sheets, Portal_Drive_Store $drive, Portal_Mailer $mailer, $files = null, $transport = null ) {
+			$this->sheets    = $sheets;
+			$this->drive     = $drive;
+			$this->mailer    = $mailer;
+			$this->files     = $files instanceof Portal_Files ? $files : new Portal_Files();
+			$this->transport = $transport;
 		}
 
 		/**
@@ -254,12 +259,12 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 		 * @param callable|null     $now_ms       Injectable clock for mail names.
 		 * @return self
 		 */
-		public static function for_artifacts( $artifact_dir, $files = null, $now_ms = null ) {
+		public static function for_artifacts( $artifact_dir, $files = null, $now_ms = null, $transport = null ) {
 			$files  = $files instanceof Portal_Files ? $files : new Portal_Files();
 			$sheets = new Portal_Sheet_Store( $artifact_dir, $files );
 			$drive  = new Portal_Drive_Store( $artifact_dir, $files );
 			$mailer = new Portal_Mailer( $artifact_dir, $files, $now_ms );
-			return new self( $sheets, $drive, $mailer, $files );
+			return new self( $sheets, $drive, $mailer, $files, $transport );
 		}
 
 		/**
@@ -285,6 +290,21 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 			$definition = Portal_Definition::load_for_post( $post_id );
 			if ( null === $definition ) {
 				return new WP_Error( 'dg_submission_no_definition', 'Portal has no valid definition.' );
+			}
+			if ( class_exists( 'Portal_Access' ) ) {
+				$access    = isset( $definition['access'] ) && is_array( $definition['access'] )
+					? $definition['access']
+					: array();
+				$options   = isset( $definition['options'] ) && is_array( $definition['options'] )
+					? $definition['options']
+					: array();
+				$decision  = Portal_Access::decide( $access, $options, Portal_Access::current_applicant() );
+				if ( empty( $decision['allowed'] ) ) {
+					return new WP_Error(
+						'dg_submission_forbidden',
+						Portal_Access::message_for( $access, isset( $decision['reason'] ) ? $decision['reason'] : 'profile' )
+					);
+				}
 			}
 			if ( ! Portal_Test_Mode::is_enabled() ) {
 				return new WP_Error(
@@ -325,6 +345,7 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 						sprintf( 'Could not read upload for field "%s".', $field_id )
 					);
 				}
+				$buffer                     = $this->anonymize_judge_bytes( $definition, $buffer, $filename, $meta );
 				$path                       = $this->drive->store_file( $portal_id, $field_id, $buffer, $filename );
 				$drive_paths[ $field_id ]   = $path;
 				$file_meta[ $field_id ]     = array(
@@ -417,11 +438,36 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 				$row[ $field_id . '_link' ] = $path;
 			}
 
+			foreach ( Portal_Submission_Selections::columns( $definition, $validated['values'] ) as $key => $val ) {
+				$row[ $key ] = $val;
+			}
+
 			if ( isset( $definition['title'] ) ) {
 				$row['portalTitle'] = (string) $definition['title'];
 			}
 
 			return $row;
+		}
+
+		/**
+		 * Strip identity from judge-facing bytes. Fail-open to $buffer.
+		 *
+		 * @param array  $definition Definition document.
+		 * @param string $buffer     Original upload bytes.
+		 * @param string $filename   Original filename.
+		 * @param array  $meta       File meta.
+		 * @return string
+		 */
+		private function anonymize_judge_bytes( array $definition, $buffer, $filename, array $meta ) {
+			if ( ! class_exists( 'Portal_Anonymizer' ) ) {
+				return $buffer;
+			}
+			$options = isset( $definition['options'] ) && is_array( $definition['options'] )
+				? $definition['options']
+				: array();
+			$type    = isset( $meta['type'] ) ? (string) $meta['type'] : null;
+			$owner   = new Portal_Anonymizer( $options, $this->transport );
+			return $owner->maybe_anonymize( $buffer, $filename, $type );
 		}
 
 		/**

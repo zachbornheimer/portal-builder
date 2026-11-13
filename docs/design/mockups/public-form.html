@@ -1,0 +1,978 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DragonGate Portals — Public application form</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --ink: #12140F;
+      --ink-800: #1C1F17;
+      --ink-600: #454A3C;
+      --ink-400: #6E7460;
+      --paper: #F7F4EC;
+      --paper-50: #FCFBF6;
+      --paper-100: #EFEBDD;
+      --ember: #B8501F;
+      --ember-600: #963F16;
+      --ember-100: #F4E2D4;
+      --ember-flow: linear-gradient(115deg, #C96A2E 0%, #B8501F 45%, #8B3A1A 100%);
+      --brass: #9C7A3C;
+      --brass-200: #E4D9BE;
+      --success: #3F8A5C;
+      --success-100: #E1EEE4;
+      --error: #B8341F;
+      --error-100: #F4DCD6;
+      --rule: rgba(18, 20, 15, 0.10);
+      --rule-strong: rgba(18, 20, 15, 0.20);
+      --rule-ink: rgba(247, 244, 236, 0.14);
+      --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+      --dur-fast: 120ms;
+      --dur-base: 180ms;
+      --r-1: 3px;
+      --r-2: 6px;
+      --r-3: 10px;
+      --r-pill: 999px;
+      --shadow-card: 0 1px 2px rgba(18, 20, 15, 0.03), 0 6px 16px -10px rgba(18, 20, 15, 0.16);
+      --shadow-shell: 0 1px 1px rgba(18, 20, 15, 0.04), 0 8px 24px -12px rgba(18, 20, 15, 0.18), 0 32px 64px -24px rgba(18, 20, 15, 0.22);
+      --shadow-ember: 0 1px 1px rgba(184, 80, 31, 0.25), 0 6px 16px -6px rgba(184, 80, 31, 0.55);
+      --focus-ring: 0 0 0 2px var(--paper-50), 0 0 0 4px var(--ember);
+      --font-display: "Fraunces", Georgia, serif;
+      --font-ui: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+      --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+      --measure: 64rem;
+      color-scheme: light;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: var(--font-ui);
+      color: var(--ink);
+      -webkit-font-smoothing: antialiased;
+      background-color: var(--paper);
+      background-repeat: no-repeat, repeat;
+      background-image:
+        radial-gradient(42% 36% at 94% 98%, rgba(184, 80, 31, 0.08), rgba(184, 80, 31, 0) 72%),
+        url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPScyMjAnIGhlaWdodD0nMjIwJz48ZmlsdGVyIGlkPSduJz48ZmVUdXJidWxlbmNlIHR5cGU9J2ZyYWN0YWxOb2lzZScgYmFzZUZyZXF1ZW5jeT0nMC45JyBudW1PY3RhdmVzPScyJyBzZWVkPSc0JyBzdGl0Y2hUaWxlcz0nc3RpdGNoJy8+PGZlQ29sb3JNYXRyaXggdHlwZT0nbWF0cml4JyB2YWx1ZXM9JzAgMCAwIDAgMCAgMCAwIDAgMCAwICAwIDAgMCAwIDAgIDAgMCAwIDAuMDUgMCcvPjwvZmlsdGVyPjxyZWN0IHdpZHRoPScxMDAlJyBoZWlnaHQ9JzEwMCUnIGZpbHRlcj0ndXJsKCNuKScvPjwvc3ZnPg==");
+      background-size: auto, 220px 220px;
+    }
+
+    :focus { outline: none; }
+    :focus-visible { box-shadow: var(--focus-ring); }
+
+    .compare-bar {
+      position: sticky; top: 0; z-index: 50;
+      background: var(--ink); color: var(--paper);
+      padding: 14px 24px;
+      display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+      border-bottom: 1px solid var(--rule-ink);
+    }
+    .compare-bar .lockup { display: flex; align-items: center; gap: 10px; margin-right: 8px; }
+    .compare-title { font-family: var(--font-display); font-size: 16px; font-weight: 600; letter-spacing: -0.01em; }
+    .compare-sub { font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.14em; color: rgba(247, 244, 236, 0.5); }
+    .tab-row { display: flex; gap: 6px; margin-left: auto; flex-wrap: wrap; }
+    .tab-btn {
+      font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase;
+      padding: 9px 14px; border-radius: var(--r-pill);
+      border: 1px solid var(--rule-ink); background: transparent;
+      color: rgba(247, 244, 236, 0.65); cursor: pointer;
+      transition: all var(--dur-fast) var(--ease);
+    }
+    .tab-btn:hover { border-color: rgba(247, 244, 236, 0.4); color: var(--paper); }
+    .tab-btn.active {
+      background: var(--ember-flow); border-color: var(--ember); color: var(--paper);
+      box-shadow: 0 4px 14px -4px rgba(184, 80, 31, 0.65);
+    }
+
+    .research-strip { background: var(--ink-800); color: rgba(247, 244, 236, 0.82); border-bottom: 1px solid var(--rule-ink); }
+    .research-strip-inner { max-width: 1240px; margin: 0 auto; padding: 12px 24px; font-size: 12.5px; line-height: 1.6; }
+    .research-strip-inner b { color: var(--paper); }
+
+    .approach-note { background: var(--paper-50); border-bottom: 1px solid var(--rule); padding: 16px 24px; }
+    .approach-note-inner { max-width: 1240px; margin: 0 auto; display: flex; gap: 20px; align-items: baseline; }
+    .approach-tag {
+      font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.12em;
+      color: var(--ember-600); background: var(--ember-100); padding: 4px 8px; border-radius: var(--r-1); flex-shrink: 0;
+    }
+    .approach-desc { font-size: 13.5px; color: var(--ink-600); line-height: 1.55; max-width: 900px; margin: 0; }
+
+    .skip-link {
+      position: absolute; left: 12px; top: -40px; z-index: 60;
+      background: var(--ember); color: var(--paper-50); padding: 8px 12px; border-radius: var(--r-1);
+    }
+    .skip-link:focus { top: 12px; }
+
+    /* Site chrome — the wrapping festival page, deliberately quieter than the packet */
+    .site {
+      max-width: var(--measure);
+      margin: 28px auto 72px;
+      padding: 0 20px;
+    }
+    body[data-view="phone"] .site { max-width: 400px; margin-top: 20px; }
+    .site-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 4px 16px; color: var(--ink-400); font-size: 12.5px;
+    }
+    .site-bar .org { font-family: var(--font-display); font-weight: 600; color: var(--ink-600); font-size: 14px; }
+    .site-bar a { color: var(--ink-400); text-decoration: none; }
+    .site-bar a:hover { color: var(--ember-600); }
+
+    .preview-banner,
+    .closed-panel,
+    .receipt-panel,
+    .live-form { display: none; }
+    body[data-view="preview"] .preview-banner { display: flex; }
+    body[data-view="closed"] .closed-panel { display: block; }
+    body[data-view="receipt"] .receipt-panel { display: block; }
+    body[data-view="open"] .live-form,
+    body[data-view="error"] .live-form,
+    body[data-view="uploading"] .live-form,
+    body[data-view="preview"] .live-form,
+    body[data-view="phone"] .live-form { display: block; }
+
+    .preview-banner {
+      align-items: flex-start; gap: 12px;
+      background: var(--ember-100);
+      border: 1px solid rgba(184, 80, 31, 0.28);
+      color: var(--ink-800);
+      border-radius: var(--r-2);
+      padding: 12px 14px;
+      margin-bottom: 16px;
+      font-size: 13.5px;
+      line-height: 1.45;
+    }
+    .preview-banner strong { display: block; font-size: 14px; margin-bottom: 2px; }
+    .preview-banner span { color: var(--ink-600); }
+
+    /* The packet — one paper sheet */
+    .packet {
+      position: relative;
+      background: var(--paper-50);
+      border: 1px solid rgba(156, 122, 60, 0.38);
+      border-radius: 14px;
+      box-shadow: var(--shadow-shell);
+      padding: 40px 44px 36px;
+      overflow: hidden;
+    }
+    body[data-view="phone"] .packet { padding: 24px 18px 28px; border-radius: 12px; }
+
+    .packet-flourish {
+      position: absolute; right: 18px; bottom: 14px;
+      width: 88px; height: 56px; pointer-events: none; opacity: 0.38;
+      color: var(--brass);
+    }
+
+    .packet-head {
+      display: grid;
+      grid-template-columns: 76px 1fr;
+      gap: 20px;
+      align-items: center;
+    }
+    body[data-view="phone"] .packet-head { grid-template-columns: 56px 1fr; gap: 14px; }
+
+    .seal {
+      width: 76px; height: 76px; color: var(--brass);
+    }
+    body[data-view="phone"] .seal { width: 56px; height: 56px; }
+
+    .eyebrow {
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--ember);
+      margin: 0 0 6px;
+    }
+    .packet-title {
+      font-family: var(--font-display);
+      font-weight: 600;
+      font-size: clamp(28px, 3.4vw, 40px);
+      line-height: 1.08;
+      letter-spacing: -0.02em;
+      margin: 0;
+      color: var(--ink);
+    }
+    body[data-view="phone"] .packet-title { font-size: 26px; }
+
+    .rule-ornament {
+      display: flex; align-items: center; gap: 12px;
+      margin: 22px 0 18px;
+      color: var(--brass);
+    }
+    .rule-ornament::before,
+    .rule-ornament::after {
+      content: ""; flex: 1; height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(156, 122, 60, 0.45), transparent);
+    }
+    .rule-ornament svg { display: block; }
+
+    .meta {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr auto auto;
+      gap: 0 16px;
+      align-items: center;
+      font-size: 13px;
+      color: var(--ink-600);
+      line-height: 1.35;
+    }
+    .meta-item { display: flex; align-items: flex-start; gap: 8px; }
+    .meta-item svg { flex-shrink: 0; margin-top: 2px; color: var(--ink-400); }
+    .meta-item .when { display: block; }
+    .meta-item .tz { display: block; font-size: 12px; color: var(--ink-400); }
+    .meta-split { width: 1px; height: 28px; background: var(--rule-strong); }
+    .meta-link {
+      color: var(--ember-600);
+      font-weight: 500;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+    .meta-link:hover { text-decoration: underline; }
+    body[data-view="phone"] .meta {
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+    body[data-view="phone"] .meta-split { display: none; }
+
+    .lede {
+      margin: 20px 0 0;
+      font-size: 14.5px;
+      line-height: 1.55;
+      color: var(--ink-600);
+    }
+    body[data-view="closed"] .lede,
+    body[data-view="receipt"] .lede { display: none; }
+    .meta-item .when-closed { display: none; }
+    body[data-view="closed"] .meta-item .when-open { display: none; }
+    body[data-view="closed"] .meta-item .when-closed { display: block; }
+
+    .section { margin-top: 32px; }
+    .section-title {
+      display: flex; align-items: center; gap: 14px;
+      font-family: var(--font-display);
+      font-size: 22px;
+      font-weight: 600;
+      margin: 0 0 16px;
+      color: var(--ink);
+    }
+    .section-title::after {
+      content: ""; flex: 1; height: 1px; background: var(--rule);
+    }
+
+    .grid { display: grid; gap: 14px 16px; }
+    .grid-title-name { grid-template-columns: 140px 1fr; }
+    .grid-2 { grid-template-columns: 1fr 1fr; }
+    .grid-3 { grid-template-columns: 1.1fr 1.1fr 1fr; }
+    .grid-zip-phone { grid-template-columns: 220px 1fr; }
+    body[data-view="phone"] .grid-title-name,
+    body[data-view="phone"] .grid-2,
+    body[data-view="phone"] .grid-3,
+    body[data-view="phone"] .grid-zip-phone { grid-template-columns: 1fr; }
+
+    .field { min-width: 0; }
+    .field-head {
+      display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
+      margin-bottom: 6px;
+    }
+    .field-label {
+      font-size: 13.5px; font-weight: 600; color: var(--ink-800);
+    }
+    .req { color: var(--ember); font-weight: 600; }
+    .opt {
+      font-size: 12px; font-weight: 400; color: var(--ink-400);
+    }
+    .caption {
+      display: block; font-size: 12px; color: var(--ink-400); font-weight: 400; margin-top: 1px;
+    }
+    .control,
+    select.control {
+      width: 100%;
+      height: 44px;
+      border: 1px solid var(--rule-strong);
+      border-radius: var(--r-2);
+      padding: 0 12px;
+      font: 400 14.5px/1.4 var(--font-ui);
+      color: var(--ink);
+      background: var(--paper-50);
+      transition: border-color var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease);
+    }
+    select.control {
+      appearance: none;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%236E7460' stroke-width='1.6'><path d='M4 6l4 4 4-4'/></svg>");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      padding-right: 32px;
+    }
+    .control::placeholder { color: #9aa090; }
+    .control:hover { border-color: rgba(18, 20, 15, 0.32); }
+    .field.is-invalid .control {
+      border-color: var(--error);
+      background: #fffaf8;
+    }
+    .error-msg {
+      display: none;
+      margin-top: 6px;
+      font-size: 12.5px;
+      color: var(--error);
+      line-height: 1.4;
+    }
+    body[data-view="error"] .field.is-invalid .error-msg { display: block; }
+
+    /* File enclosure — first-class object, not an OS picker */
+    .file-card {
+      display: grid;
+      grid-template-columns: 210px 1fr;
+      border: 1px dashed rgba(18, 20, 15, 0.22);
+      border-radius: var(--r-2);
+      min-height: 72px;
+      background: var(--paper-50);
+    }
+    body[data-view="phone"] .file-card { grid-template-columns: 1fr; }
+    .file-spec {
+      padding: 14px 16px;
+      border-right: 1px solid var(--rule);
+    }
+    body[data-view="phone"] .file-spec { border-right: 0; border-bottom: 1px solid var(--rule); }
+    .file-spec .field-label { display: block; margin-bottom: 2px; }
+    .file-hint { font-size: 12px; color: var(--ink-400); white-space: nowrap; }
+    .file-body {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 14px;
+      min-width: 0;
+    }
+    .file-icon {
+      width: 36px; height: 40px; flex-shrink: 0;
+      border: 1px solid var(--rule-strong);
+      border-radius: 3px;
+      background: var(--paper);
+      display: grid; place-items: center;
+      font-family: var(--font-mono);
+      font-size: 8px;
+      letter-spacing: 0.04em;
+      color: var(--ember-600);
+      position: relative;
+    }
+    .file-icon::before {
+      content: "";
+      position: absolute; top: -1px; right: -1px;
+      border-width: 0 10px 10px 0;
+      border-style: solid;
+      border-color: var(--brass-200) var(--paper-50);
+    }
+    .file-meta { flex: 1; min-width: 0; }
+    .file-name {
+      font-size: 13.5px; font-weight: 500; color: var(--ink);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .file-size { font-size: 12px; color: var(--ink-400); margin-top: 2px; }
+    .file-actions { display: flex; align-items: center; gap: 4px; margin-left: auto; }
+    .icon-btn {
+      width: 32px; height: 32px; border: 0; background: transparent;
+      color: var(--ink-400); cursor: pointer; border-radius: var(--r-1);
+      display: grid; place-items: center;
+    }
+    .icon-btn:hover { color: var(--ink); background: var(--paper-100); }
+    .icon-btn.ok { color: var(--success); pointer-events: none; }
+    .drop-prompt { font-size: 13.5px; color: var(--ink-400); }
+    .drop-prompt em { font-style: normal; color: var(--ember-600); font-weight: 500; }
+
+    .file-card.is-empty .file-ready,
+    .file-card.is-ready .file-empty,
+    .file-card.is-uploading .file-empty { display: none; }
+    .file-card.is-empty .file-empty { display: flex; }
+    .file-card.is-ready .file-ready,
+    .file-card.is-uploading .file-ready { display: flex; width: 100%; }
+    .file-card.is-empty { border-style: dashed; }
+    .file-card.is-ready,
+    .file-card.is-uploading { border-style: solid; border-color: var(--rule-strong); }
+    body[data-view="error"] .file-card.is-invalid {
+      border-color: var(--error);
+      background: #fffaf8;
+    }
+    .file-progress {
+      display: none;
+      height: 3px; margin-top: 8px; border-radius: var(--r-pill);
+      background: var(--paper-100); overflow: hidden;
+    }
+    .file-progress > span {
+      display: block; height: 100%; width: 62%;
+      background: var(--ember-flow);
+      animation: load 1.4s var(--ease) infinite;
+    }
+    body[data-view="uploading"] #recording-card.is-uploading .file-progress { display: block; }
+    body[data-view="uploading"] #recording-card .icon-btn.ok { display: none; }
+    @keyframes load {
+      0% { width: 28%; }
+      50% { width: 72%; }
+      100% { width: 62%; }
+    }
+
+    .legal { display: grid; gap: 14px; margin-top: 22px; }
+    .check {
+      display: grid;
+      grid-template-columns: 20px 1fr;
+      gap: 10px;
+      align-items: start;
+      font-size: 14px;
+      line-height: 1.45;
+      color: var(--ink-800);
+    }
+    .check input {
+      appearance: none;
+      width: 18px; height: 18px; margin: 2px 0 0;
+      border: 1.5px solid var(--rule-strong);
+      border-radius: 3px;
+      background: var(--paper-50);
+      display: grid; place-items: center;
+    }
+    .check input:checked {
+      background: var(--ember);
+      border-color: var(--ember);
+    }
+    .check input:checked::after {
+      content: "";
+      width: 10px; height: 6px;
+      border: 2px solid var(--paper-50);
+      border-top: 0; border-right: 0;
+      transform: rotate(-45deg) translate(0, -1px);
+    }
+    .check .fine { display: block; font-size: 12.5px; color: var(--ink-400); font-weight: 400; margin-top: 3px; }
+
+    .actions { display: flex; justify-content: center; margin-top: 28px; }
+    .btn-submit {
+      appearance: none; border: 0; cursor: pointer;
+      min-width: min(100%, 360px);
+      min-height: 48px;
+      padding: 12px 28px;
+      border-radius: var(--r-2);
+      background: var(--ember-flow);
+      color: var(--paper-50);
+      font: 500 16px/1.2 var(--font-ui);
+      box-shadow: var(--shadow-ember);
+      transition: transform var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease), filter var(--dur-fast) var(--ease);
+    }
+    .btn-submit:hover { transform: translateY(-1px); filter: brightness(1.03); }
+    .btn-submit:disabled,
+    body[data-view="uploading"] .btn-submit {
+      cursor: wait;
+      filter: saturate(0.85);
+      transform: none;
+    }
+    .btn-submit .spin {
+      display: none;
+      width: 14px; height: 14px; margin-right: 8px;
+      border: 2px solid rgba(252, 251, 246, 0.35);
+      border-top-color: var(--paper-50);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: -2px;
+    }
+    body[data-view="uploading"] .btn-submit .spin { display: inline-block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .privacy {
+      display: flex; align-items: flex-start; justify-content: center; gap: 8px;
+      margin-top: 18px;
+      font-size: 12.5px; line-height: 1.45; color: var(--ink-400);
+      text-align: center;
+    }
+    .privacy svg { flex-shrink: 0; margin-top: 2px; color: var(--ink-400); }
+
+    /* Closed + receipt */
+    .status-hero { text-align: center; padding: 28px 8px 8px; }
+    .status-mark {
+      width: 56px; height: 56px; margin: 0 auto 16px;
+      border-radius: 50%;
+      display: grid; place-items: center;
+    }
+    .status-mark.closed {
+      border: 2px solid var(--brass);
+      color: var(--brass);
+      background: transparent;
+    }
+    .status-mark.ok {
+      background: var(--success-100);
+      color: var(--success);
+    }
+    .status-hero h2 {
+      font-family: var(--font-display);
+      font-size: 28px; font-weight: 600; margin: 0 0 8px;
+    }
+    .status-hero p { margin: 0; color: var(--ink-600); font-size: 15px; line-height: 1.55; }
+    .receipt-id {
+      font-family: var(--font-mono);
+      font-size: 12px; letter-spacing: 0.04em;
+      color: var(--ink-400);
+      margin-top: 10px;
+    }
+    .receipt-list {
+      margin: 24px auto 0; max-width: 28rem;
+      border: 1px solid var(--rule);
+      border-radius: var(--r-2);
+      overflow: hidden;
+    }
+    .receipt-row {
+      display: grid; grid-template-columns: 120px 1fr;
+      gap: 12px; padding: 12px 16px;
+      border-top: 1px solid var(--rule);
+      font-size: 13.5px;
+    }
+    .receipt-row:first-child { border-top: 0; }
+    .receipt-row dt { color: var(--ink-400); font-weight: 500; }
+    .receipt-row dd { margin: 0; color: var(--ink); }
+    .next-step {
+      margin: 22px auto 8px; max-width: 28rem;
+      background: var(--success-100);
+      border-radius: var(--r-2);
+      padding: 14px 16px;
+      font-size: 14px; color: var(--ink-800); line-height: 1.5;
+    }
+
+    @media (max-width: 640px) {
+      .site { padding: 0 12px; margin-top: 16px; }
+      .packet { padding: 24px 18px 28px; }
+      .packet-head { grid-template-columns: 56px 1fr; gap: 14px; }
+      .seal { width: 56px; height: 56px; }
+      .packet-title { font-size: 26px; }
+      .meta { grid-template-columns: 1fr; gap: 12px; }
+      .meta-split { display: none; }
+      .grid-title-name,
+      .grid-2,
+      .grid-3,
+      .grid-zip-phone { grid-template-columns: 1fr; }
+      .file-card { grid-template-columns: 1fr; }
+      .file-spec { border-right: 0; border-bottom: 1px solid var(--rule); }
+      .file-hint { white-space: normal; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body data-view="open">
+  <a class="skip-link" href="#application">Skip to application</a>
+
+  <div class="compare-bar">
+    <div class="lockup">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+        <circle cx="10" cy="10" r="8.1" stroke="#E7B98A" stroke-width="1.4"/>
+        <path fill="#E7B98A" d="M6.2 6.6h1.55v8.1H6.2zm6.05 0H13.8v8.1h-1.55z"/>
+        <path fill="#E7B98A" d="M10 7.35c.85 1.25 1.55 2.05 1.55 3.35 0 1.25-.7 2.15-1.55 2.15S8.45 11.95 8.45 10.7c0-1.3.7-2.1 1.55-3.35z"/>
+      </svg>
+      <div>
+        <div class="compare-title">DragonGate Portals</div>
+        <div class="compare-sub">Public form · packet direction</div>
+      </div>
+    </div>
+    <div class="tab-row" role="tablist" aria-label="Form states">
+      <button class="tab-btn active" data-view="open" type="button">A · Open</button>
+      <button class="tab-btn" data-view="error" type="button">B · Error</button>
+      <button class="tab-btn" data-view="uploading" type="button">C · Uploading</button>
+      <button class="tab-btn" data-view="preview" type="button">D · Preview</button>
+      <button class="tab-btn" data-view="closed" type="button">E · Closed</button>
+      <button class="tab-btn" data-view="receipt" type="button">F · Receipt</button>
+      <button class="tab-btn" data-view="phone" type="button">360</button>
+    </div>
+  </div>
+
+  <div class="research-strip">
+    <div class="research-strip-inner">
+      <b>Packet.</b>
+      One paper sheet an applicant would be proud to hand a prize committee — not a WordPress settings table, not Acceptd, not Stripe Checkout. Vision from the Grok Design frame: seal + lockup, scored meta, section rules, split file enclosures, legal last, one ember action.
+      <b>Kept:</b> DragonGate gate-seal (not the lyre), locked paper/ink/ember/brass tokens, Fraunces / Inter / Plex Mono.
+      <b>Refused:</b> floral vine, Adobe-red PDF chrome, applicant wizard, checkout, accounts.
+    </div>
+  </div>
+
+  <div class="approach-note">
+    <div class="approach-note-inner">
+      <span class="approach-tag" id="note-tag">A · Open</span>
+      <p class="approach-desc" id="note-desc">Elena’s completed application, ready to send. Waiting for her — one page, one submit.</p>
+    </div>
+  </div>
+
+  <div class="site">
+    <header class="site-bar" aria-label="Festival site">
+      <span class="org">ISJAC · 2026</span>
+      <nav><a href="#">Festival</a> · <a href="#">Donate</a></nav>
+    </header>
+
+    <div class="preview-banner" role="status">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+        <circle cx="9" cy="9" r="7.25" stroke="currentColor" stroke-width="1.4"/>
+        <path d="M9 5.2v5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        <circle cx="9" cy="12.4" r="0.7" fill="currentColor"/>
+      </svg>
+      <div>
+        <strong>Preview — not a live submission.</strong>
+        <span>Staff only. Submitting here will not create an application or charge a fee.</span>
+      </div>
+    </div>
+
+    <article class="packet" id="application">
+      <header class="packet-head">
+        <svg class="seal" viewBox="0 0 80 80" fill="none" aria-hidden="true">
+          <circle cx="40" cy="40" r="37.2" stroke="currentColor" stroke-width="1.15"/>
+          <circle cx="40" cy="40" r="33.4" stroke="currentColor" stroke-width="0.6" opacity="0.45"/>
+          <path d="M26 30.5c0-8.4 6.2-13.6 14-13.6s14 5.2 14 13.6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+          <rect x="25.4" y="28" width="5.2" height="30" rx="0.6" fill="currentColor"/>
+          <rect x="49.4" y="28" width="5.2" height="30" rx="0.6" fill="currentColor"/>
+          <path d="M40 31.2c3.4 5.1 6.1 8.4 6.1 13.1 0 3.9-2.6 6.7-6.1 6.7s-6.1-2.8-6.1-6.7c0-4.7 2.7-8 6.1-13.1Z" fill="currentColor"/>
+        </svg>
+        <div>
+          <p class="eyebrow">Application</p>
+          <h1 class="packet-title">Ernst von Dohnányi<br>Composer Prize</h1>
+        </div>
+      </header>
+
+      <div class="rule-ornament" aria-hidden="true">
+        <svg width="10" height="10" viewBox="0 0 10 10"><path d="M5 0.6 9.2 5 5 9.4 0.8 5Z" fill="currentColor"/></svg>
+      </div>
+
+      <div class="meta">
+        <div class="meta-item">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <rect x="2" y="3.2" width="12" height="10.3" rx="1.4" stroke="currentColor" stroke-width="1.2"/>
+            <path d="M2 6.4h12M5.2 2.2v2.2M10.8 2.2v2.2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+          </svg>
+          <div>
+            <span class="when when-open">Closes 15 September 2026, 11:59 pm</span>
+            <span class="when when-closed">Closed 15 September 2026, 11:59 pm</span>
+            <span class="tz">America/New York</span>
+          </div>
+        </div>
+        <span class="meta-split" aria-hidden="true"></span>
+        <div class="meta-item">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path d="M3.2 4.2h6.4c.9 0 1.4.4 1.8 1.1L14 10.2c.3.6 0 1.3-.7 1.3H6.4c-.8 0-1.3-.4-1.7-1.1L2.5 5.5c-.3-.6 0-1.3.7-1.3Z" stroke="currentColor" stroke-width="1.2"/>
+          </svg>
+          <div>Application fee $25</div>
+        </div>
+        <span class="meta-split" aria-hidden="true"></span>
+        <a class="meta-link" href="https://example.org/dohnanyi-guidelines">Read the call →</a>
+      </div>
+
+      <p class="lede">Submit one original work. PDF score and MP3 recording required. You will receive a receipt by email.</p>
+
+      <div class="closed-panel">
+        <div class="status-hero">
+          <div class="status-mark closed" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+              <rect x="5" y="10" width="12" height="8.5" rx="1.4" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M7.4 10V7.6a3.6 3.6 0 0 1 7.2 0V10" stroke="currentColor" stroke-width="1.5"/>
+            </svg>
+          </div>
+          <h2>The application deadline has passed.</h2>
+          <p>This portal closed 15 September 2026, 11:59 pm America/New York.</p>
+        </div>
+      </div>
+
+      <div class="receipt-panel">
+        <div class="status-hero">
+          <div class="status-mark ok" aria-hidden="true">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <path d="M6 12.4 10.1 16.4 18 8.4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <h2>Application received</h2>
+          <p>We emailed a copy to elena.varga@example.com.</p>
+          <div class="receipt-id">Application ID: DG-2026-08-14-1842</div>
+        </div>
+        <dl class="receipt-list">
+          <div class="receipt-row"><dt>Applicant</dt><dd>Ms. Elena Varga</dd></div>
+          <div class="receipt-row"><dt>Work</dt><dd>Night Train, After Gil</dd></div>
+          <div class="receipt-row"><dt>Score</dt><dd>Varga_NightTrain_SCORE.pdf · 1.8 MB</dd></div>
+          <div class="receipt-row"><dt>Recording</dt><dd>Varga_NightTrain_REC.mp3 · 6.4 MB</dd></div>
+        </dl>
+        <p class="next-step">Decisions by 1 November 2026. You do not need an account — keep the email receipt.</p>
+      </div>
+
+      <form class="live-form" novalidate>
+        <section class="section" aria-labelledby="info-title">
+          <h2 class="section-title" id="info-title">Your information</h2>
+
+          <div class="grid grid-title-name">
+            <div class="field">
+              <div class="field-head"><label class="field-label" for="title">Title <span class="req" aria-hidden="true">*</span></label></div>
+              <select class="control" id="title" name="honorific" autocomplete="honorific-prefix" required>
+                <option value="">Select</option>
+                <option>Mx.</option>
+                <option selected>Ms.</option>
+                <option>Mr.</option>
+                <option>Dr.</option>
+                <option>Prof.</option>
+              </select>
+            </div>
+            <div class="field" id="field-name">
+              <div class="field-head"><label class="field-label" for="name">Name <span class="req" aria-hidden="true">*</span></label></div>
+              <input class="control" id="name" name="name" type="text" autocomplete="name" required placeholder="Full name">
+              <p class="error-msg" id="err-name" role="alert">Enter your name.</p>
+            </div>
+          </div>
+
+          <div class="grid grid-2" style="margin-top:14px;">
+            <div class="field" id="field-email">
+              <div class="field-head"><label class="field-label" for="email">Email address <span class="req" aria-hidden="true">*</span></label></div>
+              <input class="control" id="email" name="email" type="email" autocomplete="email" required placeholder="you@school.edu">
+              <p class="error-msg" id="err-email" role="alert">Enter a valid email so we can send your receipt.</p>
+            </div>
+            <div class="field">
+              <div class="field-head">
+                <label class="field-label" for="affiliation">Institutional affiliation <span class="opt">(optional)</span></label>
+              </div>
+              <input class="control" id="affiliation" name="affiliation" type="text" autocomplete="organization" placeholder="Conservatory or ensemble">
+            </div>
+          </div>
+
+          <div class="field" style="margin-top:14px;">
+            <div class="field-head"><label class="field-label" for="address">Address (home/work) <span class="req" aria-hidden="true">*</span></label></div>
+            <input class="control" id="address" name="address" type="text" autocomplete="street-address" required>
+          </div>
+
+          <div class="grid grid-3" style="margin-top:14px;">
+            <div class="field">
+              <div class="field-head"><label class="field-label" for="city">City <span class="req" aria-hidden="true">*</span></label></div>
+              <input class="control" id="city" name="city" type="text" autocomplete="address-level2" required>
+            </div>
+            <div class="field">
+              <div class="field-head"><label class="field-label" for="country">Country <span class="req" aria-hidden="true">*</span></label></div>
+              <select class="control" id="country" name="country" autocomplete="country-name" required>
+                <option>United States</option>
+                <option>Canada</option>
+                <option>United Kingdom</option>
+                <option>Germany</option>
+                <option>Hungary</option>
+              </select>
+            </div>
+            <div class="field">
+              <div class="field-head"><label class="field-label" for="region">State / region <span class="req" aria-hidden="true">*</span></label></div>
+              <select class="control" id="region" name="region" autocomplete="address-level1" required>
+                <option>New York</option>
+                <option>California</option>
+                <option>Massachusetts</option>
+                <option>Illinois</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid grid-zip-phone" style="margin-top:14px;">
+            <div class="field">
+              <div class="field-head"><label class="field-label" for="postal">Zip / postal code <span class="opt">(optional)</span></label></div>
+              <input class="control" id="postal" name="postal" type="text" autocomplete="postal-code" inputmode="numeric">
+            </div>
+            <div class="field">
+              <div class="field-head"><label class="field-label" for="phone">Phone <span class="req" aria-hidden="true">*</span></label></div>
+              <input class="control" id="phone" name="phone" type="tel" autocomplete="tel" required>
+            </div>
+          </div>
+        </section>
+
+        <section class="section" aria-labelledby="sub-title">
+          <h2 class="section-title" id="sub-title">Submission</h2>
+
+          <div class="field">
+            <div class="field-head"><label class="field-label" for="work">Title of work <span class="req" aria-hidden="true">*</span></label></div>
+            <input class="control" id="work" name="work" type="text" required>
+          </div>
+
+          <div class="file-card is-ready" id="score-card" style="margin-top:14px;">
+            <div class="file-spec">
+              <span class="field-label">Full score <span class="req" aria-hidden="true">*</span></span>
+              <span class="file-hint">PDF only · keep under 32 MB</span>
+            </div>
+            <div class="file-body file-empty">
+              <span class="drop-prompt">Drop a PDF or <em>browse</em></span>
+            </div>
+            <div class="file-body file-ready">
+              <div class="file-icon">PDF</div>
+              <div class="file-meta">
+                <div class="file-name">Varga_NightTrain_SCORE.pdf</div>
+                <div class="file-size">1.8 MB</div>
+              </div>
+              <div class="file-actions">
+                <span class="icon-btn ok" title="Ready" aria-label="Score attached">
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3.4 8.2 6.4 11.1 12.6 4.8" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+                </span>
+                <button class="icon-btn" type="button" aria-label="Remove score">
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 3l8 8M11 3l-8 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+          <p class="error-msg" id="err-score" role="alert">Add a PDF score.</p>
+
+          <div class="file-card is-ready" id="recording-card" style="margin-top:12px;">
+            <div class="file-spec">
+              <span class="field-label">Recording <span class="req" aria-hidden="true">*</span></span>
+              <span class="file-hint">MP3 only · keep under 32 MB</span>
+            </div>
+            <div class="file-body file-empty">
+              <span class="drop-prompt">Drop an MP3 or <em>browse</em></span>
+            </div>
+            <div class="file-body file-ready">
+              <div class="file-icon">MP3</div>
+              <div class="file-meta">
+                <div class="file-name" id="rec-name">Varga_NightTrain_REC.mp3</div>
+                <div class="file-size" id="rec-size">6.4 MB</div>
+                <div class="file-progress" aria-hidden="true"><span></span></div>
+              </div>
+              <div class="file-actions">
+                <span class="icon-btn ok" title="Ready" aria-label="Recording attached">
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3.4 8.2 6.4 11.1 12.6 4.8" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+                </span>
+                <button class="icon-btn" type="button" aria-label="Remove recording">
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 3l8 8M11 3l-8 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <div class="legal">
+          <label class="check">
+            <input type="checkbox" id="certify" name="certify" required checked>
+            <span>I certify that this work is my own and that I have the right to submit it. <span class="req" aria-hidden="true">*</span></span>
+          </label>
+          <label class="check">
+            <input type="checkbox" id="promo" name="promo">
+            <span>
+              I give permission for excerpts of my recording to be used for promotional purposes.
+              <span class="fine">This is optional and will not affect the review of your application.</span>
+            </span>
+          </label>
+        </div>
+
+        <div class="actions">
+          <button class="btn-submit" id="submit" type="submit">
+            <span class="spin" aria-hidden="true"></span>
+            <span id="submit-label">Submit application</span>
+          </button>
+        </div>
+
+        <p class="privacy">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+            <rect x="3" y="6.2" width="8" height="6" rx="1.1" stroke="currentColor" stroke-width="1.2"/>
+            <path d="M4.6 6.2V4.5a2.4 2.4 0 0 1 4.8 0v1.7" stroke="currentColor" stroke-width="1.2"/>
+          </svg>
+          <span>Your information is kept private and used only for this application.<br>We do not share your data with third parties.</span>
+        </p>
+      </form>
+
+      <svg class="packet-flourish" viewBox="0 0 88 56" fill="none" aria-hidden="true">
+        <path d="M86 52C74 50 68 40 66 30c10 2 16-4 18-12-10 2-16-6-14-16-8 10-22 8-28-2 4 12-2 22-14 24" stroke="currentColor" stroke-width="1.05" stroke-linecap="round"/>
+        <path d="M66 34c-10 6-22 4-28-4M54 46c-8 2-16-2-20-10" stroke="currentColor" stroke-width="1.05" stroke-linecap="round"/>
+        <path d="M72 22c-2-6 2-10 8-12" stroke="currentColor" stroke-width="1.05" stroke-linecap="round"/>
+      </svg>
+    </article>
+  </div>
+
+  <script>
+    const notes = {
+      open: ["A · Open", "Elena’s completed application, ready to send. Waiting for her — one page, one submit."],
+      error: ["B · Error", "Failed submit. Errors sit on the field, in human language. No 401, no “required field.”"],
+      uploading: ["C · Uploading", "Recording is in flight. The button changes immediately so she knows the system is working."],
+      preview: ["D · Preview", "Staff-only. Same packet, honest banner. Submitting must not create a row."],
+      closed: ["E · Closed", "Deadline passed. Title remains. One sentence why. No fields — do not disable a full form."],
+      receipt: ["F · Receipt", "Done. Application ID, what she sent, the email, the decision date. No account required."],
+      phone: ["360", "Same open packet at 360px. Address grid stacks. File enclosures stack. Hit targets stay 44px."]
+    };
+
+    const elena = {
+      title: "Ms.",
+      name: "Elena Varga",
+      email: "elena.varga@example.com",
+      affiliation: "Manhattan School of Music",
+      address: "123 Clinton Street, Apt 4B",
+      city: "Brooklyn",
+      country: "United States",
+      region: "New York",
+      postal: "11201",
+      phone: "(917) 555-0142",
+      work: "Night Train, After Gil"
+    };
+
+    const $ = (id) => document.getElementById(id);
+
+    function fillElena() {
+      $("title").value = elena.title;
+      $("name").value = elena.name;
+      $("email").value = elena.email;
+      $("affiliation").value = elena.affiliation;
+      $("address").value = elena.address;
+      $("city").value = elena.city;
+      $("country").value = elena.country;
+      $("region").value = elena.region;
+      $("postal").value = elena.postal;
+      $("phone").value = elena.phone;
+      $("work").value = elena.work;
+      $("certify").checked = true;
+      $("promo").checked = false;
+    }
+
+    function setView(view) {
+      document.body.dataset.view = view;
+      document.querySelectorAll(".tab-btn").forEach((btn) => {
+        btn.classList.toggle("active", btn.dataset.view === view);
+      });
+      $("note-tag").textContent = notes[view][0];
+      $("note-desc").textContent = notes[view][1];
+
+      fillElena();
+      $("field-name").classList.remove("is-invalid");
+      $("field-email").classList.remove("is-invalid");
+      $("name").removeAttribute("aria-invalid");
+      $("email").removeAttribute("aria-invalid");
+      $("score-card").className = "file-card is-ready";
+      $("recording-card").className = "file-card is-ready";
+      $("rec-name").textContent = "Varga_NightTrain_REC.mp3";
+      $("rec-size").textContent = "6.4 MB";
+      $("submit").disabled = false;
+      $("submit-label").textContent = "Submit application";
+      $("err-score").style.display = "none";
+
+      if (view === "error") {
+        $("name").value = "";
+        $("email").value = "elena@";
+        $("field-name").classList.add("is-invalid");
+        $("field-email").classList.add("is-invalid");
+        $("name").setAttribute("aria-invalid", "true");
+        $("name").setAttribute("aria-describedby", "err-name");
+        $("email").setAttribute("aria-invalid", "true");
+        $("email").setAttribute("aria-describedby", "err-email");
+        $("score-card").className = "file-card is-empty is-invalid";
+        $("err-score").style.display = "block";
+      }
+
+      if (view === "uploading") {
+        $("recording-card").className = "file-card is-uploading";
+        $("rec-size").textContent = "Uploading · 62%";
+        $("submit").disabled = true;
+        $("submit-label").textContent = "Uploading recording…";
+      }
+    }
+
+    document.querySelectorAll(".tab-btn").forEach((btn) => {
+      btn.addEventListener("click", () => setView(btn.dataset.view));
+    });
+
+    $("submit").addEventListener("click", (event) => {
+      event.preventDefault();
+      const view = document.body.dataset.view;
+      if (view === "uploading") return;
+      if (view === "error") return;
+      if (view === "preview") return;
+      setView("receipt");
+    });
+
+    fillElena();
+  </script>
+</body>
+</html>
