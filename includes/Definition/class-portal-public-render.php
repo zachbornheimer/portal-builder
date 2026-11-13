@@ -765,9 +765,27 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 				add_action( 'wp_head', array( __CLASS__, 'print_host_brand_style' ), 40 );
 			}
 			wp_enqueue_script(
+				'dg-file-preview',
+				plugins_url( 'assets/file-preview.js', $plugin_file ),
+				array(),
+				self::asset_version( $plugin_dir . '/assets/file-preview.js' ),
+				true
+			);
+			add_filter(
+				'script_loader_tag',
+				static function ( $tag, $handle ) {
+					if ( 'dg-file-preview' === $handle && false === strpos( $tag, 'type=' ) ) {
+						return str_replace( '<script ', '<script type="module" ', $tag );
+					}
+					return $tag;
+				},
+				10,
+				2
+			);
+			wp_enqueue_script(
 				'dg-definition-form',
 				plugins_url( 'assets/definition-form.js', $plugin_file ),
-				array(),
+				array( 'dg-file-preview' ),
 				self::asset_version( $plugin_dir . '/assets/definition-form.js' ),
 				true
 			);
