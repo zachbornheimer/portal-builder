@@ -55,7 +55,7 @@ function dg_application_agreements_shortcode() {
 			}
 			?>
 			<p class="row">
-				<input required id="sub_agreement_<?php echo esc_attr( (string) $index ); ?>" name="sub_agreement_<?php echo esc_attr( (string) $index ); ?>" type="checkbox" 
+				<input required id="sub_agreement_<?php echo esc_attr( (string) $index ); ?>" name="sub_agreement_<?php echo esc_attr( (string) $index ); ?>" type="checkbox"
 				<?php
 				if ( $checked ) :
 					?>
