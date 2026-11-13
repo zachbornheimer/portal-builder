@@ -81,6 +81,7 @@ require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-spa
 require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-packet-policy.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-packet-store.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-portal-console-rest.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/class-portal-release-notes.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-portal-update.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-portal-definition-rest.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-portal-staged-file-rest.php';
