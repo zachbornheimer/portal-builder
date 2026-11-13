@@ -64,6 +64,8 @@ Thumbs.db
 !.phpcs.xml
 !phpcs.xml
 !Makefile
+!/mise.toml
+!/lefthook.yml
 
 # DragonGate e2e harness
 tests/.artifacts/

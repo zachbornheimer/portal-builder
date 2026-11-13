@@ -1,0 +1,113 @@
+# mise is the only task entrypoint. Makefile is legacy.
+#
+# aube 1.41.x is not published; 1.40.0 is the current 1.4x line.
+# PHP + Composer stay on the host (brew). Do not pin PHP here.
+
+[tools]
+node = "22"
+aube = "1.40.0"
+lefthook = "2.1.9"
+
+[env]
+PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD = "1"
+
+[tasks.setup]
+description = "Install PHP + Node deps, enable git hooks, smoke-check"
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+if ! command -v php >/dev/null 2>&1; then
+  echo "setup: php is required on PATH (brew install php)" >&2
+  exit 1
+fi
+if ! command -v composer >/dev/null 2>&1; then
+  echo "setup: composer is required on PATH (brew install composer)" >&2
+  exit 1
+fi
+aube install
+composer install
+lefthook install
+node --version
+php -v
+test -f vendor/autoload.php
+echo "setup: ok"
+"""
+
+[tasks.build]
+description = "Vite build + production Composer + plugin zip"
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+aubr build
+composer install --no-dev --optimize-autoloader
+bash scripts/make-release-zip.sh
+"""
+
+[tasks.lint]
+description = "PHPCS when vendor has it; otherwise PHP syntax check"
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+if [[ -x vendor/bin/phpcs ]]; then
+  composer exec -- phpcs
+  exit 0
+fi
+php -l portal-builder.php
+while IFS= read -r -d '' file; do
+  php -l "${file}"
+done < <(find includes -name '*.php' -print0)
+"""
+
+[tasks.test]
+description = "Unit tests only (no LocalWP / e2e)"
+run = "aubr test:unit"
+
+[tasks.scan]
+description = "Secrets scan when gitleaks is installed"
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+if command -v gitleaks >/dev/null 2>&1; then
+  gitleaks detect --no-git --source .
+  exit 0
+fi
+echo "scan: gitleaks not installed; skip"
+"""
+
+[tasks.doctor]
+description = "Assert the standard task contract and release scripts exist"
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+required_tasks=(setup build lint test scan doctor ci cut-release)
+required_files=(
+  mise.toml
+  composer.json
+  package.json
+  lefthook.yml
+  scripts/cut-release.sh
+  scripts/make-release-zip.sh
+)
+task_list="$(mise tasks --local)"
+for task in "${required_tasks[@]}"; do
+  if ! grep -Eq "^${task}[[:space:]]" <<<"${task_list}"; then
+    echo "doctor: missing task: ${task}" >&2
+    exit 1
+  fi
+done
+for file in "${required_files[@]}"; do
+  if [[ ! -f "${file}" ]]; then
+    echo "doctor: missing file: ${file}" >&2
+    exit 1
+  fi
+done
+echo "doctor: ok"
+"""
+
+[tasks.ci]
+description = "lint + test + scan"
+depends = ["lint", "test", "scan"]
+
+[tasks.cut-release]
+description = "Bump plugin semver, gate, write dist/portal-builder-<ver>.zip"
+run = "bash scripts/cut-release.sh"

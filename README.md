@@ -74,46 +74,25 @@ Rolling / prerelease tags are ignored. Manual ZIP replace still works:
 
 Contributor path only. Strangers installing from a ZIP should follow [First hour](#first-hour-zip-install-to-a-first-test-submit).
 
+`mise` is the task entrypoint. The Makefile is legacy.
+
 ### Requirements
 
 - **PHP 8.0 or higher**
 - **Composer**
-- **Node.js** (optional, for asset building)
+- **mise** (Node 22, aube, and Lefthook come from `mise.toml`)
 
-### Build Process
+### Commands
 
-1. **Clone the Repository:**
+```sh
+git clone --recurse-submodules https://github.com/zachbornheimer/portal-builder.git
+cd portal-builder
+mise run setup
+mise run test
+mise run cut-release
+```
 
-   ```sh
-   git clone --recurse-submodules https://github.com/zachbornheimer/portal-builder.git
-   cd portal-builder
-   ```
-
-2. **Install Dependencies:**
-
-   - For production:
-     ```sh
-     make install-prod
-     ```
-   - For development:
-     ```sh
-     make install-dev
-     ```
-
-3. **Build the Plugin:**
-   - To create a ZIP file for distribution:
-     ```sh
-     make release
-     ```
-
-### Makefile Commands
-
-- **`make clean`**: Clean the build and dist directories.
-- **`make build`**: Build the plugin and create a ZIP file.
-- **`make release`**: Install production dependencies and build the plugin.
-- **`make install-dev`**: Install development dependencies.
-- **`make install-prod`**: Install production dependencies.
-- **`make update-submodules`**: Update all git submodules.
+`mise run setup` installs PHP and Node dependencies and enables git hooks. `mise run test` is unit tests only (no LocalWP / e2e). `mise run cut-release` bumps the plugin semver, runs the gate, and writes `dist/portal-builder-<ver>.zip`.
 
 ## Contributing
 

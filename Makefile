@@ -1,3 +1,4 @@
+# Use mise run …; Makefile is legacy.
 # Plugin name
 PLUGIN_NAME := portal-builder
 
