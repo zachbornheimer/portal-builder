@@ -80,6 +80,7 @@ test('HMAC mismatch does not render stored identity', () => {
 	assert.doesNotMatch(html, /Alice Secret/);
 	assert.doesNotMatch(html, /alice\.secret@example\.com/i);
 	assert.match(html, /invalid|not found|expired/i);
+	assertPacketUsesOfficialSeal(html);
 });
 
 test('matching HMAC renders stored applicant name', () => {
@@ -95,7 +96,22 @@ test('matching HMAC renders stored applicant name', () => {
 	assert.match(html, /Alice Secret/);
 	assert.match(html, /alice\.secret@example\.com/i);
 	assert.match(html, /dg_hmac_ok/);
+	assertPacketUsesOfficialSeal(html);
 });
+
+/**
+ * Receipt HTML is the existing public-renderer path. Seal must be the
+ * official mark; the privacy sentence must not leak onto this view.
+ *
+ * @param {string} html
+ */
+function assertPacketUsesOfficialSeal(html) {
+	assert.match(html, /<img class="dg-seal"[^>]*src="[^"]*icon\.svg/);
+	assert.doesNotMatch(
+		html,
+		/We do not sell your data|host.?s Google Drive|dg-privacy/,
+	);
+}
 
 test('mailer interpolates {{$receiptLink}} and {{receipt_url}} aliases', () => {
 	const templateFile = writeJson('template.json', {

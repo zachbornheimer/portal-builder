@@ -67,7 +67,8 @@ body.single-portal form.dg-portal-submit-form fieldset {
 .dg-seal {
 	width: 56px;
 	height: 56px;
-	color: var(--brass);
+	display: block;
+	object-fit: contain;
 }
 
 .dg-public-eyebrow {
@@ -845,24 +846,6 @@ body.single-portal form.dg-portal-submit-form fieldset {
 .dg-public-submit:focus {
 	outline: none;
 	box-shadow: var(--focus-ring), var(--shadow-ember);
-}
-
-.dg-privacy {
-	display: flex;
-	align-items: flex-start;
-	justify-content: center;
-	gap: var(--s-2);
-	margin-top: var(--s-4);
-	font-size: var(--t-small);
-	line-height: var(--lh-snug);
-	color: var(--ink-400);
-	text-align: center;
-}
-
-.dg-privacy-lock {
-	flex-shrink: 0;
-	margin-top: 2px;
-	color: var(--ink-400);
 }
 
 body.single-portal .cs-replacer,

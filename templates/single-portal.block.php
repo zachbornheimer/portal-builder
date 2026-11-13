@@ -42,7 +42,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 				the_content();
 				if ( $show_actions ) {
 					echo Portal_Public_Render::render_submit_control();
-					echo Portal_Public_Render::render_privacy_line();
 				}
 				echo '</article>';
 				if ( $show_actions ) {
