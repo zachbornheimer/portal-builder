@@ -17,7 +17,7 @@ TMP="$(mktemp -d "${TMPDIR:-/tmp}/dg-release.XXXXXX")"
 cleanup() { rm -rf "${TMP}"; }
 trap cleanup EXIT
 
-PREFIX="portal-builder"
+PREFIX="dragongate-portals"
 git archive --format=tar --prefix="${PREFIX}/" HEAD | tar -C "${TMP}" -xf -
 
 git submodule foreach --quiet --recursive '

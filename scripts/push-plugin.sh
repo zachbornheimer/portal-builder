@@ -5,8 +5,8 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 REMOTE="${DG_PUSH_REMOTE:-isjac@isjac.ssh.wpengine.net}"
-# Live dest folder is still named portal-builder-0.0.4a; do not retarget on a version bump.
-DEST="${DG_PUSH_DEST:-/sites/isjac/wp-content/plugins/portal-builder-0.0.4a/}"
+# Canonical install folder. Legacy portal-builder / portal-builder-0.0.4a self-relocate on load.
+DEST="${DG_PUSH_DEST:-/sites/isjac/wp-content/plugins/dragongate-portals/}"
 
 # Public form loads assets/tokens.css. Keep it identical to the token source.
 cp "${ROOT}/src/tokens.css" "${ROOT}/assets/tokens.css"

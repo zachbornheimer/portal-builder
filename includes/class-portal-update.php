@@ -16,6 +16,7 @@ if ( ! class_exists( 'Portal_Update' ) ) {
 		const UPDATE_URI   = 'https://github.com/zachbornheimer/portal-builder';
 		const HOMEPAGE     = 'https://dragongateportals.com';
 		const ZIP_PREFIX   = 'portal-builder-';
+		const FOLDER       = 'dragongate-portals';
 		const SLUG         = 'dragongate-portals';
 		const NAME         = 'DragonGate Portals';
 		const AUTHOR       = 'Z. Bornheimer (ZYSYS)';
@@ -24,6 +25,14 @@ if ( ! class_exists( 'Portal_Update' ) ) {
 		const REQUIRES_PHP = '8.0';
 		const TESTED_FALLBACK = '6.8';
 		const DESCRIPTION  = 'A plugin to build portals for accepting applications and managing submissions with Google Sheets and Google Drive integration.';
+		const MAIN_FILE    = 'portal-builder.php';
+
+		/**
+		 * Prior install folder names that self-relocate to FOLDER on load.
+		 *
+		 * @var array<int,string>
+		 */
+		const LEGACY_FOLDERS = array( 'portal-builder', 'portal-builder-0.0.4a' );
 
 		/**
 		 * @return void
@@ -33,6 +42,8 @@ if ( ! class_exists( 'Portal_Update' ) ) {
 			add_filter( 'plugins_api', array( __CLASS__, 'info' ), 10, 3 );
 			add_filter( 'upgrader_source_selection', array( __CLASS__, 'keep_folder' ), 10, 4 );
 			add_filter( 'all_plugins', array( __CLASS__, 'plugin_icons' ) );
+			add_action( 'init', array( __CLASS__, 'maybe_relocate_legacy_folder' ), 1 );
+			add_action( 'admin_init', array( __CLASS__, 'maybe_relocate_legacy_folder' ), 1 );
 		}
 
 		/**
@@ -160,7 +171,7 @@ if ( ! class_exists( 'Portal_Update' ) ) {
 		}
 
 		/**
-		 * Keep the live folder name (portal-builder-0.0.4a) when the ZIP unpacks as portal-builder/.
+		 * Keep the live install folder when the ZIP unpacks under a different name.
 		 *
 		 * @param string $source      Unpacked path (trailing slash).
 		 * @param string $wanted_name Existing plugin directory basename.
@@ -185,6 +196,99 @@ if ( ! class_exists( 'Portal_Update' ) ) {
 				return $source . '/';
 			}
 			return $dest . '/';
+		}
+
+		/**
+		 * Pure: rename a legacy install folder to FOLDER and rewrite active_plugins.
+		 *
+		 * No-ops when current is already FOLDER, not a known legacy name, or dest exists.
+		 *
+		 * @param string        $plugins_dir    Absolute plugins directory.
+		 * @param string        $current_folder Install folder basename.
+		 * @param array<int,mixed> $active      active_plugins option value.
+		 * @return array{ok:bool,active:array<int,mixed>,folder:string}
+		 */
+		public static function relocate_legacy_folder( $plugins_dir, $current_folder, array $active ) {
+			$plugins_dir = rtrim( (string) $plugins_dir, '/\\' );
+			$current     = (string) $current_folder;
+			$result      = array(
+				'ok'     => false,
+				'active' => $active,
+				'folder' => $current,
+			);
+
+			if ( '' === $plugins_dir || self::FOLDER === $current ) {
+				return $result;
+			}
+			if ( ! in_array( $current, self::LEGACY_FOLDERS, true ) ) {
+				return $result;
+			}
+
+			$dest = $plugins_dir . DIRECTORY_SEPARATOR . self::FOLDER;
+			if ( is_dir( $dest ) ) {
+				return $result;
+			}
+
+			$src = $plugins_dir . DIRECTORY_SEPARATOR . $current;
+			if ( ! is_dir( $src ) ) {
+				return $result;
+			}
+			if ( ! @rename( $src, $dest ) ) {
+				return $result;
+			}
+
+			$from = $current . '/' . self::MAIN_FILE;
+			$to   = self::FOLDER . '/' . self::MAIN_FILE;
+			$next = array();
+			foreach ( $active as $entry ) {
+				if ( is_string( $entry ) && $entry === $from ) {
+					$next[] = $to;
+					continue;
+				}
+				$next[] = $entry;
+			}
+
+			return array(
+				'ok'     => true,
+				'active' => $next,
+				'folder' => self::FOLDER,
+			);
+		}
+
+		/**
+		 * One-shot: move a live legacy folder to FOLDER and update active_plugins.
+		 *
+		 * @return void
+		 */
+		public static function maybe_relocate_legacy_folder() {
+			static $done = false;
+			if ( $done ) {
+				return;
+			}
+			$done = true;
+
+			if ( ! defined( 'WP_PLUGIN_DIR' ) || ! function_exists( 'update_option' ) ) {
+				return;
+			}
+
+			$folder = dirname( self::plugin_file() );
+			if ( ! in_array( $folder, self::LEGACY_FOLDERS, true ) ) {
+				return;
+			}
+
+			$active = array();
+			if ( function_exists( 'get_option' ) ) {
+				$opt = get_option( 'active_plugins', array() );
+				if ( is_array( $opt ) ) {
+					$active = $opt;
+				}
+			}
+
+			$result = self::relocate_legacy_folder( WP_PLUGIN_DIR, $folder, $active );
+			if ( empty( $result['ok'] ) || ! is_array( $result['active'] ) ) {
+				return;
+			}
+			update_option( 'active_plugins', $result['active'] );
 		}
 
 		/**
@@ -276,6 +380,8 @@ if ( ! class_exists( 'Portal_Update' ) ) {
 		}
 
 		/**
+		 * Only rename when THIS plugin is upgrading. Theme upgrades must pass through.
+		 *
 		 * @param string              $source        Unpacked source.
 		 * @param string              $remote_source Remote package.
 		 * @param object              $upgrader      Upgrader.
@@ -284,7 +390,16 @@ if ( ! class_exists( 'Portal_Update' ) ) {
 		 */
 		public static function keep_folder( $source, $remote_source, $upgrader, $hook_extra = array() ) {
 			unset( $remote_source, $upgrader );
-			$plugin = isset( $hook_extra['plugin'] ) ? (string) $hook_extra['plugin'] : self::plugin_file();
+			if ( ! is_array( $hook_extra ) ) {
+				return $source;
+			}
+			if ( ! empty( $hook_extra['theme'] ) ) {
+				return $source;
+			}
+			$plugin = isset( $hook_extra['plugin'] ) ? (string) $hook_extra['plugin'] : '';
+			if ( '' === $plugin || self::MAIN_FILE !== basename( $plugin ) ) {
+				return $source;
+			}
 			$folder = dirname( $plugin );
 			if ( '.' === $folder || '' === $folder ) {
 				return $source;
@@ -297,9 +412,9 @@ if ( ! class_exists( 'Portal_Update' ) ) {
 		 */
 		public static function plugin_file() {
 			if ( function_exists( 'plugin_basename' ) ) {
-				return plugin_basename( dirname( __DIR__ ) . '/portal-builder.php' );
+				return plugin_basename( dirname( __DIR__ ) . '/' . self::MAIN_FILE );
 			}
-			return 'portal-builder/portal-builder.php';
+			return self::FOLDER . '/' . self::MAIN_FILE;
 		}
 
 		/**
