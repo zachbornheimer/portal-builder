@@ -35,8 +35,10 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 		const NONCE_ACTION = 'dg_definition_submit';
 		const NONCE_FIELD  = 'dg_definition_submit';
 
-		const SUCCESS_COPY               = 'Your application has been submitted successfully!';
-		const RECEIPT_LINK_TEXT          = 'Click here to view the details of your application. Please print / save this for your records.';
+		const SUCCESS_EYEBROW            = 'Submitted';
+		const SUCCESS_HEADING            = 'Your packet is in.';
+		const SUCCESS_BODY               = 'A receipt is on its way. Keep the application ID for your records.';
+		const RECEIPT_LINK_TEXT          = 'View your receipt';
 		const PUBLIC_FAILURE_COPY        = 'Something went wrong while submitting your application. Please try again. If the problem continues, contact the host.';
 		const PUBLIC_FAILURE_CODE        = 'submit';
 		const PORTAL_NOT_CONFIGURED_COPY = 'This portal is not configured.';
@@ -186,15 +188,34 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 		 */
 		public static function render_success( array $result ) {
 			$url    = isset( $result['receipt_url'] ) ? (string) $result['receipt_url'] : '#';
-			$app_id = isset( $result['portalId'] ) ? (string) $result['portalId'] : '';
+			$app_id = self::success_application_id( $result );
 
 			return sprintf(
-				'<div class="dg-submit-success" data-dg-submit-status="success" data-dg-app-id="%1$s"><p>%2$s</p><p><a href="%3$s" data-dg-receipt-link target="_blank" rel="noopener">%4$s</a></p></div>',
+				'<div class="dg-submit-success" data-dg-submit-status="success" data-dg-app-id="%1$s"><p class="dg-public-eyebrow">%2$s</p><h2>%3$s</h2><p>%4$s</p><p class="dg-app-id">%5$s</p><p><a class="dg-public-submit" href="%6$s" data-dg-receipt-link>%7$s</a></p></div>',
 				esc_attr( $app_id ),
-				esc_html( self::SUCCESS_COPY ),
+				esc_html( self::SUCCESS_EYEBROW ),
+				esc_html( self::SUCCESS_HEADING ),
+				esc_html( self::SUCCESS_BODY ),
+				esc_html( $app_id ),
 				esc_url( $url ),
 				esc_html( self::RECEIPT_LINK_TEXT )
 			);
+		}
+
+		/**
+		 * Real submission id from the pipeline result — never the portal post id.
+		 *
+		 * @param array $result Pipeline result.
+		 * @return string
+		 */
+		private static function success_application_id( array $result ) {
+			if ( ! empty( $result['row']['applicationId'] ) ) {
+				return (string) $result['row']['applicationId'];
+			}
+			if ( ! empty( $result['applicationId'] ) ) {
+				return (string) $result['applicationId'];
+			}
+			return '';
 		}
 
 		/**
@@ -575,6 +596,16 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 				foreach ( $validated['files'] as $field_id => $meta ) {
 					$buffer   = $this->read_file_buffer( $meta );
 					$filename = isset( $meta['name'] ) ? (string) $meta['name'] : ( $field_id . '.bin' );
+					if ( class_exists( 'Portal_Staged_File' ) ) {
+						$field    = Portal_Staged_File::find_field( $definition, (string) $field_id );
+						$suffix   = is_array( $field ) && isset( $field['fileSuffix'] ) ? (string) $field['fileSuffix'] : '';
+						$filename = Portal_Staged_File::numbered_dest_name(
+							$filename,
+							$suffix,
+							$definition,
+							(string) $field_id
+						);
+					}
 					if ( null === $buffer ) {
 						return new WP_Error(
 							'dg_submission_file_read',

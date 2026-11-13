@@ -1,0 +1,45 @@
+/* DragonGate — Color tokens. Warm editorial paper packet. Ember is the ONLY chromatic accent. */
+:root {
+	--ink-900: #12140f;
+	--ink-800: #1c1f17;
+	--ink-600: #454a3c;
+	--ink-500: #6e7460;
+
+	--paper-0: #fcfbf6;
+	--paper-1: #f7f4ec;
+	--paper-2: #efebdd;
+
+	--ember-600: #963f16;
+	--ember-500: #b8501f;
+	--ember-100: #f4e2d4;
+	--ember-flow: linear-gradient(115deg, #c96a2e 0%, #b8501f 45%, #8b3a1a 100%);
+
+	--brass-500: #9c7a3c;
+	--brass-100: #e4d9be;
+
+	--success: #3f8a5c;
+	--error: #b8341f;
+
+	--bg-app: var(--paper-1);
+	--surface-card: var(--paper-0);
+	--surface-sunken: var(--paper-2);
+	--surface-ink: var(--ink-900);
+
+	--text-strong: var(--ink-900);
+	--text-body: var(--ink-800);
+	--text-muted: var(--ink-600);
+	--text-faint: var(--ink-500);
+	--text-on-ink: var(--paper-0);
+	--text-on-ember: var(--paper-0);
+
+	--accent: var(--ember-500);
+	--accent-hover: #a9481b;
+	--accent-press: var(--ember-600);
+	--accent-wash: var(--ember-100);
+
+	--border-hair: color-mix(in srgb, var(--ink-900) 12%, transparent);
+	--border-strong: color-mix(in srgb, var(--ink-900) 22%, transparent);
+	--border-brass: var(--brass-500);
+
+	--focus-ring: color-mix(in srgb, var(--ember-500) 55%, transparent);
+}

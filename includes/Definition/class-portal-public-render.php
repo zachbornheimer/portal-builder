@@ -21,6 +21,12 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 		const MSG_NOT_ACCEPTING   = 'This portal is not currently accepting applications.';
 		const MSG_RECEIPT_INVALID = 'This receipt link is invalid or has expired.';
 
+		const ACCESS_EYEBROW            = 'Members only';
+		const ACCESS_HEADING_LOGIN      = 'Sign in to apply.';
+		const ACCESS_HEADING_MEMBERSHIP = 'This call is for paid members.';
+		const ACCESS_SIGN_IN            = 'Sign in';
+		const ACCESS_JOIN               = 'Join or renew';
+
 		const PUBLIC_FONTS_URL = 'https://fonts.bunny.net/css?family=fraunces:500,600,700|ibm-plex-mono:400,500|inter:400,500,600&display=swap';
 
 		const CONTENT_FILTER_PRIORITY = 12;
@@ -282,26 +288,91 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 			$message = class_exists( 'Portal_Access' )
 				? Portal_Access::message_for( $access, $reason )
 				: 'You cannot apply to this portal.';
-			$login   = '';
-			if ( 'login' === $reason && function_exists( 'wp_login_url' ) ) {
-				$target = get_permalink( $post_id );
-				$login  = sprintf(
-					' <a href="%s" target="_blank" rel="noopener noreferrer">%s</a>',
-					esc_url( wp_login_url( $target ? $target : '' ) ),
-					esc_html__( 'Sign in', 'dragongate-portals' )
-				);
-			}
+			$heading = self::restricted_heading( $reason, $message );
+			$action  = self::restricted_action( $post_id, $definition, $reason );
+
 			$body = sprintf(
-				'<div class="dg-portal-closed" data-dg-portal-state="restricted" data-dg-closed-reason="%s"><p>%s%s</p></div>',
+				'<div class="dg-access" data-dg-portal-state="restricted" data-dg-closed-reason="%1$s"><p class="dg-public-eyebrow">%2$s</p><h2>%3$s</h2><p>%4$s</p>%5$s</div>',
 				esc_attr( $reason ),
+				esc_html( self::ACCESS_EYEBROW ),
+				esc_html( $heading ),
 				esc_html( $message ),
-				$login
+				$action
 			);
 			return self::wrap_packet(
 				self::render_packet_head( get_the_title( $post_id ) )
 				. self::render_packet_meta( $definition )
 				. $body
 			);
+		}
+
+		/**
+		 * @param string $reason  Access deny reason.
+		 * @param string $message Deny copy.
+		 * @return string
+		 */
+		private static function restricted_heading( $reason, $message ) {
+			if ( 'login' === $reason ) {
+				return self::ACCESS_HEADING_LOGIN;
+			}
+			if ( 'membership' === $reason ) {
+				return self::ACCESS_HEADING_MEMBERSHIP;
+			}
+			return $message;
+		}
+
+		/**
+		 * Same-tab primary action. Login always; membership only when a join URL exists.
+		 *
+		 * @param int    $post_id    Portal ID.
+		 * @param array  $definition Definition.
+		 * @param string $reason     Access deny reason.
+		 * @return string
+		 */
+		private static function restricted_action( $post_id, array $definition, $reason ) {
+			if ( 'login' === $reason && function_exists( 'wp_login_url' ) ) {
+				$target = function_exists( 'get_permalink' ) ? get_permalink( $post_id ) : '';
+				return sprintf(
+					'<p><a class="dg-public-submit" href="%s">%s</a></p>',
+					esc_url( wp_login_url( $target ? $target : '' ) ),
+					esc_html( self::ACCESS_SIGN_IN )
+				);
+			}
+			if ( 'membership' === $reason ) {
+				$join = self::membership_join_url( $definition );
+				if ( '' !== $join ) {
+					return sprintf(
+						'<p><a class="dg-public-submit" href="%s">%s</a></p>',
+						esc_url( $join ),
+						esc_html( self::ACCESS_JOIN )
+					);
+				}
+			}
+			return '';
+		}
+
+		/**
+		 * @param array $definition Definition.
+		 * @return string
+		 */
+		private static function membership_join_url( array $definition ) {
+			$access = isset( $definition['access'] ) && is_array( $definition['access'] )
+				? $definition['access']
+				: array();
+			if ( ! empty( $access['joinUrl'] ) ) {
+				return (string) $access['joinUrl'];
+			}
+			$options = isset( $definition['options'] ) && is_array( $definition['options'] )
+				? $definition['options']
+				: array();
+			if ( ! empty( $options['joinUrl'] ) ) {
+				return (string) $options['joinUrl'];
+			}
+			if ( function_exists( 'wc_get_page_permalink' ) ) {
+				$shop = wc_get_page_permalink( 'shop' );
+				return is_string( $shop ) ? $shop : '';
+			}
+			return '';
 		}
 
 		/**

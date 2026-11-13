@@ -56,7 +56,7 @@ if ( ! class_exists( 'Portal_Drive_Store' ) ) {
 			$dir = $this->dir_for( $portal_id );
 			$this->files->mkdir( $dir );
 			$safe_name = self::sanitize_filename( $filename );
-			$dest      = $this->files->join( $dir, (string) $field_id . '-' . $safe_name );
+			$dest      = $this->files->join( $dir, $safe_name );
 			$this->files->write( $dest, $buffer );
 			return $dest;
 		}

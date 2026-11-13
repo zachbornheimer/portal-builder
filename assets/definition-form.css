@@ -771,15 +771,13 @@ body.single-portal button.dg-file-open:focus-visible {
 }
 
 .dg-portal-closed,
-.dg-receipt,
-.dg-submit-success {
+.dg-receipt {
 	text-align: center;
 	padding: var(--s-6) var(--s-2) var(--s-2);
 }
 
 .dg-portal-closed p,
-.dg-receipt h2,
-.dg-submit-success p {
+.dg-receipt h2 {
 	font-family: var(--font-display);
 	font-size: var(--t-h1);
 	font-weight: 600;
@@ -787,12 +785,152 @@ body.single-portal button.dg-file-open:focus-visible {
 	margin: 0 0 var(--s-2);
 }
 
-.dg-receipt p,
-.dg-submit-success p + p {
+.dg-receipt p {
 	font-family: var(--font-ui);
 	font-size: var(--t-body);
 	font-weight: 400;
 	color: var(--ink-600);
+}
+
+.dg-submit-success,
+.dg-access {
+	max-width: 36rem;
+	margin: var(--s-5) auto 0;
+	padding: var(--s-6);
+	text-align: center;
+	background: var(--paper-50);
+	border: 1px solid var(--rule);
+	border-radius: var(--r-3);
+}
+
+.dg-submit-success .dg-public-eyebrow,
+.dg-access .dg-public-eyebrow {
+	margin-bottom: var(--s-2);
+}
+
+.dg-submit-success h2,
+.dg-access h2 {
+	font-family: var(--font-display);
+	font-size: var(--t-h1);
+	font-weight: 600;
+	line-height: var(--lh-tight);
+	color: var(--ink);
+	margin: 0 0 var(--s-3);
+}
+
+.dg-submit-success p,
+.dg-access p {
+	font-family: var(--font-ui);
+	font-size: var(--t-body);
+	font-weight: 400;
+	color: var(--ink-600);
+	margin: 0 0 var(--s-3);
+}
+
+.dg-submit-success .dg-app-id {
+	font-family: var(--font-mono);
+	font-size: var(--t-small);
+	color: var(--ink);
+	letter-spacing: 0.02em;
+	margin-bottom: var(--s-5);
+}
+
+.dg-submit-success .dg-public-submit,
+.dg-access .dg-public-submit {
+	display: inline-flex;
+	min-width: min(100%, 240px);
+	text-decoration: none;
+}
+
+.dg-file-preview {
+	position: fixed;
+	inset: 0;
+	z-index: 40;
+	display: grid;
+	place-items: center;
+	padding: var(--s-4);
+}
+
+.dg-file-preview[hidden] {
+	display: none;
+}
+
+.dg-file-preview-backdrop {
+	position: absolute;
+	inset: 0;
+	background: color-mix(in srgb, var(--ink) 45%, transparent);
+}
+
+.dg-file-preview-panel {
+	position: relative;
+	z-index: 1;
+	display: flex;
+	flex-direction: column;
+	width: min(52rem, calc(100vw - 2rem));
+	max-height: min(90vh, 48rem);
+	background: var(--paper-50);
+	border: 1px solid var(--rule);
+	border-radius: var(--r-3);
+	box-shadow: var(--shadow-shell);
+	overflow: hidden;
+}
+
+.dg-file-preview-bar {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--s-3);
+	padding: var(--s-3) var(--s-4);
+	border-bottom: 1px solid var(--rule);
+}
+
+.dg-file-preview-title {
+	font-family: var(--font-display);
+	font-size: var(--t-h3);
+	font-weight: 600;
+	color: var(--ink);
+	margin: 0;
+}
+
+.dg-file-preview-close {
+	appearance: none;
+	border: 1px solid var(--rule-strong);
+	border-radius: var(--r-pill);
+	background: var(--paper);
+	color: var(--ink-800);
+	font-family: var(--font-ui);
+	font-size: 13px;
+	font-weight: 500;
+	min-height: 36px;
+	padding: 0 16px;
+	cursor: pointer;
+}
+
+.dg-file-preview-body {
+	flex: 1;
+	min-height: 12rem;
+	background: var(--paper);
+}
+
+.dg-file-preview-media {
+	display: block;
+	width: 100%;
+	height: min(70vh, 40rem);
+	border: 0;
+	background: var(--paper);
+}
+
+audio.dg-file-preview-media {
+	height: auto;
+	margin: var(--s-6) auto;
+	width: min(100%, 28rem);
+}
+
+img.dg-file-preview-media {
+	height: auto;
+	max-height: min(70vh, 40rem);
+	object-fit: contain;
+	margin-inline: auto;
 }
 
 .dg-actions,
@@ -804,8 +942,12 @@ body.single-portal button.dg-file-open:focus-visible {
 
 body.single-portal .dg-actions .dg-public-submit,
 body.single-portal button.dg-public-submit,
+body.single-portal .dg-access .dg-public-submit,
+body.single-portal .dg-submit-success .dg-public-submit,
 .dg-form.portal-definition-form + .sub_submit_container .dg-public-submit,
-.sub_submit_container .dg-public-submit {
+.sub_submit_container .dg-public-submit,
+.dg-access .dg-public-submit,
+.dg-submit-success .dg-public-submit {
 	appearance: none;
 	-webkit-appearance: none;
 	display: inline-flex;
@@ -844,6 +986,36 @@ body.single-portal button.dg-public-submit:focus,
 .dg-public-submit:focus {
 	outline: none;
 	box-shadow: var(--focus-ring), var(--shadow-ember);
+}
+
+body.single-portal .dg-actions .dg-public-submit:disabled,
+body.single-portal button.dg-public-submit:disabled,
+.dg-form.portal-definition-form + .sub_submit_container .dg-public-submit:disabled,
+.sub_submit_container .dg-public-submit:disabled,
+.dg-public-submit:disabled {
+	background: var(--ember-flow);
+	opacity: 0.7;
+	cursor: not-allowed;
+	filter: none;
+	transform: none;
+}
+
+.dg-submit-spinner {
+	width: 16px;
+	height: 16px;
+	margin-inline-end: var(--s-2);
+	border: 2px solid color-mix(in srgb, var(--paper-50) 35%, transparent);
+	border-top-color: var(--paper-50);
+	border-radius: 50%;
+	animation: dg-file-spin 0.7s linear infinite;
+	flex-shrink: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.dg-submit-spinner {
+		animation: none;
+		border-top-color: var(--paper-50);
+	}
 }
 
 body.single-portal .cs-replacer,

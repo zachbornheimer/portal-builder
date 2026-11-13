@@ -142,8 +142,8 @@ test('herbolzheimer submission writes sheet, drive, and mail artifacts', () => {
   assert.ok(data.drivePaths?.recording, 'recording drive path');
   assert.ok(fs.existsSync(data.drivePaths.score));
   assert.ok(fs.existsSync(data.drivePaths.recording));
-  assert.match(data.drivePaths.score, /score-sample-score\.pdf$/);
-  assert.match(data.drivePaths.recording, /recording-sample-recording\.mp3$/);
+  assert.match(data.drivePaths.score, /Score\.pdf$/);
+  assert.match(data.drivePaths.recording, /Recording\.mp3$/);
 
   // Mail captures: applicant receipt + operator notify
   assert.ok(data.mailPath, 'mail path');

@@ -172,6 +172,24 @@ if ( 'ready_to_submit_no_definition' === $entry ) {
 	exit( 0 );
 }
 
+if ( 'render_success' === $entry ) {
+	$result = isset( $scenario['result'] ) && is_array( $scenario['result'] )
+		? $scenario['result']
+		: array(
+			'portalId'    => '42',
+			'receipt_url' => 'https://example.test/receipt/app-99',
+			'row'         => array( 'applicationId' => 'app-99' ),
+		);
+	$html = Portal_Submission_Pipeline::render_success( $result );
+	echo json_encode(
+		array(
+			'ok'   => true,
+			'html' => $html,
+		)
+	) . "\n";
+	exit( 0 );
+}
+
 fwrite( STDERR, "unknown entry: $entry\n" );
 exit( 2 );
 

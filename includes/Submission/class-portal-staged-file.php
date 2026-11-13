@@ -25,6 +25,16 @@ if ( ! class_exists( 'Portal_Staged_File' ) ) {
 		const META_FILENAME    = 'meta.json';
 		const CONTENT_FILENAME = 'content';
 		const FALLBACK_NAME    = 'upload.bin';
+		const DEST_EXT_PDF     = 'pdf';
+		const DEST_EXT_AUDIO   = 'mp3';
+		const DEST_EXT_FILE    = 'bin';
+
+		const ROLE_SCORE    = 'SCORE';
+		const ROLE_REC      = 'REC';
+		const ROLE_BIO      = 'BIO';
+		const ROLE_ABSTRACT = 'ABSTRACT';
+		const ROLE_DESC     = 'DESC';
+		const ROLE_FILE     = 'FILE';
 
 		/** @var Portal_Files */
 		private $files;
@@ -49,33 +59,193 @@ if ( ! class_exists( 'Portal_Staged_File' ) ) {
 		}
 
 		/**
-		 * Pure retained server filename: suffix before extension, no double suffix.
+		 * Role from the fileSuffix tail after the last underscore.
+		 *
+		 * @param string $suffix Field fileSuffix (e.g. _NMMA_SCORE).
+		 * @return string SCORE|REC|BIO|ABSTRACT|DESC|FILE
+		 */
+		public static function dest_role( $suffix ) {
+			$raw = strtoupper( trim( (string) $suffix, " \t\n\r\0\x0B_" ) );
+			if ( '' === $raw ) {
+				return self::ROLE_FILE;
+			}
+			if ( 'POSTER_DESC' === $raw || self::ends_with( $raw, '_POSTER_DESC' ) ) {
+				return self::ROLE_DESC;
+			}
+			$pos  = strrpos( $raw, '_' );
+			$tail = false === $pos ? $raw : substr( $raw, $pos + 1 );
+			if ( self::ROLE_SCORE === $tail ) {
+				return self::ROLE_SCORE;
+			}
+			if ( self::ROLE_REC === $tail ) {
+				return self::ROLE_REC;
+			}
+			if ( self::ROLE_BIO === $tail ) {
+				return self::ROLE_BIO;
+			}
+			if ( self::ROLE_ABSTRACT === $tail ) {
+				return self::ROLE_ABSTRACT;
+			}
+			if ( self::ROLE_DESC === $tail ) {
+				return self::ROLE_DESC;
+			}
+			return self::ROLE_FILE;
+		}
+
+		/**
+		 * Drive / staged dest basename: Score.pdf, Score1.pdf when several.
+		 *
+		 * @param string $original   Original pick name (extension only).
+		 * @param string $suffix     Field fileSuffix.
+		 * @param int    $ordinal    1-based index among same-role file fields.
+		 * @param int    $peer_count Same-role file fields in definition walk order.
+		 * @return string
+		 */
+		public static function dest_basename( $original, $suffix, $ordinal = 0, $peer_count = 1 ) {
+			$role = self::dest_role( $suffix );
+			$stem = self::dest_stem( $role );
+			if ( (int) $peer_count > 1 && (int) $ordinal > 0 ) {
+				$stem .= (string) (int) $ordinal;
+			}
+			return $stem . '.' . self::dest_extension( $original, $role );
+		}
+
+		/**
+		 * Pure dest name for a lone field (unnumbered).
 		 *
 		 * @param string $original Original pick name.
 		 * @param string $suffix   Field fileSuffix (e.g. _BIO).
 		 * @return string
 		 */
 		public static function retained_name( $original, $suffix ) {
-			$base = self::sanitize_filename( (string) $original );
-			$suffix = (string) $suffix;
-			if ( '' === $suffix ) {
-				return $base;
-			}
+			return self::dest_basename( $original, $suffix, 0, 1 );
+		}
 
-			$dot = strrpos( $base, '.' );
-			if ( false === $dot || 0 === $dot ) {
-				if ( self::ends_with( $base, $suffix ) ) {
-					return $base;
+		/**
+		 * Dest name numbered among same-role file fields in definition walk order.
+		 *
+		 * @param string $original   Original pick name.
+		 * @param string $suffix     Field fileSuffix.
+		 * @param array  $definition Validated definition document.
+		 * @param string $field_id   Field being staged.
+		 * @return string
+		 */
+		public static function numbered_dest_name( $original, $suffix, array $definition, $field_id ) {
+			$role  = self::dest_role( $suffix );
+			$peers = self::file_fields_with_role( $definition, $role );
+			$count = count( $peers );
+			$index = 0;
+			foreach ( $peers as $i => $peer ) {
+				if ( isset( $peer['id'] ) && (string) $peer['id'] === (string) $field_id ) {
+					$index = $i + 1;
+					break;
 				}
-				return $base . $suffix;
 			}
+			return self::dest_basename( $original, $suffix, $index, $count );
+		}
 
-			$stem = substr( $base, 0, $dot );
-			$ext  = substr( $base, $dot );
-			if ( self::ends_with( $stem, $suffix ) ) {
-				return $base;
+		/**
+		 * @param string $role Dest role.
+		 * @return string
+		 */
+		private static function dest_stem( $role ) {
+			if ( self::ROLE_SCORE === $role ) {
+				return 'Score';
 			}
-			return $stem . $suffix . $ext;
+			if ( self::ROLE_REC === $role ) {
+				return 'Recording';
+			}
+			if ( self::ROLE_BIO === $role ) {
+				return 'Bio';
+			}
+			if ( self::ROLE_ABSTRACT === $role ) {
+				return 'Abstract';
+			}
+			if ( self::ROLE_DESC === $role ) {
+				return 'Description';
+			}
+			return 'File';
+		}
+
+		/**
+		 * @param string $original Original pick name.
+		 * @param string $role     Dest role.
+		 * @return string
+		 */
+		private static function dest_extension( $original, $role ) {
+			$base = self::sanitize_filename( (string) $original );
+			$ext  = strtolower( (string) pathinfo( $base, PATHINFO_EXTENSION ) );
+			if ( '' !== $ext && 'bin' !== $ext ) {
+				return $ext;
+			}
+			if ( self::ROLE_REC === $role ) {
+				return self::DEST_EXT_AUDIO;
+			}
+			if ( self::ROLE_FILE === $role ) {
+				return '' !== $ext ? $ext : self::DEST_EXT_FILE;
+			}
+			return self::DEST_EXT_PDF;
+		}
+
+		/**
+		 * File fields with the same dest role, definition walk order.
+		 *
+		 * @param array  $definition Definition.
+		 * @param string $role       Dest role.
+		 * @return array<int,array>
+		 */
+		public static function file_fields_with_role( array $definition, $role ) {
+			$out    = array();
+			$fields = isset( $definition['fields'] ) && is_array( $definition['fields'] )
+				? $definition['fields']
+				: array();
+			foreach ( self::walk_file_fields( $fields ) as $field ) {
+				$suffix = isset( $field['fileSuffix'] ) ? (string) $field['fileSuffix'] : '';
+				if ( self::dest_role( $suffix ) === $role ) {
+					$out[] = $field;
+				}
+			}
+			return $out;
+		}
+
+		/**
+		 * @param array $fields Field list.
+		 * @return array<int,array>
+		 */
+		private static function walk_file_fields( array $fields ) {
+			$out = array();
+			foreach ( $fields as $field ) {
+				if ( ! is_array( $field ) ) {
+					continue;
+				}
+				if ( self::is_file_field( $field ) ) {
+					$out[] = $field;
+				}
+				if ( ! empty( $field['children'] ) && is_array( $field['children'] ) ) {
+					$out = array_merge( $out, self::walk_file_fields( $field['children'] ) );
+				}
+				if ( ! empty( $field['options'] ) && is_array( $field['options'] ) ) {
+					foreach ( $field['options'] as $opt ) {
+						if ( ! is_array( $opt ) || empty( $opt['children'] ) || ! is_array( $opt['children'] ) ) {
+							continue;
+						}
+						$out = array_merge( $out, self::walk_file_fields( $opt['children'] ) );
+					}
+				}
+			}
+			return $out;
+		}
+
+		/**
+		 * @param array $field Field.
+		 * @return bool
+		 */
+		private static function is_file_field( array $field ) {
+			$type = isset( $field['type'] ) ? (string) $field['type'] : '';
+			if ( class_exists( 'Portal_Submission_Field_Rules' ) ) {
+				return in_array( $type, Portal_Submission_Field_Rules::FILE_TYPES, true );
+			}
+			return isset( $field['fileSuffix'] ) || false !== strpos( $type, 'file' );
 		}
 
 		/**
@@ -104,7 +274,7 @@ if ( ! class_exists( 'Portal_Staged_File' ) ) {
 			}
 
 			$suffix      = isset( $field['fileSuffix'] ) ? (string) $field['fileSuffix'] : '';
-			$stored_name = self::retained_name( $original_name, $suffix );
+			$stored_name = self::numbered_dest_name( $original_name, $suffix, $definition, $field_id );
 			$field_type  = isset( $field['type'] ) ? (string) $field['type'] : 'file';
 
 			$meta_probe = array(

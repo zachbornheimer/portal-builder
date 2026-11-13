@@ -2,7 +2,8 @@
  * Public definition form — file enclosure + open-to-confirm + branch paths.
  *
  * After a file is chosen: stage bytes (XHR progress → anonymize spinner →
- * retained server name). Opening the staged file is the confirm it isn’t corrupt.
+ * retained server name). Confirm loads the file in a page dialog; opened
+ * means the media load callback fired.
  *
  * Branch radios show only the selected path’s `.dg-branch-children` and disable
  * hidden controls so HTML5 `required` cannot block submit.
@@ -13,7 +14,14 @@
 	var KB = 1024;
 	var MB = 1024 * 1024;
 	var STATUS_WORKING = 'Processing';
+	var STATUS_SUBMITTING = 'Submitting';
 	var STAGE_FAIL = 'Upload failed. Remove the upload and try again.';
+	var FILE_OPEN_FAIL = 'This file didn’t open. Remove the upload and try another.';
+	var PREVIEW_TITLE = 'Confirm this file';
+	var PREVIEW_CLOSE = 'Close';
+	var PREVIEW_DIALOG_ID = 'dg-file-preview';
+	var PREVIEW_TITLE_ID = 'dg-file-preview-title';
+	var previewReturnFocus = null;
 
 	/**
 	 * DOM-free visibility plan (mirrors src/wizard/branchVisibility.js).
@@ -56,36 +64,6 @@
 		return cfg.stageUrl ? String(cfg.stageUrl) : '';
 	}
 
-	/**
-	 * Always a new tab. Do not pass the "noopener" feature to window.open —
-	 * that makes it return null and we used to navigate the form away.
-	 */
-	function openInNewTab(url) {
-		if (!url) {
-			return;
-		}
-		var opened = null;
-		if (typeof window.open === 'function') {
-			opened = window.open(url, '_blank');
-		}
-		if (opened) {
-			try {
-				opened.opener = null;
-			} catch (err) {
-				/* ignore */
-			}
-			return;
-		}
-		var a = document.createElement('a');
-		a.href = url;
-		a.target = '_blank';
-		a.rel = 'noopener noreferrer';
-		a.setAttribute('data-dg-new-tab', '1');
-		document.body.appendChild(a);
-		a.click();
-		a.remove();
-	}
-
 	function forceNewTabLinks(root) {
 		var links = (root || document).querySelectorAll('a[href]');
 		for (var i = 0; i < links.length; i += 1) {
@@ -93,11 +71,187 @@
 			if (!href || href.charAt(0) === '#') {
 				continue;
 			}
+			if (links[i].closest('.dg-access')) {
+				continue;
+			}
 			links[i].target = '_blank';
 			var rel = links[i].getAttribute('rel') || '';
 			if (rel.indexOf('noopener') === -1) {
 				links[i].setAttribute('rel', (rel + ' noopener noreferrer').trim());
 			}
+		}
+	}
+
+	function previewKind(card, url) {
+		var type = ((card && card.getAttribute('data-dg-field-type')) || '').toLowerCase();
+		var path = String(url || '').split('?')[0].toLowerCase();
+		if (type === 'audio' || type === 'recording_file' || /\.(mp3|wav|m4a|ogg|aac)$/.test(path)) {
+			return 'audio';
+		}
+		if (type === 'image' || /\.(png|jpe?g|gif|webp)$/.test(path)) {
+			return 'image';
+		}
+		return 'iframe';
+	}
+
+	function previewFocusable(dialog) {
+		return dialog.querySelectorAll(
+			'button:not([disabled]), [href], input, select, textarea, iframe, audio, [tabindex]:not([tabindex="-1"])'
+		);
+	}
+
+	function closePreviewDialog() {
+		var dialog = document.getElementById(PREVIEW_DIALOG_ID);
+		if (!dialog) {
+			return;
+		}
+		var body = dialog.querySelector('[data-dg-preview-body]');
+		if (body) {
+			body.textContent = '';
+		}
+		dialog.hidden = true;
+		dialog.setAttribute('hidden', '');
+		if (previewReturnFocus && typeof previewReturnFocus.focus === 'function') {
+			previewReturnFocus.focus();
+		}
+		previewReturnFocus = null;
+	}
+
+	function trapPreviewFocus(dialog, event) {
+		if (event.key === 'Escape') {
+			event.preventDefault();
+			closePreviewDialog();
+			return;
+		}
+		if (event.key !== 'Tab') {
+			return;
+		}
+		var nodes = previewFocusable(dialog);
+		if (!nodes.length) {
+			event.preventDefault();
+			return;
+		}
+		var first = nodes[0];
+		var last = nodes[nodes.length - 1];
+		if (event.shiftKey && document.activeElement === first) {
+			event.preventDefault();
+			last.focus();
+		} else if (!event.shiftKey && document.activeElement === last) {
+			event.preventDefault();
+			first.focus();
+		}
+	}
+
+	function ensurePreviewDialog() {
+		var existing = document.getElementById(PREVIEW_DIALOG_ID);
+		if (existing) {
+			return existing;
+		}
+		var dialog = document.createElement('div');
+		dialog.id = PREVIEW_DIALOG_ID;
+		dialog.className = 'dg-file-preview';
+		dialog.setAttribute('role', 'dialog');
+		dialog.setAttribute('aria-modal', 'true');
+		// role="dialog" — in-page confirm; a tab cannot callback.
+		dialog.setAttribute('aria-labelledby', PREVIEW_TITLE_ID);
+		dialog.hidden = true;
+		dialog.setAttribute('hidden', '');
+
+		var backdrop = document.createElement('div');
+		backdrop.className = 'dg-file-preview-backdrop';
+		backdrop.setAttribute('data-dg-preview-dismiss', '');
+
+		var panel = document.createElement('div');
+		panel.className = 'dg-file-preview-panel';
+
+		var bar = document.createElement('div');
+		bar.className = 'dg-file-preview-bar';
+
+		var title = document.createElement('h2');
+		title.id = PREVIEW_TITLE_ID;
+		title.className = 'dg-file-preview-title';
+		title.textContent = PREVIEW_TITLE;
+
+		var closeBtn = document.createElement('button');
+		closeBtn.type = 'button';
+		closeBtn.className = 'dg-file-preview-close';
+		closeBtn.setAttribute('data-dg-preview-dismiss', '');
+		closeBtn.textContent = PREVIEW_CLOSE;
+
+		var body = document.createElement('div');
+		body.className = 'dg-file-preview-body';
+		body.setAttribute('data-dg-preview-body', '');
+
+		bar.appendChild(title);
+		bar.appendChild(closeBtn);
+		panel.appendChild(bar);
+		panel.appendChild(body);
+		dialog.appendChild(backdrop);
+		dialog.appendChild(panel);
+		document.body.appendChild(dialog);
+
+		dialog.addEventListener('click', function (event) {
+			if (event.target && event.target.getAttribute && event.target.hasAttribute('data-dg-preview-dismiss')) {
+				closePreviewDialog();
+			}
+		});
+		dialog.addEventListener('keydown', function (event) {
+			trapPreviewFocus(dialog, event);
+		});
+		return dialog;
+	}
+
+	function bindPreviewLoad(el, onLoad, onError) {
+		var settled = false;
+		function succeed() {
+			if (settled) {
+				return;
+			}
+			var src = el.getAttribute('src') || el.src || '';
+			if (!src || src === 'about:blank') {
+				return;
+			}
+			settled = true;
+			onLoad();
+		}
+		function fail() {
+			if (settled) {
+				return;
+			}
+			settled = true;
+			onError();
+		}
+		el.addEventListener('load', succeed);
+		el.addEventListener('canplaythrough', succeed);
+		el.addEventListener('loadeddata', succeed);
+		el.addEventListener('error', fail);
+	}
+
+	function openPreviewDialog(card, url, onLoad, onError) {
+		var dialog = ensurePreviewDialog();
+		var body = dialog.querySelector('[data-dg-preview-body]');
+		body.textContent = '';
+		var kind = previewKind(card, url);
+		var media;
+		if (kind === 'audio') {
+			media = document.createElement('audio');
+			media.controls = true;
+		} else if (kind === 'image') {
+			media = document.createElement('img');
+			media.alt = PREVIEW_TITLE;
+		} else {
+			media = document.createElement('iframe');
+			media.title = PREVIEW_TITLE;
+		}
+		media.className = 'dg-file-preview-media';
+		bindPreviewLoad(media, onLoad, onError);
+		media.src = url;
+		body.appendChild(media);
+		dialog.hidden = false;
+		dialog.removeAttribute('hidden');
+		var closeBtn = dialog.querySelector('.dg-file-preview-close');
+		if (closeBtn) {
+			closeBtn.focus();
 		}
 	}
 
@@ -407,34 +561,39 @@
 			openBtn.addEventListener('click', function () {
 				var file = input.files && input.files[0];
 				var requiresStage = !!stageUrl();
-				// When staging is configured, wait for a successful stage before open.
 				if (requiresStage && !stagedToken) {
 					return;
 				}
-				// Prefer staged bytes when available.
+				var url = '';
 				if (stagedUrl) {
-					openInNewTab(stagedUrl);
-					markOpened();
-					return;
-				}
-				if (requiresStage && stagedToken && !stagedUrl) {
-					// Token without URL: build GET from stage root when possible.
+					url = stagedUrl;
+				} else if (requiresStage && stagedToken && !stagedUrl) {
 					var cfg = publicConfig();
-					var base = cfg.stageUrl ? String(cfg.stageUrl).replace(/\/portals\/\d+\/files\/?$/, '/files/') : '';
+					var base = cfg.stageUrl
+						? String(cfg.stageUrl).replace(/\/portals\/\d+\/files\/?$/, '/files/')
+						: '';
 					if (base) {
-						var tokenUrl = base + encodeURIComponent(stagedToken);
-						openInNewTab(tokenUrl);
-						markOpened();
-						return;
+						url = base + encodeURIComponent(stagedToken);
 					}
+				} else if (file) {
+					revokeUrl();
+					objectUrl = URL.createObjectURL(file);
+					url = objectUrl;
 				}
-				if (!file) {
+				if (!url) {
 					return;
 				}
-				revokeUrl();
-				objectUrl = URL.createObjectURL(file);
-				openInNewTab(objectUrl);
-				markOpened();
+				previewReturnFocus = openBtn;
+				openPreviewDialog(
+					card,
+					url,
+					function () {
+						markOpened();
+					},
+					function () {
+						setError(FILE_OPEN_FAIL);
+					}
+				);
 			});
 		}
 
@@ -507,11 +666,17 @@
 			var submit = form.querySelector('[type="submit"]');
 			if (submit && !submit.disabled) {
 				submit.disabled = true;
+				submit.setAttribute('aria-busy', 'true');
 				submit.setAttribute('data-dg-working', '1');
 				if (!submit.getAttribute('data-dg-label')) {
 					submit.setAttribute('data-dg-label', submit.textContent || 'Submit');
 				}
-				submit.textContent = 'Working…';
+				submit.textContent = '';
+				var spinner = document.createElement('span');
+				spinner.className = 'dg-submit-spinner';
+				spinner.setAttribute('aria-hidden', 'true');
+				submit.appendChild(spinner);
+				submit.appendChild(document.createTextNode(STATUS_SUBMITTING));
 			}
 		});
 	}

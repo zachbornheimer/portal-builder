@@ -223,7 +223,7 @@ test('logged-out applicant submit writes sheet and drive artifacts', async ({
 				}
 
 				await expect(success).toBeVisible();
-				await expect(publicPage.getByText(/submitted successfully/i)).toBeVisible();
+				await expect(publicPage.locator('[data-dg-submit-status="success"]')).toBeVisible();
 			});
 		} finally {
 			const applicantFilm = publicPage.video();
