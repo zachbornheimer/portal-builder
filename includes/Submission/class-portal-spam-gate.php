@@ -1,6 +1,6 @@
 <?php
 /**
- * Public-anyone spam gate (Cloudflare Turnstile).
+ * Public spam gate (Cloudflare Turnstile).
  *
  * @package DragonGate
  */
@@ -8,7 +8,7 @@
 if ( ! class_exists( 'Portal_Spam_Gate' ) ) {
 
 	/**
-	 * Anyone-audience submits need a valid token. Logged-in / members skip.
+	 * Public submits need a valid token whenever Turnstile keys resolve.
 	 */
 	class Portal_Spam_Gate {
 
@@ -21,42 +21,80 @@ if ( ! class_exists( 'Portal_Spam_Gate' ) ) {
 		const MSG_INVALID   = 'The spam check failed. Refresh the page and try again.';
 
 		/**
-		 * @param string $audience Access audience.
-		 * @return bool
+		 * Cloudflare always-pass visible widget. Public fixture, not a secret.
+		 *
+		 * @see https://developers.cloudflare.com/turnstile/troubleshooting/testing/
 		 */
-		public static function required_for_audience( $audience ) {
-			return (string) $audience === 'anyone' || '' === (string) $audience;
+		const DUMMY_SITE_KEY = '1x00000000000000000000AA';
+
+		/**
+		 * Cloudflare always-pass secret. Public fixture, not a secret.
+		 */
+		const DUMMY_SECRET = '1x0000000000000000000000000000000AA';
+
+		/**
+		 * Configured options win. Else testMode uses the always-pass dummy pair.
+		 *
+		 * @param array $definition Definition (publish.testMode).
+		 * @return array{site:string,secret:string}
+		 */
+		public static function resolve_keys( array $definition = array() ) {
+			$site   = self::site_key();
+			$secret = self::secret();
+			if ( '' !== $site || '' !== $secret ) {
+				return array(
+					'site'   => $site,
+					'secret' => $secret,
+				);
+			}
+			if ( class_exists( 'Portal_Definition' ) && Portal_Definition::test_mode_on( $definition ) ) {
+				return array(
+					'site'   => self::DUMMY_SITE_KEY,
+					'secret' => self::DUMMY_SECRET,
+				);
+			}
+			return array(
+				'site'   => '',
+				'secret' => '',
+			);
 		}
 
 		/**
+		 * Audience no longer skips when keys exist. testMode dummy keys count.
+		 *
+		 * @param string $audience   Access audience (unused once keys resolve).
+		 * @param array  $definition Definition for testMode dummy-key resolve.
+		 * @return bool
+		 */
+		public static function required_for_audience( $audience, array $definition = array() ) {
+			unset( $audience );
+			$keys = self::resolve_keys( $definition );
+			return '' !== $keys['site'] || '' !== $keys['secret'];
+		}
+
+		/**
+		 * Reject a submit that needs Turnstile and has no valid token.
+		 *
 		 * @param array         $definition Validated definition.
 		 * @param array         $values     Posted values.
 		 * @param callable|null $verifier   (token, secret) => bool.
 		 * @return WP_Error|null
 		 */
 		public static function admit( array $definition, array $values, $verifier = null ) {
-			$access   = isset( $definition['access'] ) && is_array( $definition['access'] )
-				? $definition['access']
-				: array();
-			$audience = isset( $access['audience'] ) ? (string) $access['audience'] : 'anyone';
-			if ( ! self::required_for_audience( $audience ) ) {
-				return null;
-			}
-			$secret = self::secret();
-			$site   = self::site_key();
-			if ( '' === $secret && '' === $site ) {
+			$keys = self::resolve_keys( $definition );
+			if ( '' === $keys['site'] && '' === $keys['secret'] ) {
 				return null;
 			}
 			$token = self::posted_token( $values );
 			if ( '' === $token ) {
 				return new WP_Error( self::CODE, self::MSG_MISSING );
 			}
-			if ( '' === $secret ) {
+			if ( '' === $keys['secret'] ) {
 				return new WP_Error( self::CODE, self::MSG_INVALID );
 			}
 			$ok = is_callable( $verifier )
-				? (bool) call_user_func( $verifier, $token, $secret )
-				: self::verify_live( $token, $secret );
+				? (bool) call_user_func( $verifier, $token, $keys['secret'] )
+				: self::verify_live( $token, $keys['secret'] );
 			if ( ! $ok ) {
 				return new WP_Error( self::CODE, self::MSG_INVALID );
 			}

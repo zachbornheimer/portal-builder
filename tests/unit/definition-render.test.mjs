@@ -157,6 +157,27 @@ test('empty fields definition renders empty string path (exit via empty)', () =>
 	assert.match(out, /empty render|fields must be an array/i);
 });
 
+test('CFS public HTML carries stable dg- field testids', () => {
+	const cfs = path.join(root, 'tests/fixtures/portals/call-for-scores.definition.json');
+	const { code, out } = runPhp(cfs);
+	assert.equal(code, 0, out);
+	const data = JSON.parse(out.trim());
+	assert.match(data.html, /data-testid="dg-field-bio"/);
+	assert.match(data.html, /data-testid="dg-file-open-bio"/);
+	assert.match(data.html, /data-testid="dg-field-applicant"/);
+	assert.match(data.html, /data-testid="dg-input-sub_name"/);
+	assert.doesNotMatch(data.html, /data-testid="dg-file-open-sub_bio"/);
+});
+
+test('herbolzheimer public HTML carries applicant pack and file-open testids', () => {
+	const { code, out } = runPhp(fixture);
+	assert.equal(code, 0, out);
+	const data = JSON.parse(out.trim());
+	assert.match(data.html, /data-testid="dg-field-applicant"/);
+	assert.match(data.html, /data-testid="dg-file-open-score"/);
+	assert.match(data.html, /data-testid="dg-input-sub_name"/);
+});
+
 test('call-for-scores renders category radios, hidden scores panel, nested score_kind', () => {
 	const cfs = path.join(root, 'tests/fixtures/portals/call-for-scores.definition.json');
 	const { code, out } = runPhp(cfs);

@@ -213,7 +213,7 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 
 			if ( ! is_array( $record ) ) {
 				$missing = sprintf(
-					'<div class="dg-receipt" data-dg-receipt="missing"><p>%s</p></div>',
+					'<div class="dg-receipt" data-dg-receipt="missing" data-testid="dg-receipt"><p>%s</p></div>',
 					esc_html__( 'This receipt link is invalid or has expired.', 'dragongate-portals' )
 				);
 				return self::wrap_packet(
@@ -227,7 +227,7 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 			$portal      = isset( $record['portalTitle'] ) ? (string) $record['portalTitle'] : get_the_title( $post_id );
 
 			$receipt = sprintf(
-				'<div class="dg-receipt" data-dg-receipt="1" data-dg-app-id="%1$s"><h2>%2$s</h2><p>Application ID: <code>%1$s</code></p><p>Portal: %3$s</p>%4$s%5$s</div>',
+				'<div class="dg-receipt" data-dg-receipt="1" data-dg-app-id="%1$s" data-testid="dg-receipt"><h2>%2$s</h2><p>Application ID: <code>%1$s</code></p><p>Portal: %3$s</p>%4$s%5$s</div>',
 				esc_attr( $stored_id ),
 				esc_html__( 'Application receipt', 'dragongate-portals' ),
 				esc_html( $portal ),
@@ -256,7 +256,7 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 			}
 
 			$closed = sprintf(
-				'<div class="dg-portal-closed" data-dg-portal-state="closed" data-dg-closed-reason="%s"><p>%s</p></div>',
+				'<div class="dg-portal-closed" data-dg-portal-state="closed" data-dg-closed-reason="%s" data-testid="dg-closed"><p>%s</p></div>',
 				esc_attr( (string) $reason ),
 				esc_html( $message )
 			);
@@ -292,7 +292,7 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 			$action  = self::restricted_action( $post_id, $definition, $reason );
 
 			$body = sprintf(
-				'<div class="dg-access" data-dg-portal-state="restricted" data-dg-closed-reason="%1$s"><p class="dg-public-eyebrow">%2$s</p><h2>%3$s</h2><p>%4$s</p>%5$s</div>',
+				'<div class="dg-access" data-dg-portal-state="restricted" data-dg-closed-reason="%1$s" data-testid="dg-access"><p class="dg-public-eyebrow">%2$s</p><h2>%3$s</h2><p>%4$s</p>%5$s</div>',
 				esc_attr( $reason ),
 				esc_html( self::ACCESS_EYEBROW ),
 				esc_html( $heading ),
@@ -445,7 +445,7 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 		 */
 		public static function render_submit_control() {
 			return sprintf(
-				'<p class="dg-actions sub_submit_container"><button class="dg-public-submit" name="sub_submit" type="submit">%s</button></p>',
+				'<p class="dg-actions sub_submit_container"><button class="dg-public-submit" name="sub_submit" type="submit" data-testid="dg-submit">%s</button></p>',
 				esc_html__( 'Submit application', 'dragongate-portals' )
 			);
 		}
@@ -645,12 +645,6 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 		}
 
 		/**
-		 * Turnstile widget for anyone-audience portals when a site key is set.
-		 *
-		 * @param array $definition Definition.
-		 * @return string
-		 */
-		/**
 		 * Logged-in applicant: past packets for this portal + recall control.
 		 *
 		 * @param int $post_id Portal id.
@@ -692,24 +686,23 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 			return $html . '</ul></section>';
 		}
 
+		/**
+		 * Turnstile widget when keys resolve (configured or testMode dummy).
+		 *
+		 * @param array $definition Definition.
+		 * @return string
+		 */
 		public static function render_spam_widget( array $definition ) {
 			if ( ! class_exists( 'Portal_Spam_Gate' ) ) {
 				return '';
 			}
-			$access   = isset( $definition['access'] ) && is_array( $definition['access'] )
-				? $definition['access']
-				: array();
-			$audience = isset( $access['audience'] ) ? (string) $access['audience'] : 'anyone';
-			if ( ! Portal_Spam_Gate::required_for_audience( $audience ) ) {
-				return '';
-			}
-			$key = Portal_Spam_Gate::site_key();
-			if ( '' === $key ) {
+			$keys = Portal_Spam_Gate::resolve_keys( $definition );
+			if ( '' === $keys['site'] ) {
 				return '';
 			}
 			return sprintf(
-				'<div class="dg-turnstile" data-dg-spam-gate="turnstile"><div class="cf-turnstile" data-sitekey="%1$s" role="group" aria-label="%2$s"></div><script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script></div>',
-				esc_attr( $key ),
+				'<div class="dg-turnstile" data-dg-spam-gate="turnstile" data-testid="dg-turnstile"><div class="cf-turnstile" data-sitekey="%1$s" role="group" aria-label="%2$s"></div><script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script></div>',
+				esc_attr( $keys['site'] ),
 				esc_attr( 'Spam check' )
 			);
 		}

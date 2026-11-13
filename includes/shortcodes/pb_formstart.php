@@ -25,7 +25,7 @@ function portal_application_formstart_shortcode() {
 
 	ob_start();
 	printf(
-		'<form action="" enctype="multipart/form-data" method="post" class="dg-portal-submit-form" data-dg-form="%s">',
+		'<form action="" enctype="multipart/form-data" method="post" class="dg-portal-submit-form" data-dg-form="%s" data-testid="dg-form">',
 		esc_attr( $is_def ? 'definition' : 'legacy' )
 	);
 	printf( '<input type="hidden" name="post_id" value="%s" />', esc_attr( (string) $post_id ) );

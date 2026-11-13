@@ -196,7 +196,7 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 			$app_id = self::success_application_id( $result );
 
 			return sprintf(
-				'<div class="dg-submit-success" data-dg-submit-status="success" data-dg-app-id="%1$s"><p class="dg-public-eyebrow">%2$s</p><h2>%3$s</h2><p>%4$s</p><p class="dg-app-id">%5$s</p><p><a class="dg-public-submit" href="%6$s" data-dg-receipt-link>%7$s</a></p></div>',
+				'<div class="dg-submit-success" data-dg-submit-status="success" data-dg-app-id="%1$s" data-testid="dg-success"><p class="dg-public-eyebrow">%2$s</p><h2>%3$s</h2><p>%4$s</p><p class="dg-app-id">%5$s</p><p><a class="dg-public-submit" href="%6$s" data-dg-receipt-link>%7$s</a></p></div>',
 				esc_attr( $app_id ),
 				esc_html( self::SUCCESS_EYEBROW ),
 				esc_html( self::SUCCESS_HEADING ),
