@@ -1,7 +1,9 @@
 <?php
-function portal_applicant_information_shortcode() {
-	ob_start();
-	?>
+
+function portal_applicant_information_shortcode()
+{
+    ob_start();
+    ?>
 	<div class="portal-group">
 		<fieldset>
 			<legend>Your Information</legend>
@@ -60,7 +62,8 @@ function portal_applicant_information_shortcode() {
 		</fieldset>
 	</div>
 	<?php
+
 	return ob_get_clean();
 }
 
-add_shortcode( 'portal-applicant-information', 'portal_applicant_information_shortcode' );
+add_shortcode('portal-applicant-information', 'portal_applicant_information_shortcode');

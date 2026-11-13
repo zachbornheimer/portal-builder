@@ -27,15 +27,23 @@
 	} = $props();
 
 	let controlId = $derived(id || `dg-check-${name || label || 'box'}`);
+	let inputEl = $state(null);
+
+	$effect(() => {
+		if (inputEl) inputEl.checked = Boolean(checked);
+	});
 </script>
 
 <div class={rowClass}>
 	<input
 		type="checkbox"
 		id={controlId}
+		bind:this={inputEl}
 		{name}
 		{value}
-		{checked}
+		checked={Boolean(checked)}
+		data-on={checked ? 'true' : 'false'}
+		aria-checked={checked ? 'true' : 'false'}
 		{required}
 		{onchange}
 	/>

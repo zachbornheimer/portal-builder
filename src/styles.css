@@ -1240,7 +1240,9 @@ select.dg-input {
 	cursor: pointer;
 }
 
-.dg-check-row input[type='checkbox']:checked {
+.dg-check-row input[type='checkbox']:checked,
+#wpbody-content .dg-wizard .dg-check-row input[type='checkbox']:checked,
+#wpbody-content .dg-wizard .dg-check-row input[type='checkbox'][data-on='true'] {
 	background-color: var(--ember);
 	border-color: var(--ember);
 	background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none'><path d='M2.2 6.2 4.8 8.7 9.8 3.3' stroke='%23FCFBF6' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/></svg>");
@@ -1248,7 +1250,10 @@ select.dg-input {
 
 .dg-check-row input[type='radio']:checked,
 .dg-check-row [role='radio'][data-state='checked'],
-.dg-check-row .dg-radio[data-state='checked'] {
+.dg-check-row .dg-radio[data-state='checked'],
+#wpbody-content .dg-wizard .dg-check-row [role='radio'][data-state='checked'],
+#wpbody-content .dg-wizard .dg-check-row .dg-radio[data-state='checked'],
+#wpbody-content .dg-wizard .dg-check-row [data-state='checked'].dg-radio {
 	background-color: var(--ember);
 	border-color: var(--ember);
 	background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'><circle cx='6' cy='6' r='3.2' fill='%23FCFBF6'/></svg>");
@@ -1278,5 +1283,108 @@ select.dg-input {
 .dg-checklist li[data-ok='true'] {
 	color: var(--ink);
 	font-weight: 500;
+}
+
+.dg-product-tabs {
+	display: flex;
+	gap: 4px;
+	margin: 0 0 22px;
+	border-bottom: 1px solid var(--rule);
+}
+
+.dg-product-tabs-tab {
+	appearance: none;
+	background: transparent;
+	border: 0;
+	border-bottom: 2px solid transparent;
+	margin-bottom: -1px;
+	padding: 10px 14px;
+	font: inherit;
+	font-size: 14px;
+	color: var(--ink-600);
+	cursor: pointer;
+}
+
+.dg-product-tabs-tab[aria-current='page'] {
+	color: var(--ink);
+	border-bottom-color: var(--ember);
+	font-weight: 600;
+}
+
+.dg-product-tabs-tab:focus-visible {
+	outline: 2px solid var(--ember);
+	outline-offset: 2px;
+}
+
+.dg-overview {
+	display: grid;
+	gap: 14px;
+	max-width: 760px;
+}
+
+.dg-overview-lead {
+	margin: 0;
+	color: var(--ink-600);
+	font-size: 14px;
+}
+
+.dg-overview-card {
+	padding: 16px 18px;
+}
+
+.dg-overview-card-head {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 12px;
+	margin-bottom: 8px;
+}
+
+.dg-overview-card h2 {
+	margin: 0;
+	font-size: 15px;
+	font-weight: 600;
+}
+
+.dg-overview-change {
+	appearance: none;
+	background: transparent;
+	border: 0;
+	padding: 0;
+	color: var(--ember);
+	font: inherit;
+	font-size: 13px;
+	cursor: pointer;
+}
+
+.dg-overview-fact {
+	margin: 0 0 8px;
+	color: var(--ink);
+	font-size: 15px;
+	line-height: 1.45;
+}
+
+.dg-overview-rows {
+	display: grid;
+	gap: 8px;
+	margin: 0;
+}
+
+.dg-overview-rows div {
+	display: grid;
+	grid-template-columns: 7.5rem 1fr;
+	gap: 12px;
+}
+
+.dg-overview-rows dt {
+	margin: 0;
+	color: var(--ink-400);
+	font-size: 13px;
+}
+
+.dg-overview-rows dd {
+	margin: 0;
+	color: var(--ink);
+	font-size: 14px;
 }
 

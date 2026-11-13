@@ -3,50 +3,50 @@
  * Assert Local/CI harness config is coherent before e2e.
  * Exit 0 only when required paths, symlink target, fixtures, and baseUrl respond.
  */
-import fs from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 const HTTP_OK_MIN = 200;
 const HTTP_REDIRECT_MAX = 399;
 
 const REQUIRED_KEYS = [
-  'baseUrl',
-  'pluginPath',
-  'pluginMustResolveTo',
-  'artifactDir',
-  'useMocks',
+  "baseUrl",
+  "pluginPath",
+  "pluginMustResolveTo",
+  "artifactDir",
+  "useMocks",
 ];
 
 /** Fixture paths relative to repo root that every e2e suite may depend on. */
 const REQUIRED_FIXTURES = [
-  'tests/fixtures/portals/herbolzheimer.definition.json',
-  'tests/fixtures/files/sample-score.pdf',
-  'tests/fixtures/files/sample-recording.mp3',
+  "tests/fixtures/portals/herbolzheimer.definition.json",
+  "tests/fixtures/files/sample-score.pdf",
+  "tests/fixtures/files/sample-recording.mp3",
 ];
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const repoRoot = path.resolve(__dirname, '../..');
-const localPath = path.join(__dirname, 'env.local.json');
-const examplePath = path.join(__dirname, 'env.example.json');
+const repoRoot = path.resolve(__dirname, "../..");
+const localPath = path.join(__dirname, "env.local.json");
+const examplePath = path.join(__dirname, "env.example.json");
 
 function fail(msg) {
-  console.error('assert-env FAIL:', msg);
+  console.error("assert-env FAIL:", msg);
   process.exit(1);
 }
 
 function ok(msg) {
-  console.log('assert-env OK:', msg);
+  console.log("assert-env OK:", msg);
 }
 
 function loadConfig() {
   const cfgPath = fs.existsSync(localPath) ? localPath : examplePath;
   if (!fs.existsSync(cfgPath)) {
-    fail('missing env.example.json — copy env.example.json to env.local.json');
+    fail("missing env.example.json — copy env.example.json to env.local.json");
   }
   let cfg;
   try {
-    cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf8'));
+    cfg = JSON.parse(fs.readFileSync(cfgPath, "utf8"));
   } catch (e) {
     fail(`invalid JSON in ${cfgPath}: ${e.message}`);
   }
@@ -55,7 +55,7 @@ function loadConfig() {
 
 function assertRequiredKeys(cfg) {
   for (const key of REQUIRED_KEYS) {
-    if (cfg[key] === undefined || cfg[key] === '') {
+    if (cfg[key] === undefined || cfg[key] === "") {
       fail(`missing key ${key}`);
     }
   }
@@ -95,11 +95,11 @@ function assertPluginSymlink(cfg, realRepo) {
   }
   ok(`plugin symlink → ${realPlugin}`);
 
-  const portalPhp = path.join(realPlugin, 'portal-builder.php');
+  const portalPhp = path.join(realPlugin, "portal-builder.php");
   if (!fs.existsSync(portalPhp)) {
-    fail('portal-builder.php missing in plugin');
+    fail("portal-builder.php missing in plugin");
   }
-  ok('portal-builder.php present');
+  ok("portal-builder.php present");
   return realPlugin;
 }
 
@@ -113,7 +113,7 @@ function assertFixtures() {
   ok(`fixtures (${REQUIRED_FIXTURES.length} required paths)`);
 }
 
-const TEST_MODE_MARKER = '.dg-test-mode';
+const TEST_MODE_MARKER = ".dg-test-mode";
 
 function ensureArtifactDir(cfg) {
   const artifactDir = path.isAbsolute(cfg.artifactDir)
@@ -124,8 +124,8 @@ function ensureArtifactDir(cfg) {
   if (cfg.useMocks === true) {
     fs.writeFileSync(
       path.join(artifactDir, TEST_MODE_MARKER),
-      'enabled-by-assert-env\n',
-      'utf8',
+      "enabled-by-assert-env\n",
+      "utf8",
     );
   }
   ok(`artifactDir ${artifactDir}`);
@@ -133,10 +133,10 @@ function ensureArtifactDir(cfg) {
 }
 
 async function assertBaseUrl(cfg) {
-  const base = cfg.baseUrl.replace(/\/$/, '');
+  const base = cfg.baseUrl.replace(/\/$/, "");
   let res;
   try {
-    res = await fetch(`${base}/`, { method: 'GET', redirect: 'manual' });
+    res = await fetch(`${base}/`, { method: "GET", redirect: "manual" });
   } catch (e) {
     fail(`baseUrl unreachable: ${e.message}`);
   }
@@ -149,7 +149,7 @@ async function assertBaseUrl(cfg) {
 
 function assertMockFlag(cfg) {
   if (cfg.useMocks !== true && cfg.useMocks !== false) {
-    fail('useMocks must be boolean');
+    fail("useMocks must be boolean");
   }
   ok(`useMocks=${cfg.useMocks}`);
 }

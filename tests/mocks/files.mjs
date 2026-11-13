@@ -2,8 +2,8 @@
  * Filesystem facade for mock stores.
  * Inject in tests; production mocks use node:fs defaults.
  */
-import fs from 'node:fs';
-import path from 'node:path';
+import fs from "node:fs";
+import path from "node:path";
 
 /**
  * @typedef {object} Files
@@ -17,24 +17,24 @@ import path from 'node:path';
 
 /** @type {Files} */
 export const nodeFiles = {
-	mkdir(p, opts) {
-		fs.mkdirSync(p, opts);
-	},
-	write(p, data) {
-		fs.writeFileSync(p, data);
-	},
-	append(p, data) {
-		fs.appendFileSync(p, data);
-	},
-	readText(p, encoding) {
-		return fs.readFileSync(p, encoding);
-	},
-	exists(p) {
-		return fs.existsSync(p);
-	},
-	remove(p) {
-		fs.rmSync(p, { force: true, recursive: true });
-	},
+  mkdir(p, opts) {
+    fs.mkdirSync(p, opts);
+  },
+  write(p, data) {
+    fs.writeFileSync(p, data);
+  },
+  append(p, data) {
+    fs.appendFileSync(p, data);
+  },
+  readText(p, encoding) {
+    return fs.readFileSync(p, encoding);
+  },
+  exists(p) {
+    return fs.existsSync(p);
+  },
+  remove(p) {
+    fs.rmSync(p, { force: true, recursive: true });
+  },
 };
 
 /**
@@ -42,7 +42,7 @@ export const nodeFiles = {
  * @returns {string}
  */
 export function joinPath(...parts) {
-	return path.join(...parts);
+  return path.join(...parts);
 }
 
 /**
@@ -50,5 +50,5 @@ export function joinPath(...parts) {
  * @returns {string}
  */
 export function dirnameOf(p) {
-	return path.dirname(p);
+  return path.dirname(p);
 }

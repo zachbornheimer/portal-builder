@@ -1,26 +1,25 @@
 <?php
 
-if ( ! class_exists( 'Portal_Builder' ) ) {
+if (!class_exists('Portal_Builder')) {
+    class Portal_Builder
+    {
+        public function init()
+        {
+            // Initialize custom post type
+            $portal_post_type = new Portal_Post_Type();
+            $portal_post_type->register_post_type();
 
-	class Portal_Builder {
+            // Initialize settings page
+            $portal_settings = new Portal_Settings();
+            $portal_settings->init();
 
-		public function init() {
-			// Initialize custom post type
-			$portal_post_type = new Portal_Post_Type();
-			$portal_post_type->register_post_type();
+            // Initialize portal meta
+            $portal_meta = new Portal_Meta();
+            $portal_meta->init();
 
-			// Initialize settings page
-			$portal_settings = new Portal_Settings();
-			$portal_settings->init();
-
-			// Initialize portal meta
-			$portal_meta = new Portal_Meta();
-			$portal_meta->init();
-
-			// Initialize about page
-			$portal_about = new Portal_About();
-			$portal_about->init();
-		}
-	}
-
+            // Initialize about page
+            $portal_about = new Portal_About();
+            $portal_about->init();
+        }
+    }
 }
