@@ -139,6 +139,13 @@ if ( ! class_exists( 'Portal_Meta' ) ) {
 						echo '</div>';
 						break;
 
+					case 'text':
+						echo '<div class="form-group">';
+						echo '<label for="' . esc_attr( $field['id'] ) . '">' . $label . '</label>';
+						echo '<input type="text" id="' . esc_attr( $field['id'] ) . '" name="' . esc_attr( $field['id'] ) . '" class="form-control" value="' . esc_attr( $meta_value ) . '" placeholder="' . $placeholder . '" />';
+						echo '</div>';
+						break;
+
 					case 'textarea':
 						echo '<div class="form-group">';
 						echo '<label for="' . esc_attr( $field['id'] ) . '">' . $label . '</label>';

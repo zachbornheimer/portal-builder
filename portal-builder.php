@@ -35,6 +35,7 @@ require_once plugin_dir_path( __FILE__ ) . 'includes/class-portal-builder.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-portal-post-type.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-portal-settings.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-portal-meta.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-notification-when.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-portal-submission.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-portal-file-handler.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-data-table.php';
@@ -199,9 +200,24 @@ function pb_register_meta_boxes( $portal_meta ) {
 				'type'  => 'number',
 			),
 			array(
+				'id'      => '_portal_applicant_notification_kind',
+				'label'   => 'Applicant notification',
+				'type'    => 'select',
+				'options' => array(
+					'date'   => 'On or before a date',
+					'window' => 'A general time',
+				),
+			),
+			array(
 				'id'    => '_portal_applicant_notification_date',
-				'label' => 'Applicant Notification Date',
+				'label' => 'Applicant notification date',
 				'type'  => 'date',
+			),
+			array(
+				'id'          => '_portal_applicant_notification_window',
+				'label'       => 'General time',
+				'type'        => 'text',
+				'placeholder' => 'mid-December',
 			),
 			array(
 				'id'          => '_portal_county_region_script',
@@ -373,11 +389,8 @@ function handle_submissions() {
 
 			$definition_submit = pb_try_definition_submission( $_POST, $stored_file_paths );
 			if ( is_array( $definition_submit ) && ! empty( $definition_submit['ok'] ) ) {
-				$raw_notification_date = get_post_meta( $_POST['post_id'], '_portal_applicant_notification_date', true );
-				$application_notification_date = $raw_notification_date
-					? date( 'l, F j, Y', strtotime( $raw_notification_date ) )
-					: '';
-				$receipt = ! empty( $definition_submit['mailPath'] ) ? $definition_submit['mailPath'] : '';
+				$application_notification_date = Portal_Notification_When::phrase( $_POST['post_id'] );
+				$receipt                       = ! empty( $definition_submit['mailPath'] ) ? $definition_submit['mailPath'] : '';
 				Portal_Submission_Pipeline::finish_public_submit( true, $receipt, $application_notification_date );
 			} else {
 				Portal_Submission_Pipeline::record_not_configured();
@@ -624,8 +637,9 @@ function pb_reviewable_content_filter( $c ) {
 function pb_post_submitted_content_filter( $c ) {
 	// Load the submitted data
 
+	$phrase   = defined( 'PB_APPLICATION_NOTIFICATION_DATE' ) ? PB_APPLICATION_NOTIFICATION_DATE : '';
 	$content  = '<div class="entry-content alignfull wp-block-post-content has-global-padding is-layout-constrained wp-block-post-content-is-layout-constrained">';
-	$content .= 'Your application has been submitted successfully! Submissions will be reviewed shortly and official notification of acceptance will be made ' . PB_APPLICATION_NOTIFICATION_DATE . '.';
+	$content .= Portal_Notification_When::success_copy( $phrase );
 	$content .= sprintf( '<br /><br/><a href="%s" target="_new">Click here to view the details of your application. Please print / save this for your records.</a>', PB_RECEIPT_LINK );
 	$content .= '</div>';
 
