@@ -3,11 +3,14 @@
     "version": "1.0.0",
     "description": "WordPress plugin for portal building",
     "type": "module",
+    "engines": {
+        "node": ">=20"
+    },
     "scripts": {
         "build": "vite build",
         "dev": "vite build --watch",
         "test:env": "node tests/config/assert-env.mjs",
-        "test:unit": "node --test tests/unit/**/*.test.mjs 2>/dev/null || node --test tests/unit/*.test.mjs",
+        "test:unit": "node --test 'tests/unit/**/*.test.mjs'",
         "test:mocks": "node tests/mocks/selftest.mjs",
         "test:e2e": "playwright test",
         "test:e2e:smoke": "playwright test e2e/smoke.spec.ts",
@@ -17,6 +20,7 @@
         "test:seed": "node tests/support/seed.mjs",
         "test:cleanup": "node tests/support/cleanup.mjs",
         "test:import": "node tests/support/run-import-tests.mjs",
+        "ci:offline": "npm run test:mocks && npm run test:unit",
         "ci": "npm run test:env && npm run test:mocks && npm run test:unit && npm run test:e2e:smoke"
     },
     "devDependencies": {

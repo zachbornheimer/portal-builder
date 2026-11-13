@@ -2,6 +2,11 @@ import { defineConfig, devices } from '@playwright/test';
 import fs from 'node:fs';
 import path from 'node:path';
 
+/** LocalWP cold pages often take 30–60s; suite steps need headroom. */
+const TEST_TIMEOUT_MS = 180_000;
+const ACTION_TIMEOUT_MS = 60_000;
+const NAVIGATION_TIMEOUT_MS = 90_000;
+
 const envPath = path.join('tests/config/env.local.json');
 const examplePath = path.join('tests/config/env.example.json');
 const cfg = JSON.parse(
@@ -19,6 +24,8 @@ export default defineConfig({
 		baseURL: cfg.baseUrl,
 		trace: 'on-first-retry',
 		screenshot: 'only-on-failure',
+		actionTimeout: ACTION_TIMEOUT_MS,
+		navigationTimeout: NAVIGATION_TIMEOUT_MS,
 	},
 	projects: [
 		{
@@ -26,5 +33,5 @@ export default defineConfig({
 			use: { ...devices['Desktop Chrome'] },
 		},
 	],
-	timeout: 90_000,
+	timeout: TEST_TIMEOUT_MS,
 });
