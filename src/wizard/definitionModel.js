@@ -25,6 +25,7 @@ export const DEFAULT_TIMEZONE = 'America/New_York';
 export const BUILTIN_ANONYMIZE_ENDPOINT = 'https://api.allintersections.com';
 export const BUILTIN_ANONYMIZE_ACK =
 	'I certify that my scores and recordings exclude any information that might identify the composer but do include title of work, instrumentation, and duration.';
+export const BUILTIN_GUIDELINES_LINK_LABEL = 'Link to Guidelines';
 
 /**
  * Dual-write enabled / forceClosed. enabled wins when both are present.
@@ -134,6 +135,7 @@ export function defaultOptions() {
 		anonymize: null,
 		skipHeader: false,
 		guidelinesUrl: null,
+		guidelinesLinkLabel: null,
 		applicantNotificationDate: null,
 		freeForMembers: null,
 		freeMembershipPlanIds: [],
@@ -1242,6 +1244,7 @@ export function normalizeLoaded(raw, fallbackTitle = 'Portal') {
 			anonymizeApiKey: emptyToNull(incoming.anonymizeApiKey),
 			anonymizeAck: emptyToNull(incoming.anonymizeAck),
 			guidelinesUrl: emptyToNull(incoming.guidelinesUrl),
+			guidelinesLinkLabel: emptyToNull(incoming.guidelinesLinkLabel),
 			freeMembershipPlanIds: Array.isArray(incoming.freeMembershipPlanIds)
 				? incoming.freeMembershipPlanIds
 				: [],

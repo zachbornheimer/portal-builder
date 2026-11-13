@@ -47,6 +47,7 @@ Thumbs.db
 !.gitignore
 !.gitattributes
 !.github
+!site/.gitignore
 
 # Ignore files related to linting, code style checks, and code quality, but keep phpcs.xml
 /.phpcs.cache
