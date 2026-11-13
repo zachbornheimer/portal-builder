@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Privacy — DragonGate Portals</title>
+	<meta name="description" content="Waitlist email is stored to send launch notes. We do not sell it. Plugin application data stays on the host’s Google.">
+	<link rel="icon" href="/icon.svg" type="image/svg+xml">
+	<link rel="preconnect" href="https://fonts.bunny.net">
+	<link rel="stylesheet" href="https://fonts.bunny.net/css?family=fraunces:500,600,700|ibm-plex-mono:400,500|inter:400,500,600&display=swap">
+	<link rel="stylesheet" href="/css/tokens.css">
+	<link rel="stylesheet" href="/css/site.css">
+</head>
+<body>
+	<a class="skip" href="#main">Skip to content</a>
+	<header class="site-header">
+		<div class="frame site-header-inner">
+			<a class="wordmark" href="/">
+				<img src="/icon.svg" width="36" height="36" alt="">
+				DragonGate Portals
+			</a>
+			<nav class="nav" aria-label="Primary">
+				<a href="/product">Product</a>
+				<a href="/features">Features</a>
+				<a href="/hosts">Hosts</a>
+				<a href="/about">About</a>
+				<a class="nav-join" href="/waitlist">Join the list</a>
+			</nav>
+		</div>
+	</header>
+
+	<main id="main" class="page">
+		<div class="frame prose">
+			<p class="eyebrow">Privacy</p>
+			<h1>What we store, and what we don’t</h1>
+			<p class="page-lede">This site is a waitlist. The plugin is a different machine, and it keeps application data on the host’s Google.</p>
+
+			<h2>This website</h2>
+			<p>If you join the list, we store your email, the time you joined, and the user-agent on the request. That record exists so we can send launch notes when DragonGate Portals is ready. We do not sell the list. We do not hand it to a third-party mail service yet — the list lives in our Cloudflare KV until it does.</p>
+			<p>The same address twice is the same record. We do not grow a pile of duplicates.</p>
+
+			<h2>The plugin</h2>
+			<p>When a festival or conservatory runs DragonGate Portals on their WordPress site, application files and rows go to <em>that host’s</em> Google Drive and Sheets, under OAuth scopes they approve. DragonGate does not take a copy of those packets for itself. Reviewer access is the host’s WordPress roles plus the Google they already use.</p>
+			<p>Questions: <a href="https://zysys.org">zysys.org</a>.</p>
+		</div>
+	</main>
+
+	<footer class="site-footer">
+		<div class="frame site-footer-inner">
+			<nav aria-label="Footer">
+				<a href="/product">Product</a>
+				<a href="/features">Features</a>
+				<a href="/hosts">Hosts</a>
+				<a href="/about">About</a>
+				<a href="/privacy">Privacy</a>
+				<a href="/waitlist">Waitlist</a>
+			</nav>
+			<p class="legal">© 2026 DragonGate Portals · ZYSYS</p>
+		</div>
+	</footer>
+</body>
+</html>
