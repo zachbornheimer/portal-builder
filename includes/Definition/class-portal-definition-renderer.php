@@ -61,7 +61,7 @@ if ( ! class_exists( 'Portal_Definition_Renderer' ) ) {
 			$inner .= self::render_anonymize_ack_if_needed( $definition, $site );
 
 			return sprintf(
-				'<div class="%1$s" %2$s="%3$s">%4$s</div>',
+				'<div class="%1$s" %2$s="%3$s" data-dg-form data-testid="dg-form">%4$s</div>',
 				esc_attr( self::ROOT_CLASS ),
 				esc_attr( self::ROOT_ATTR ),
 				esc_attr( self::ROOT_VALUE ),
@@ -120,7 +120,7 @@ if ( ! class_exists( 'Portal_Definition_Renderer' ) ) {
 			$id   = 'anonymize_ack';
 			$name = self::input_name( $id ); // sub_anonymize_ack
 			return sprintf(
-				'<div class="dg-field dg-field--disclaimer full-span" data-dg-field-id="%1$s" data-dg-field-type="disclaimer"><label class="dg-check" for="%2$s"><input type="checkbox" id="%2$s" name="%2$s" value="1" required aria-required="true" /><span>%3$s</span></label></div>',
+				'<div class="dg-field dg-field--disclaimer full-span" data-dg-field-id="%1$s" data-dg-field-type="disclaimer" data-testid="dg-field-%1$s"><label class="dg-check" for="%2$s"><input type="checkbox" id="%2$s" name="%2$s" value="1" required aria-required="true" /><span>%3$s</span></label></div>',
 				esc_attr( $id ),
 				esc_attr( $name ),
 				esc_html( $label )
@@ -205,7 +205,7 @@ if ( ! class_exists( 'Portal_Definition_Renderer' ) ) {
 
 			ob_start();
 			?>
-			<div class="dg-field dg-field--applicant_pack dg-section" data-dg-field-id="<?php echo esc_attr( $field['id'] ); ?>" data-dg-field-type="applicant_pack">
+			<div class="dg-field dg-field--applicant_pack dg-section" data-dg-field-id="<?php echo esc_attr( $field['id'] ); ?>" data-dg-field-type="applicant_pack" data-testid="dg-field-<?php echo esc_attr( $field['id'] ); ?>">
 				<fieldset>
 					<legend><?php echo esc_html( $label ); ?></legend>
 					<div class="dg-grid dg-grid-title-name">
@@ -272,7 +272,7 @@ if ( ! class_exists( 'Portal_Definition_Renderer' ) ) {
 			$inner    = self::render_fields( $children );
 
 			return sprintf(
-				'<div class="dg-field dg-field--group dg-section" data-dg-field-id="%1$s" data-dg-field-type="group"><fieldset><legend>%2$s</legend><div class="dg-stack">%3$s</div></fieldset></div>',
+				'<div class="dg-field dg-field--group dg-section" data-dg-field-id="%1$s" data-dg-field-type="group" data-testid="dg-field-%1$s"><fieldset><legend>%2$s</legend><div class="dg-stack">%3$s</div></fieldset></div>',
 				esc_attr( $field['id'] ),
 				esc_html( $label ),
 				$inner
@@ -319,7 +319,7 @@ if ( ! class_exists( 'Portal_Definition_Renderer' ) ) {
 			}
 
 			return sprintf(
-				'<div class="dg-field dg-field--branch" data-dg-field-id="%1$s" data-dg-field-type="branch"><fieldset><legend>%2$s</legend><div class="dg-choice-list">%3$s</div>%4$s</fieldset></div>',
+				'<div class="dg-field dg-field--branch" data-dg-field-id="%1$s" data-dg-field-type="branch" data-testid="dg-field-%1$s"><fieldset><legend>%2$s</legend><div class="dg-choice-list">%3$s</div>%4$s</fieldset></div>',
 				esc_attr( $field['id'] ),
 				esc_html( $label ),
 				$options_html,
@@ -346,7 +346,7 @@ if ( ! class_exists( 'Portal_Definition_Renderer' ) ) {
 			$req_mark = ! empty( $field['required'] ) ? self::required_mark_html() : '';
 
 			return sprintf(
-				'<div class="dg-field dg-field--%1$s" data-dg-field-id="%2$s" data-dg-field-type="%1$s"><label for="%3$s">%4$s%5$s%6$s</label><input class="dg-control" type="%7$s" id="%3$s" name="%3$s"%8$s /></div>',
+				'<div class="dg-field dg-field--%1$s" data-dg-field-id="%2$s" data-dg-field-type="%1$s" data-testid="dg-field-%2$s"><label for="%3$s">%4$s%5$s%6$s</label><input class="dg-control" type="%7$s" id="%3$s" name="%3$s"%8$s /></div>',
 				esc_attr( $field['type'] ),
 				esc_attr( $field['id'] ),
 				esc_attr( $name ),
@@ -371,7 +371,7 @@ if ( ! class_exists( 'Portal_Definition_Renderer' ) ) {
 			$req_mark = ! empty( $field['required'] ) ? self::required_mark_html() : '';
 
 			return sprintf(
-				'<div class="dg-field dg-field--long_text full-span" data-dg-field-id="%1$s" data-dg-field-type="long_text"><label for="%2$s">%3$s%4$s%5$s</label><textarea class="dg-control" id="%2$s" name="%2$s" rows="5"%6$s></textarea></div>',
+				'<div class="dg-field dg-field--long_text full-span" data-dg-field-id="%1$s" data-dg-field-type="long_text" data-testid="dg-field-%1$s"><label for="%2$s">%3$s%4$s%5$s</label><textarea class="dg-control" id="%2$s" name="%2$s" rows="5"%6$s></textarea></div>',
 				esc_attr( $field['id'] ),
 				esc_attr( $name ),
 				esc_html( $label ),
@@ -405,7 +405,7 @@ if ( ! class_exists( 'Portal_Definition_Renderer' ) ) {
 			$error_label   = self::translate( 'Open the file to confirm it isn’t corrupt.' );
 
 			return sprintf(
-				'<div class="dg-field dg-field--%1$s dg-file is-empty" data-dg-field-id="%2$s" data-dg-field-type="%1$s"><div class="dg-file-spec"><label class="dg-field-label" for="%3$s">%4$s%5$s</label><span class="dg-file-hint">%6$s</span></div><div class="dg-file-body"><div class="dg-file-pick"><input type="file" class="dg-file-input" id="%3$s" name="%3$s"%7$s%8$s /><input type="hidden" name="%16$s" value="" data-dg-file-staged /><span class="dg-file-empty">%9$s</span><span class="dg-file-ready"><span class="dg-file-icon" aria-hidden="true">%10$s</span><span class="dg-file-meta"><span class="dg-file-name" data-dg-file-name></span><span class="dg-file-size"><span data-dg-file-size></span><span class="dg-file-size-sep" data-dg-file-sep hidden> · </span><span data-dg-file-original></span></span></span></span><div class="dg-file-progress" data-dg-file-progress hidden><div class="dg-file-progress-bar" data-dg-file-progress-bar></div></div><p class="dg-file-status" data-dg-file-status hidden></p></div><div class="dg-file-confirm"><button type="button" class="dg-file-open" data-dg-file-open data-label-idle="%11$s" data-label-opened="%17$s">%11$s</button><span class="dg-file-confirm-copy" data-dg-file-confirm-copy data-idle="%12$s" data-ready="%13$s">%12$s</span><button type="button" class="dg-file-swap" data-dg-file-swap>%14$s</button></div><p class="dg-file-error" role="alert">%15$s</p></div></div>',
+				'<div class="dg-field dg-field--%1$s dg-file is-empty" data-dg-field-id="%2$s" data-dg-field-type="%1$s" data-testid="dg-field-%2$s"><div class="dg-file-spec"><label class="dg-field-label" for="%3$s">%4$s%5$s</label><span class="dg-file-hint">%6$s</span></div><div class="dg-file-body"><div class="dg-file-pick"><input type="file" class="dg-file-input" id="%3$s" name="%3$s"%7$s%8$s /><input type="hidden" name="%16$s" value="" data-dg-file-staged /><span class="dg-file-empty">%9$s</span><span class="dg-file-ready"><span class="dg-file-icon" aria-hidden="true">%10$s</span><span class="dg-file-meta"><span class="dg-file-name" data-dg-file-name></span><span class="dg-file-size"><span data-dg-file-size></span><span class="dg-file-size-sep" data-dg-file-sep hidden> · </span><span data-dg-file-original></span></span></span></span><div class="dg-file-progress" data-dg-file-progress hidden><div class="dg-file-progress-bar" data-dg-file-progress-bar></div></div><p class="dg-file-status" data-dg-file-status hidden></p></div><div class="dg-file-confirm"><button type="button" class="dg-file-open" data-dg-file-open data-testid="dg-file-open-%2$s" data-label-idle="%11$s" data-label-opened="%17$s">%11$s</button><span class="dg-file-confirm-copy" data-dg-file-confirm-copy data-idle="%12$s" data-ready="%13$s">%12$s</span><button type="button" class="dg-file-swap" data-dg-file-swap>%14$s</button></div><p class="dg-file-error" role="alert">%15$s</p></div></div>',
 				esc_attr( $field['type'] ),
 				esc_attr( $field['id'] ),
 				esc_attr( $name ),
@@ -437,7 +437,7 @@ if ( ! class_exists( 'Portal_Definition_Renderer' ) ) {
 			$req   = ! empty( $field['required'] ) ? ' required aria-required="true"' : '';
 
 			return sprintf(
-				'<div class="dg-field dg-field--disclaimer full-span" data-dg-field-id="%1$s" data-dg-field-type="disclaimer"><label class="dg-check" for="%2$s"><input type="checkbox" id="%2$s" name="%2$s" value="1"%3$s /><span>%4$s</span></label>%5$s</div>',
+				'<div class="dg-field dg-field--disclaimer full-span" data-dg-field-id="%1$s" data-dg-field-type="disclaimer" data-testid="dg-field-%1$s"><label class="dg-check" for="%2$s"><input type="checkbox" id="%2$s" name="%2$s" value="1"%3$s /><span>%4$s</span></label>%5$s</div>',
 				esc_attr( $field['id'] ),
 				esc_attr( $name ),
 				$req,

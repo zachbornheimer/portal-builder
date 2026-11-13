@@ -188,6 +188,7 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 					. $errors_html
 					. self::render_applicant_packets( $post_id )
 					. Portal_Definition_Renderer::render( $definition, $site )
+					. self::preview_root_markup()
 					. self::render_spam_widget( $definition )
 				);
 			}
@@ -445,7 +446,7 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 		 */
 		public static function render_submit_control() {
 			return sprintf(
-				'<p class="dg-actions sub_submit_container"><button class="dg-public-submit" name="sub_submit" type="submit">%s</button></p>',
+				'<p class="dg-actions sub_submit_container"><button class="dg-public-submit" name="sub_submit" type="submit" data-testid="dg-submit">%s</button></p>',
 				esc_html__( 'Submit application', 'dragongate-portals' )
 			);
 		}
@@ -645,6 +646,15 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 		}
 
 		/**
+		 * Mount point for the public Bits file-confirm island.
+		 *
+		 * @return string
+		 */
+		public static function preview_root_markup() {
+			return '<div data-dg-preview-root></div>';
+		}
+
+		/**
 		 * Turnstile widget for anyone-audience portals when a site key is set.
 		 *
 		 * @param array $definition Definition.
@@ -708,7 +718,7 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 				return '';
 			}
 			return sprintf(
-				'<div class="dg-turnstile" data-dg-spam-gate="turnstile"><div class="cf-turnstile" data-sitekey="%1$s" role="group" aria-label="%2$s"></div><script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script></div>',
+				'<div class="dg-turnstile" data-dg-spam-gate="turnstile" data-testid="dg-turnstile"><div class="cf-turnstile" data-sitekey="%1$s" role="group" aria-label="%2$s"></div><script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script></div>',
 				esc_attr( $key ),
 				esc_attr( 'Spam check' )
 			);
@@ -771,10 +781,18 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 				self::asset_version( $plugin_dir . '/assets/file-preview.js' ),
 				true
 			);
+			wp_enqueue_script(
+				'dg-public-preview',
+				plugins_url( 'assets/dist/dragongate-public.js', $plugin_file ),
+				array(),
+				self::asset_version( $plugin_dir . '/assets/dist/dragongate-public.js' ),
+				true
+			);
 			add_filter(
 				'script_loader_tag',
 				static function ( $tag, $handle ) {
-					if ( 'dg-file-preview' === $handle && false === strpos( $tag, 'type=' ) ) {
+					$modules = array( 'dg-file-preview', 'dg-public-preview' );
+					if ( in_array( $handle, $modules, true ) && false === strpos( $tag, 'type=' ) ) {
 						return str_replace( '<script ', '<script type="module" ', $tag );
 					}
 					return $tag;
@@ -785,7 +803,7 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 			wp_enqueue_script(
 				'dg-definition-form',
 				plugins_url( 'assets/definition-form.js', $plugin_file ),
-				array( 'dg-file-preview' ),
+				array( 'dg-file-preview', 'dg-public-preview' ),
 				self::asset_version( $plugin_dir . '/assets/definition-form.js' ),
 				true
 			);

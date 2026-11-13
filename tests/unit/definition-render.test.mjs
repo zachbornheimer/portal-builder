@@ -118,7 +118,9 @@ test('definition-form.js stages via XHR and writes the staged token', () => {
 	assert.match(js, /markOpened/);
 	assert.match(js, /data-label-opened/);
 	assert.match(js, /Remove the upload/);
-	assert.match(js, /role=["']dialog["']|dg-file-preview/);
+	assert.match(js, /proveReadable/);
+	assert.match(js, /globalThis\.DGPreview\.open/);
+	assert.doesNotMatch(js, /PREVIEW_DIALOG_ID|ensurePreviewDialog/);
 	assert.match(js, /Submitting/);
 	assert.match(js, /dg-submit-spinner/);
 	assert.doesNotMatch(js, /Working…/);

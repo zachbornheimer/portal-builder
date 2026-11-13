@@ -874,14 +874,18 @@ body.single-portal button.dg-file-open:focus-visible {
 }
 
 .dg-file-preview-backdrop {
-  position: absolute;
+  position: fixed;
   inset: 0;
+  z-index: 40;
   background: color-mix(in srgb, var(--ink) 45%, transparent);
 }
 
 .dg-file-preview-panel {
-  position: relative;
-  z-index: 1;
+  position: fixed;
+  z-index: 41;
+  inset: 0;
+  margin: auto;
+  height: fit-content;
   display: flex;
   flex-direction: column;
   width: min(52rem, calc(100vw - 2rem));
