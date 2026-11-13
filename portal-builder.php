@@ -53,6 +53,7 @@ require_once plugin_dir_path( __FILE__ ) . 'includes/class-portal-about.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/Definition/class-portal-definition.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/Definition/class-portal-definition-renderer.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/Definition/class-portal-open-state.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/Definition/class-portal-access.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/Definition/class-portal-public-render.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-files.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-test-mode.php';
@@ -61,8 +62,10 @@ require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-dri
 require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-mailer.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-submission-field-rules.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-submission-validator.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-submission-selections.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/Submission/class-portal-submission-pipeline.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-portal-definition-rest.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/class-portal-setup-screen.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/templates.php';
 require_once plugin_dir_path( __FILE__ ) . 'gsuite-filestore/zysys-file-store.class.php';
 
@@ -421,7 +424,7 @@ function pb_try_definition_submission( $post_values, $stored_file_paths ) {
 	if ( is_wp_error( $result ) ) {
 		// Validation failures should surface; other "not ready" codes fall back.
 		$code = $result->get_error_code();
-		if ( 'dg_submission_invalid' === $code || 'dg_submission_file_read' === $code ) {
+		if ( 'dg_submission_invalid' === $code || 'dg_submission_file_read' === $code || 'dg_submission_forbidden' === $code ) {
 			throw new Exception( $result->get_error_message() );
 		}
 		return false;

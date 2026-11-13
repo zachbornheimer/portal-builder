@@ -19,6 +19,7 @@
 | `npm run test:e2e:admin` | Admin CRUD + definition specs |
 | `npm run test:e2e:public` | Public form + closed/preview |
 | `npm run test:e2e:pipeline` | Submit → mock sheet/drive/mail |
+| `npm run test:e2e:video` | Film the public submit (`--project=filmed`). Video: `tests/.artifacts/videos/last-public-submit.webm`. Needs LocalWP + test mode (option `dg_test_mode`, env `DG_TEST_MODE`, or marker `tests/.artifacts/.dg-test-mode` on the plugin realpath). |
 | `npm run test:seed` | Create one `dg-e2e-*` portal (CLI) |
 | `npm run test:cleanup` | Remove all `dg-e2e-*` portals (+ registry) |
 | `npm run test:import` | Importer fixture match (Phase 6) |

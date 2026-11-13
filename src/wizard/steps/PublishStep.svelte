@@ -1,0 +1,503 @@
+<script>
+	import {
+		countLeafFields,
+		flattenMappableFields,
+		normalizeAccess,
+	} from '../definitionModel.js';
+
+	/**
+	 * @typedef {Object} Props
+	 * @property {object} definition
+	 * @property {(d: object) => void} onChange
+	 * @property {() => void} onBack
+	 * @property {() => Promise<void>} onSaveDraft
+	 * @property {() => Promise<void>} onOpenGate
+	 * @property {string} saveState
+	 * @property {string} saveError
+	 * @property {string} applicantStatus
+	 * @property {string} publicUrl
+	 * @property {string} [listUrl]
+	 * @property {{ membershipPlans?: {id: string, name: string}[], profileFields?: {key: string, label: string}[] }} [accessCatalog]
+	 */
+
+	/** @type {Props} */
+	let {
+		definition,
+		onChange,
+		onBack,
+		onSaveDraft,
+		onOpenGate,
+		saveState,
+		saveError,
+		applicantStatus,
+		publicUrl,
+		listUrl = '',
+		accessCatalog = { membershipPlans: [], profileFields: [] },
+	} = $props();
+
+	let copyOk = $state(false);
+
+	const fieldCount = $derived(countLeafFields(definition?.fields || []));
+	const unmapped = $derived(
+		flattenMappableFields(definition?.fields || []).filter((f) => {
+			const dest = definition?.mapping?.fieldDest?.[f.id];
+			return !dest;
+		})
+	);
+
+	const publish = $derived(definition?.publish || {});
+	const options = $derived(definition?.options || {});
+	const access = $derived(normalizeAccess(definition?.access));
+	const membershipPlans = $derived(
+		Array.isArray(accessCatalog?.membershipPlans) ? accessCatalog.membershipPlans : [],
+	);
+	const profileFields = $derived(
+		Array.isArray(accessCatalog?.profileFields) ? accessCatalog.profileFields : [],
+	);
+
+	/**
+	 * @param {string} key
+	 * @param {unknown} value
+	 */
+	function setPublish(key, value) {
+		onChange({
+			...definition,
+			publish: { ...publish, [key]: value },
+		});
+	}
+
+	/**
+	 * @param {string} key
+	 * @param {unknown} value
+	 */
+	function setOption(key, value) {
+		onChange({
+			...definition,
+			options: { ...options, [key]: value },
+		});
+	}
+
+	/**
+	 * @param {string} title
+	 */
+	function setTitle(title) {
+		onChange({ ...definition, title });
+	}
+
+	/**
+	 * @param {object} patch
+	 */
+	function setAccess(patch) {
+		onChange({
+			...definition,
+			access: normalizeAccess({ ...access, ...patch }),
+		});
+	}
+
+	/**
+	 * @param {string} planId
+	 * @param {boolean} on
+	 * @param {'access' | 'fee'} which
+	 */
+	function togglePlan(planId, on, which) {
+		const key = which === 'fee' ? 'freeMembershipPlanIds' : 'membershipPlanIds';
+		const current =
+			which === 'fee'
+				? Array.isArray(options.freeMembershipPlanIds)
+					? options.freeMembershipPlanIds.map(String)
+					: []
+				: access.membershipPlanIds;
+		const next = on
+			? Array.from(new Set([...current, planId]))
+			: current.filter((id) => id !== planId);
+		if (which === 'fee') {
+			setOption('freeMembershipPlanIds', next);
+			return;
+		}
+		setAccess({ membershipPlanIds: next });
+	}
+
+	function addProfileRule() {
+		const first = profileFields[0]?.key || 'COUNTRY';
+		setAccess({
+			profileRules: [...access.profileRules, { key: first, op: 'eq', value: '' }],
+		});
+	}
+
+	/**
+	 * @param {number} index
+	 * @param {object} patch
+	 */
+	function patchProfileRule(index, patch) {
+		setAccess({
+			profileRules: access.profileRules.map((rule, i) =>
+				i === index ? { ...rule, ...patch } : rule,
+			),
+		});
+	}
+
+	/**
+	 * @param {number} index
+	 */
+	function removeProfileRule(index) {
+		setAccess({
+			profileRules: access.profileRules.filter((_, i) => i !== index),
+		});
+	}
+
+	function deadlineLocalValue() {
+		const d = publish.deadline;
+		if (!d || typeof d !== 'string') return '';
+		return d.length >= 16 ? d.slice(0, 16) : d;
+	}
+
+	/**
+	 * @param {Event & { currentTarget: HTMLInputElement }} e
+	 */
+	function onDeadline(e) {
+		const v = e.currentTarget.value;
+		setPublish('deadline', v ? `${v}:00` : null);
+	}
+
+	const canOpen = $derived(fieldCount > 0 && unmapped.length === 0);
+	const saving = $derived(saveState === 'saving');
+
+	async function copyLink() {
+		if (!publicUrl) return;
+		try {
+			await navigator.clipboard.writeText(publicUrl);
+			copyOk = true;
+			window.setTimeout(() => {
+				copyOk = false;
+			}, 2000);
+		} catch {
+			window.prompt('Copy public URL:', publicUrl);
+		}
+	}
+</script>
+
+<p class="dg-wizard-eyebrow">{definition?.title || 'Portal'}</p>
+<h2 id="dg-wizard-step-title" class="dg-wizard-title">Last details before this opens</h2>
+<p class="dg-wizard-lead">
+	Name the portal, set deadline and fee, then open the gate for applicants — or save a draft
+	until you’re ready.
+</p>
+
+<div class="dg-status-banner" data-status={applicantStatus.toLowerCase()} role="status">
+	<strong>Status for applicants:</strong>
+	{applicantStatus}
+	{#if applicantStatus === 'Draft'}
+		— not visible as an open form.
+	{:else if applicantStatus === 'Closed'}
+		— not accepting submissions.
+	{:else}
+		— accepting submissions.
+	{/if}
+</div>
+
+{#if fieldCount === 0}
+	<p class="dg-wizard-alert" role="alert">Add fields in Build before opening this portal.</p>
+{:else if unmapped.length > 0}
+	<p class="dg-wizard-alert" role="alert">
+		{unmapped.length} field{unmapped.length === 1 ? '' : 's'} still unmapped. Go back to Map
+		data.
+	</p>
+{/if}
+
+<div class="dg-publish-card cardish">
+	<div class="dg-publish-block" style="margin-top: 0;">
+		<label class="dg-field-label" for="dg-portal-name">Portal name</label>
+		<input
+			id="dg-portal-name"
+			type="text"
+			class="dg-input"
+			value={definition?.title || ''}
+			oninput={(e) => setTitle(e.currentTarget.value)}
+			placeholder="e.g. Herbolzheimer Prize 2026"
+		/>
+		<p class="dg-field-help">Shown to applicants and in the portal list.</p>
+	</div>
+	<div class="dg-publish-grid">
+		<div>
+			<label class="dg-field-label" for="dg-deadline">Deadline</label>
+			<input
+				id="dg-deadline"
+				type="datetime-local"
+				class="dg-input"
+				value={deadlineLocalValue()}
+				oninput={onDeadline}
+			/>
+			<p class="dg-field-help">Leave empty for no deadline.</p>
+		</div>
+		<div>
+			<label class="dg-field-label" for="dg-tz">Timezone</label>
+			<input
+				id="dg-tz"
+				type="text"
+				class="dg-input"
+				value={publish.timezone || 'America/New_York'}
+				oninput={(e) => setPublish('timezone', e.currentTarget.value)}
+			/>
+		</div>
+	</div>
+	<div class="dg-publish-block">
+		<label class="dg-field-label" for="dg-fee">Application fee</label>
+		<input
+			id="dg-fee"
+			type="text"
+			class="dg-input"
+			placeholder="Leave blank if free"
+			value={publish.applicationFee ?? ''}
+			oninput={(e) => {
+				const v = e.currentTarget.value.trim();
+				setPublish('applicationFee', v === '' ? null : v);
+			}}
+		/>
+		<label class="dg-check-row">
+			<input
+				type="checkbox"
+				checked={Boolean(options.freeForMembers)}
+				onchange={(e) => setOption('freeForMembers', e.currentTarget.checked)}
+			/>
+			<span>Free for members</span>
+		</label>
+		{#if options.freeForMembers && membershipPlans.length > 0}
+			<p class="dg-field-help">Leave every plan unchecked to waive the fee for any active membership (including a school or consortium plan).</p>
+			<div class="dg-plan-list">
+				{#each membershipPlans as plan (plan.id)}
+					<label class="dg-check-row">
+						<input
+							type="checkbox"
+							checked={ (options.freeMembershipPlanIds || []).map(String).includes(String(plan.id)) }
+							onchange={(e) => togglePlan(String(plan.id), e.currentTarget.checked, 'fee')}
+						/>
+						<span>{plan.name}</span>
+					</label>
+				{/each}
+			</div>
+		{/if}
+	</div>
+	<label class="dg-check-row">
+		<input
+			type="checkbox"
+			checked={Boolean(publish.forceClosed)}
+			onchange={(e) => setPublish('forceClosed', e.currentTarget.checked)}
+		/>
+		<span>Force closed (no submissions even if published)</span>
+	</label>
+	<label class="dg-check-row">
+		<input
+			type="checkbox"
+			checked={Boolean(options.anonymize)}
+			onchange={(e) => setOption('anonymize', e.currentTarget.checked)}
+		/>
+		<span>Anonymize files for adjudicators</span>
+	</label>
+	{#if options.anonymize}
+		<div class="dg-publish-block">
+			<label class="dg-field-label" for="dg-anonymize-endpoint">Anonymize API URL</label>
+			<input
+				id="dg-anonymize-endpoint"
+				type="url"
+				class="dg-input"
+				placeholder="https://…"
+				value={options.anonymizeEndpoint || ''}
+				oninput={(e) => {
+					const v = e.currentTarget.value.trim();
+					setOption('anonymizeEndpoint', v === '' ? null : v);
+				}}
+			/>
+			<p class="dg-field-help">
+				We’ll send each file to this endpoint and use what comes back. If the endpoint is
+				empty or the call fails, we keep the original file.
+			</p>
+		</div>
+	{/if}
+	<div class="dg-publish-block">
+		<p class="dg-field-label">Who can apply</p>
+		<label class="dg-check-row">
+			<input
+				type="radio"
+				name="dg-access-audience"
+				checked={access.audience === 'anyone'}
+				onchange={() => setAccess({ audience: 'anyone' })}
+			/>
+			<span>Anyone</span>
+		</label>
+		<label class="dg-check-row">
+			<input
+				type="radio"
+				name="dg-access-audience"
+				checked={access.audience === 'logged_in'}
+				onchange={() => setAccess({ audience: 'logged_in' })}
+			/>
+			<span>Signed-in users</span>
+		</label>
+		<label class="dg-check-row">
+			<input
+				type="radio"
+				name="dg-access-audience"
+				checked={access.audience === 'members'}
+				onchange={() => setAccess({ audience: 'members' })}
+			/>
+			<span>Members only</span>
+		</label>
+		{#if access.audience === 'members' && membershipPlans.length > 0}
+			<p class="dg-field-help">Leave every plan unchecked to allow any active membership.</p>
+			<div class="dg-plan-list">
+				{#each membershipPlans as plan (plan.id)}
+					<label class="dg-check-row">
+						<input
+							type="checkbox"
+							checked={access.membershipPlanIds.includes(String(plan.id))}
+							onchange={(e) => togglePlan(String(plan.id), e.currentTarget.checked, 'access')}
+						/>
+						<span>{plan.name}</span>
+					</label>
+				{/each}
+			</div>
+		{:else if access.audience === 'members' && membershipPlans.length === 0}
+			<p class="dg-field-help">No WooCommerce membership plans found. Any active membership will be accepted.</p>
+		{/if}
+	</div>
+	<div class="dg-publish-block">
+		<p class="dg-field-label">Profile requirements</p>
+		<p class="dg-field-help">Optional. Limit by country, institution, occupation, age, or any profile field.</p>
+		{#each access.profileRules as rule, i (i)}
+			<div class="dg-profile-rule">
+				<select
+					class="dg-input"
+					aria-label="Profile field"
+					value={rule.key}
+					onchange={(e) => patchProfileRule(i, { key: e.currentTarget.value })}
+				>
+					{#each profileFields as field (field.key)}
+						<option value={field.key}>{field.label}</option>
+					{/each}
+					{#if !profileFields.some((f) => f.key === rule.key)}
+						<option value={rule.key}>{rule.key}</option>
+					{/if}
+					<option value="age">Age</option>
+				</select>
+				<select
+					class="dg-input"
+					aria-label="Comparison"
+					value={rule.op}
+					onchange={(e) => patchProfileRule(i, { op: e.currentTarget.value })}
+				>
+					<option value="eq">is</option>
+					<option value="neq">is not</option>
+					<option value="contains">contains</option>
+					<option value="in">is one of</option>
+					<option value="gte">at least</option>
+					<option value="lte">at most</option>
+				</select>
+				<input
+					type="text"
+					class="dg-input"
+					aria-label="Value"
+					placeholder={rule.op === 'in' ? 'Comma-separated values' : 'Value'}
+					value={rule.value}
+					oninput={(e) => patchProfileRule(i, { value: e.currentTarget.value })}
+				/>
+				<button
+					type="button"
+					class="dg-btn dg-btn-ghost dg-btn-sm"
+					onclick={() => removeProfileRule(i)}
+				>
+					Remove
+				</button>
+			</div>
+		{/each}
+		<button type="button" class="dg-btn dg-btn-ghost dg-btn-sm" onclick={addProfileRule}>
+			Add profile rule
+		</button>
+		<label class="dg-field-label" for="dg-access-deny">Denied message</label>
+		<input
+			id="dg-access-deny"
+			type="text"
+			class="dg-input"
+			placeholder="Leave blank for a default message"
+			value={access.denyMessage}
+			oninput={(e) => setAccess({ denyMessage: e.currentTarget.value })}
+		/>
+	</div>
+	<div class="dg-publish-block">
+		<label class="dg-field-label" for="dg-guidelines">Guidelines URL</label>
+		<input
+			id="dg-guidelines"
+			type="url"
+			class="dg-input"
+			placeholder="https://…"
+			value={options.guidelinesUrl || ''}
+			oninput={(e) => setOption('guidelinesUrl', e.currentTarget.value || null)}
+		/>
+	</div>
+</div>
+
+<div class="dg-publish-card cardish">
+	<p class="dg-field-label" style="margin-bottom: 8px;">Ready checklist</p>
+	<ul class="dg-checklist">
+		<li data-ok={fieldCount > 0 ? 'true' : 'false'}>
+			{fieldCount > 0 ? '✓' : '○'} {fieldCount} form field{fieldCount === 1 ? '' : 's'}
+		</li>
+		<li data-ok={unmapped.length === 0 && fieldCount > 0 ? 'true' : 'false'}>
+			{unmapped.length === 0 && fieldCount > 0 ? '✓' : '○'} Mapping complete
+		</li>
+		<li data-ok={definition?.title ? 'true' : 'false'}>
+			{definition?.title ? '✓' : '○'} Portal named
+		</li>
+	</ul>
+</div>
+
+{#if publicUrl}
+	<div class="dg-publish-card cardish dg-public-link-card">
+		<p class="dg-field-label">Public form</p>
+		<p class="dg-mono dg-public-url">{publicUrl}</p>
+		<div class="dg-link-actions">
+			<button type="button" class="dg-btn dg-btn-ghost dg-btn-sm" onclick={copyLink}>
+				{copyOk ? 'Copied ✓' : 'Copy link'}
+			</button>
+			<a class="dg-btn dg-btn-ghost dg-btn-sm" href={publicUrl} target="_blank" rel="noopener"
+				>View public form</a
+			>
+		</div>
+	</div>
+{/if}
+
+{#if saveError}
+	<p class="dg-wizard-alert" role="alert">{saveError}</p>
+{/if}
+
+<div class="dg-wizard-actions dg-wizard-actions--spread">
+	<button type="button" class="dg-btn dg-btn-ghost" onclick={onBack} disabled={saving}>
+		← Back to mapping
+	</button>
+	<div class="dg-wizard-actions-right">
+		<button
+			type="button"
+			class="dg-btn dg-btn-ghost"
+			disabled={saving}
+			onclick={() => onSaveDraft()}
+			data-dg-save-draft
+		>
+			{saveState === 'saving' ? 'Saving…' : saveState === 'saved' ? 'Saved ✓' : 'Save draft'}
+		</button>
+		<button
+			type="button"
+			class="dg-btn dg-btn-primary"
+			disabled={saving || !canOpen}
+			onclick={() => onOpenGate()}
+			data-dg-open-gate
+		>
+			{applicantStatus === 'Open' ? 'Save & keep open' : 'Open the gate'}
+		</button>
+	</div>
+</div>
+
+<p class="dg-wizard-footnote">
+	“Open the gate” saves the form and publishes it for applicants (unless force closed).
+	{#if saveState === 'saved'}
+		· Changes saved.
+	{/if}
+</p>

@@ -22,6 +22,38 @@ if ( ! class_exists( 'Portal_About' ) ) {
 		 */
 		public function init() {
 			add_action( 'admin_menu', array( $this, 'register_about_screen' ), 20 );
+			add_filter( 'admin_body_class', array( $this, 'body_class' ) );
+			add_action( 'admin_head', array( $this, 'hide_admin_notices' ) );
+		}
+
+		/**
+		 * @param string $classes Admin body classes.
+		 * @return string
+		 */
+		public function body_class( $classes ) {
+			if ( $this->is_about_screen() ) {
+				$classes .= ' dg-portal-about';
+			}
+			return $classes;
+		}
+
+		/**
+		 * Third-party nags do not belong on the product About screen.
+		 */
+		public function hide_admin_notices() {
+			if ( ! $this->is_about_screen() ) {
+				return;
+			}
+			remove_all_actions( 'admin_notices' );
+			remove_all_actions( 'all_admin_notices' );
+		}
+
+		/**
+		 * @return bool
+		 */
+		private function is_about_screen() {
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			return is_admin() && isset( $_GET['page'] ) && 'dgp-about' === $_GET['page'];
 		}
 
 		/**
@@ -55,8 +87,35 @@ if ( ! class_exists( 'Portal_About' ) ) {
 						// Custom CSS for the about page - using Tailwind-inspired classes
 						$about_css = <<<CSS
 						/* About page custom styles */
+						body.dg-portal-about .notice,
+						body.dg-portal-about .update-nag,
+						body.dg-portal-about #update-nag,
+						body.dg-portal-about .updated,
+						body.dg-portal-about .error,
+						body.dg-portal-about .fs-notice,
+						body.dg-portal-about .op3-admin-notice {
+							display: none !important;
+						}
 						#dgp-about {
-							font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+							font-family: Georgia, "Times New Roman", serif;
+						}
+						#dgp-about .dgp-about-hero {
+							background: #f7f4ec;
+							border-color: rgba(18, 20, 15, 0.12);
+						}
+						#dgp-about .dgp-about-mark {
+							width: 96px;
+							height: 96px;
+							display: block;
+							flex-shrink: 0;
+						}
+						#dgp-about .dgp-about-eyebrow {
+							font-family: ui-monospace, "SF Mono", Menlo, monospace;
+							font-size: 10.5px;
+							letter-spacing: 0.08em;
+							text-transform: uppercase;
+							color: #9c7a3c;
+							margin-bottom: 4px;
 						}
 						
 						#dgp-about * {
@@ -191,20 +250,25 @@ if ( ! class_exists( 'Portal_About' ) ) {
 		public function render_about_screen(): void {
 			// Get plugin version from main plugin file
 			$plugin_data = get_file_data( plugin_dir_path( __FILE__ ) . '../portal-builder.php', array( 'Version' => 'Version' ) );
-			$plugin_version = $plugin_data['Version'] ?: '0.0.3a';
-			$icon_url       = plugin_dir_url( __FILE__ ) . '../assets/icon.svg';
+			$plugin_version = $plugin_data['Version'] ?: PB_VERSION;
+			$icon_file      = plugin_dir_path( __FILE__ ) . '../assets/icon.svg';
+			$icon_url       = plugins_url( '../assets/icon.svg', __FILE__ );
+			if ( is_readable( $icon_file ) ) {
+				$icon_url = add_query_arg( 'ver', (string) filemtime( $icon_file ), $icon_url );
+			}
 			$site_alli      = 'https://allintersections.com';
 			$site_zysys     = 'https://zysys.org';
 			$repo_releases  = 'https://github.com/zachbornheimer/portal-builder/releases';
 			?>
 			<div id="dgp-about" class="wrap">
 				<!-- Header: brand + title -->
-				<section class="relative isolate mb-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+				<section class="dgp-about-hero relative isolate mb-6 rounded-2xl border border-slate-200 p-6 shadow-sm">
 					<div class="flex items-center gap-4">
-						<img src="<?php echo esc_url( $icon_url ); ?>" alt="" width="48" height="48" class="h-12 w-12" />
+						<img src="<?php echo esc_url( $icon_url ); ?>" alt="" width="96" height="96" class="dgp-about-mark" />
 						<div>
+							<p class="dgp-about-eyebrow m-0">DragonGate</p>
 							<h1 class="m-0 text-2xl font-semibold tracking-tight text-slate-900">About DragonGate Portals</h1>
-							<p class="m-0 text-sm text-slate-500">Build submission portals that sync with Google Drive &amp; Google Sheets.</p>
+							<p class="m-0 text-sm text-slate-500">The door that opens for the right applicant. Build submission opportunities that sync to Google Drive and Sheets.</p>
 						</div>
 						<span class="ml-auto inline-flex items-center rounded-full border border-slate-200 px-3 py-1 text-xs font-medium text-slate-600">v<?php echo esc_html( $plugin_version ); ?></span>
 					</div>
