@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>DragonGate tutorial screenshots</title>
+  <style>
+    :root {
+      --bg: #0f1218;
+      --panel: #171b24;
+      --text: #e8ecf4;
+      --muted: #9aa3b5;
+      --accent: #c9a227;
+      --border: #2a3142;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.45;
+    }
+    header {
+      padding: 2rem 1.5rem 1rem;
+      border-bottom: 1px solid var(--border);
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    header h1 {
+      margin: 0 0 0.35rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      font-size: 1.75rem;
+    }
+    header p { margin: 0.25rem 0; color: var(--muted); font-size: 0.95rem; }
+    header code { color: var(--accent); font-family: ui-monospace, monospace; font-size: 0.85rem; }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 2rem;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 1.5rem;
+    }
+    .card {
+      margin: 0;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .card img {
+      display: block;
+      width: 100%;
+      height: auto;
+      background: #000;
+      border-bottom: 1px solid var(--border);
+    }
+    figcaption { padding: 1rem 1.15rem 1.25rem; }
+    figcaption strong {
+      display: inline-block;
+      font-family: ui-monospace, monospace;
+      font-size: 0.75rem;
+      color: var(--accent);
+      margin-right: 0.5rem;
+    }
+    figcaption .title { font-size: 1.05rem; }
+    figcaption p { margin: 0.5rem 0 0; color: var(--muted); font-size: 0.95rem; }
+    footer {
+      max-width: 1200px;
+      margin: 0 auto 2rem;
+      padding: 0 1.5rem;
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>DragonGate — tutorial screenshot set</h1>
+    <p>Live captures from LocalWP for design / UX evaluation (not Claude Design mockups).</p>
+    <p>Captured <code>2026-07-26T11:53:02.184Z</code> · <code>http://localhost:10033</code> · 1440×900</p>
+  </header>
+  <div class="grid">
+
+    <figure class="card" id="01-admin-dashboard">
+      <a href="01-admin-dashboard.png" target="_blank" rel="noopener">
+        <img src="01-admin-dashboard.png" alt="WordPress admin dashboard" loading="lazy" />
+      </a>
+      <figcaption>
+        <strong>01-admin-dashboard</strong>
+        <span class="title">WordPress admin dashboard</span>
+        <p>Starting point after login. DragonGate lives under the Portals custom post type.</p>
+      </figcaption>
+    </figure>
+
+    <figure class="card" id="02-admin-portal-list">
+      <a href="02-admin-portal-list.png" target="_blank" rel="noopener">
+        <img src="02-admin-portal-list.png" alt="Portal list (admin)" loading="lazy" />
+      </a>
+      <figcaption>
+        <strong>02-admin-portal-list</strong>
+        <span class="title">Portal list (admin)</span>
+        <p>All portals. Create, search, edit, and trash from this screen.</p>
+      </figcaption>
+    </figure>
+
+    <figure class="card" id="03-admin-portal-edit">
+      <a href="03-admin-portal-edit.png" target="_blank" rel="noopener">
+        <img src="03-admin-portal-edit.png" alt="Portal editor" loading="lazy" />
+      </a>
+      <figcaption>
+        <strong>03-admin-portal-edit</strong>
+        <span class="title">Portal editor</span>
+        <p>Classic/block edit screen for a portal post. Title and publish controls; definition is attached via REST.</p>
+      </figcaption>
+    </figure>
+
+    <figure class="card" id="04-admin-portal-list-seeded">
+      <a href="04-admin-portal-list-seeded.png" target="_blank" rel="noopener">
+        <img src="04-admin-portal-list-seeded.png" alt="Portal list with tutorial portals" loading="lazy" />
+      </a>
+      <figcaption>
+        <strong>04-admin-portal-list-seeded</strong>
+        <span class="title">Portal list with tutorial portals</span>
+        <p>After seeding + rename: open and closed Herbolzheimer portals in the list.</p>
+      </figcaption>
+    </figure>
+
+    <figure class="card" id="05-public-form-open">
+      <a href="05-public-form-open.png" target="_blank" rel="noopener">
+        <img src="05-public-form-open.png" alt="Public application form (open)" loading="lazy" />
+      </a>
+      <figcaption>
+        <strong>05-public-form-open</strong>
+        <span class="title">Public application form (open)</span>
+        <p>Anonymous visitor sees the definition-rendered form: applicant pack, work title, score, recording.</p>
+      </figcaption>
+    </figure>
+
+    <figure class="card" id="05b-public-form-open-full">
+      <a href="05b-public-form-open-full.png" target="_blank" rel="noopener">
+        <img src="05b-public-form-open-full.png" alt="Public application form (full page)" loading="lazy" />
+      </a>
+      <figcaption>
+        <strong>05b-public-form-open-full</strong>
+        <span class="title">Public application form (full page)</span>
+        <p>Same open form, full scroll height — useful for layout review.</p>
+      </figcaption>
+    </figure>
+
+    <figure class="card" id="06-public-closed">
+      <a href="06-public-closed.png" target="_blank" rel="noopener">
+        <img src="06-public-closed.png" alt="Public view when portal is closed" loading="lazy" />
+      </a>
+      <figcaption>
+        <strong>06-public-closed</strong>
+        <span class="title">Public view when portal is closed</span>
+        <p>Deadline passed / forceClosed: visitor sees closed copy, not the live form.</p>
+      </figcaption>
+    </figure>
+
+    <figure class="card" id="07-editor-preview-closed">
+      <a href="07-editor-preview-closed.png" target="_blank" rel="noopener">
+        <img src="07-editor-preview-closed.png" alt="Editor preview of a closed portal" loading="lazy" />
+      </a>
+      <figcaption>
+        <strong>07-editor-preview-closed</strong>
+        <span class="title">Editor preview of a closed portal</span>
+        <p>Logged-in editor with ?preview=true: preview banner + definition form (not a live submission).</p>
+      </figcaption>
+    </figure>
+
+    <figure class="card" id="07b-editor-preview-closed-full">
+      <a href="07b-editor-preview-closed-full.png" target="_blank" rel="noopener">
+        <img src="07b-editor-preview-closed-full.png" alt="Editor preview (full page)" loading="lazy" />
+      </a>
+      <figcaption>
+        <strong>07b-editor-preview-closed-full</strong>
+        <span class="title">Editor preview (full page)</span>
+        <p>Full-page editor preview for layout review of banner + form stack.</p>
+      </figcaption>
+    </figure>
+
+    <figure class="card" id="08-editor-view-open-form">
+      <a href="08-editor-view-open-form.png" target="_blank" rel="noopener">
+        <img src="08-editor-view-open-form.png" alt="Open form while logged in as editor" loading="lazy" />
+      </a>
+      <figcaption>
+        <strong>08-editor-view-open-form</strong>
+        <span class="title">Open form while logged in as editor</span>
+        <p>Same open public URL with admin cookies — confirms form render for staff spot-checks.</p>
+      </figcaption>
+    </figure>
+
+    <figure class="card" id="09-admin-new-portal">
+      <a href="09-admin-new-portal.png" target="_blank" rel="noopener">
+        <img src="09-admin-new-portal.png" alt="Add new portal" loading="lazy" />
+      </a>
+      <figcaption>
+        <strong>09-admin-new-portal</strong>
+        <span class="title">Add new portal</span>
+        <p>Create flow entry: new portal post editor before definition is attached.</p>
+      </figcaption>
+    </figure>
+  </div>
+  <footer>
+    Source: <code>scripts/capture-tutorial-shots.mjs</code> · PNGs also under <code>tests/.artifacts/tutorial/</code>
+  </footer>
+</body>
+</html>
