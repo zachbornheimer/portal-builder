@@ -15,7 +15,35 @@ if ( have_posts() ) :
 	while ( have_posts() ) :
 		the_post(); ?>
 
-		<main class="wp-block-group alignfull">
+		<main class="dg-public-main wp-block-group alignfull">
+			<?php
+			$portal_id          = (int) get_the_ID();
+			$has_definition     = class_exists( 'Portal_Definition' )
+				&& null !== Portal_Definition::load_for_post( $portal_id );
+			?>
+			<?php if ( $has_definition ) : ?>
+				<?php
+				$show_actions = class_exists( 'Portal_Public_Render' )
+					&& Portal_Public_Render::should_show_form_actions( $portal_id );
+				if ( $show_actions ) {
+					echo do_shortcode( '[portal-application-formstart]' );
+				}
+				?>
+				<article class="dg-packet" id="application">
+					<?php the_content(); ?>
+					<?php
+					if ( $show_actions ) {
+						echo Portal_Public_Render::render_submit_control();
+						echo Portal_Public_Render::render_privacy_line();
+					}
+					?>
+				</article>
+				<?php
+				if ( $show_actions ) {
+					echo do_shortcode( '[portal-application-formend]' );
+				}
+				?>
+			<?php else : ?>
 			<div class="wp-block-group" style="padding-top:var(--wp--preset--spacing--50); margin-bottom:var(--wp--preset--spacing--40);">
 				<?php echo do_shortcode( '[portal-application-title]' ); ?>
 			</div>
@@ -28,29 +56,14 @@ if ( have_posts() ) :
 				<?php endif; ?>
 
 				<div class="wp-block-group alignfull" style="padding-top:var(--wp--preset--spacing--50); margin-bottom:var(--wp--preset--spacing--40);">
-					<?php
-					// Definition-backed portals: renderer via the_content filter (priority 9).
-					// Classic shortcode bodies still work when no _portal_definition meta.
-					the_content();
-					?>
+					<?php the_content(); ?>
 				</div>
 
 				<?php echo do_shortcode( '[portal-application-agreements]' ); ?>
 				<?php echo do_shortcode( '[portal-application-upload-notes]' ); ?>
 				<?php echo do_shortcode( '[portal-application-formend]' ); ?>
 			</div>
-
-			<div class="wp-block-group" style="margin-top:var(--wp--preset--spacing--40); padding-bottom:var(--wp--preset--spacing--50);">
-				<div class="wp-block-group">
-					<?php the_terms( get_the_ID(), 'post_tag', '<div class="is-style-pill">', '  ', '</div>' ); ?>
-				</div>
-
-				<div class="wp-block-group">
-					<div style="height:var(--wp--preset--spacing--40)" aria-hidden="true" class="wp-block-spacer"></div>
-					<hr class="wp-block-separator has-text-color has-contrast-3-color has-alpha-channel-opacity has-contrast-3-background-color has-background is-style-wide" style="margin-bottom:var(--wp--preset--spacing--40)"/>
-					<?php comments_template(); ?>
-				</div>
-			</div>
+			<?php endif; ?>
 		</main>
 
 		<?php

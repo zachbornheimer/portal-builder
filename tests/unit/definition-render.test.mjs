@@ -28,8 +28,14 @@ test('herbolzheimer definition renders public form markers', () => {
 	assert.equal(data.checks.applicant_pack, true, 'applicant_pack block');
 	assert.equal(data.checks.work_title_name, true, 'sub_work_title input name');
 	assert.equal(data.checks.score_accept, true, 'PDF accept on score');
+	assert.equal(data.checks.file_card, true, 'file enclosure card');
+	assert.equal(data.checks.score_name, true, 'sub_score input name');
+	assert.equal(data.checks.file_open, true, 'open-to-confirm control');
 	assert.match(data.html, /data-dg-render="definition"/);
 	assert.match(data.html, /Title of Work/);
+	assert.match(data.html, /class="[^"]*dg-file/);
+	assert.match(data.html, /name="sub_score"/);
+	assert.match(data.html, /application\/pdf/);
 });
 
 test('empty fields definition renders empty string path (exit via empty)', () => {
@@ -65,7 +71,8 @@ test('group with short_text only renders label and input', () => {
 	const { code, out } = runPhp(p);
 	assert.equal(code, 0, out);
 	const data = JSON.parse(out.trim());
-	assert.match(data.html, /Piece Name\*/);
+	assert.match(data.html, /Piece Name/);
+	assert.match(data.html, /class="dg-req"[^>]*>\*/);
 	assert.match(data.html, /name="sub_piece"/);
 	assert.match(data.html, /data-dg-render="definition"/);
 });

@@ -1,7 +1,7 @@
 # DragonGate Portals — Domain Model Contract
 
 **Status:** accepted (v0.1) — rewrite target, not a description of the shortcode era  
-**Framework:** Svelte 5 + Vite (admin + public UI)  
+**Framework:** Svelte 5 + Vite (admin + public product UI) — locked; not Alpine/React/Vue  
 **Design tokens:** `docs/design/TOKENS.md`  
 **Companion:** mockups in `docs/design/mockups/`
 
@@ -40,6 +40,7 @@ A Portal is the single aggregate. Stable id = WordPress post ID while we stay on
 | Field | Type | Notes |
 |-------|------|--------|
 | `anonymize` | bool | Strip identity from judge-facing exports when true |
+| `anonymizeEndpoint` | url? | Optional API that receives each file and returns the anonymized bytes. Empty or a failed call **fail-opens** — keep the original file. Local exiftool/qpdf/lame stripping still runs when `anonymize` is true. |
 | `skipHeader` | bool | Sheet write behavior |
 | `guidelinesUrl` | url? | Linked from title/header |
 | `applicantNotificationDate` | date? | Copy on success message |
@@ -140,6 +141,7 @@ Fields are a **ordered list**. No shortcodes. Nested structure uses group / bran
 |-------|------|--------|
 | `id` | string | Local id |
 | `name` | string | Admin label |
+| `role` | `housekeeping` \| `adjudicator` | Required on new sheet targets. **housekeeping** = internal identity/fees; **adjudicator** = judge-facing (may omit identity when anonymize is on). Old single-sheet defs without `role` keep their id. |
 | `spreadsheetId` | string | Google spreadsheet id |
 | `columns` | `ColumnMap[]` | |
 
@@ -291,7 +293,7 @@ Atomic save: one `update_post_meta` for definition JSON with proper JSON sanitiz
 | Decision | Choice | Why |
 |----------|--------|-----|
 | Authoring | Structured fields, not shortcodes | Maintainability + wizard + a11y |
-| UI stack | Svelte 5 everywhere for product UI | Already chosen; one language |
+| UI stack | **Svelte 5 + Vite** for all product UI (admin wizard, field builders, any interactive public chrome) | Complex UI (form builder, mapping, gate state) needs components and compile-time guarantees. Vite build is intentional. **Rejected (2026-07 design session, confirmed 2026-08):** Alpine.js was floated for “zero build / WP sprinkle” maintainability — inferior for structured builder/canvas; Svelte is the better fit. React/Vue add stack cost with no gain. Do not re-open without a product reason. |
 | Legacy | Import then delete path | User not locked to shortcodes |
 | Preview | Capability-based, ignores closed for editors | Design without fighting deadlines |
 | Mapping | Keep Google Sheets/Drive as backends | Core value of the product |
