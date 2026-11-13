@@ -177,6 +177,7 @@ body.single-portal form.dg-portal-submit-form fieldset {
 }
 
 .dg-preview-banner,
+.dg-view-as-banner,
 .dg-test-banner {
   display: flex;
   align-items: flex-start;
@@ -192,6 +193,7 @@ body.single-portal form.dg-portal-submit-form fieldset {
 }
 
 .dg-preview-banner strong,
+.dg-view-as-banner strong,
 .dg-test-banner strong {
   display: block;
   font-size: var(--t-body);

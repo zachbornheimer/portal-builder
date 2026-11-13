@@ -212,6 +212,7 @@ export function defaultAccess() {
 		membershipPlanIds: [],
 		roles: [],
 		capabilities: [],
+		viewAsRoles: [],
 		profileRules: [],
 		denyMessage: '',
 	};
@@ -246,6 +247,7 @@ export function normalizeAccess(raw) {
 		membershipPlanIds: stringIdList(src.membershipPlanIds),
 		roles: stringIdList(src.roles),
 		capabilities: stringIdList(src.capabilities),
+		viewAsRoles: stringIdList(src.viewAsRoles),
 		profileRules,
 		denyMessage: typeof src.denyMessage === 'string' ? src.denyMessage : '',
 	};
