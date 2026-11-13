@@ -9,9 +9,9 @@
  * @returns {{ id: string, visible: boolean }[]}
  */
 export function visibleBranchOptions(selectedId, optionIds) {
-	const selected = selectedId == null ? '' : String(selectedId);
-	return (optionIds || []).map((id) => ({
-		id,
-		visible: id === selected && selected !== '',
-	}));
+  const selected = selectedId == null ? "" : String(selectedId);
+  return (optionIds || []).map((id) => ({
+    id,
+    visible: id === selected && selected !== "",
+  }));
 }

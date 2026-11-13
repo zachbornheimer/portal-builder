@@ -1,13 +1,16 @@
 <?php
-function portal_recaptcha_shortcode() {
-	$sitekey = Portal_Options::get( 'dg_recaptcha_sitekey', '' );
 
-	if ( empty( $sitekey ) ) {
-		return '';
-	}
-	ob_start();
-	?>
-	<div class="g-recaptcha" data-sitekey="<?php echo $sitekey; ?>" data-callback="recaptchaVerified" data-expired-callback="recaptchaExpired"></div>
+function portal_recaptcha_shortcode()
+{
+    $sitekey = Portal_Options::get('dg_recaptcha_sitekey', '');
+
+    if (empty($sitekey)) {
+        return '';
+    }
+    ob_start();
+    ?>
+	<div class="g-recaptcha" data-sitekey="<?php echo
+    	$sitekey; ?>" data-callback="recaptchaVerified" data-expired-callback="recaptchaExpired"></div>
 
 	<script>
 		function recaptchaVerified() {
@@ -45,7 +48,8 @@ function portal_recaptcha_shortcode() {
 		});
 	</script>
 	<?php
+
 	return ob_get_clean();
 }
 
-add_shortcode( 'portal-recaptcha', 'portal_recaptcha_shortcode' );
+add_shortcode('portal-recaptcha', 'portal_recaptcha_shortcode');

@@ -1,0 +1,25 @@
+<!-- BEGIN atask v:1 hash:546cb6751ad9 -->
+
+**Track verifiable objectives with `atask`.** An objective is work with a specific outcome and meaningful completion criteria. Run `atask context` to learn the workflow. Ensure an objective has a task before doing or delegating its work. The worker claims the task, follows its handoff (`atask context ID`), and requests verification with `atask verify complete`. The engine determines whether completion requirements are satisfied.
+
+Do not use markdown TODO lists for task tracking.
+
+Verbs: `atask context`, `atask list`, `atask show`, `atask add`, `atask update`, `atask claim`, `atask log`, `atask verify`.
+
+<!-- END atask -->
+
+## Engineering guidelines
+
+Edit this section for the repository; the block above is owned by `atask init`.
+
+- Prefer the smallest complete change that satisfies the task; follow the
+  existing architecture and conventions; avoid unrelated refactoring,
+  formatting, or dependency changes.
+- Handle errors explicitly; preserve existing behavior and public
+  contracts unless the task requires otherwise.
+- Test observable behavior, including failure paths, with deterministic
+  tests; fix defects rather than weakening assertions.
+- Read the code and documentation the task needs, not the repository by
+  default; keep documentation consistent when a documented contract changes.
+- Report results and blockers concisely; distinguish verified results from
+  assumptions.

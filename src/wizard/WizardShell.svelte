@@ -1,5 +1,6 @@
 <script>
 	import GateNav from './GateNav.svelte';
+	import ProductTabs from './ProductTabs.svelte';
 	import { WIZARD_STEPS } from './steps.js';
 	import {
 		applicantFacingStatus,
@@ -17,6 +18,7 @@
 	import BuildStep from './steps/BuildStep.svelte';
 	import MapStep from './steps/MapStep.svelte';
 	import PublishStep from './steps/PublishStep.svelte';
+	import OverviewStep from './steps/OverviewStep.svelte';
 
 	/**
 	 * @typedef {Object} Props
@@ -55,12 +57,15 @@
 	const titleFallback =
 		portalTitle === 'Auto Draft' || !portalTitle ? 'New portal' : portalTitle;
 	const loadPlan = planDefinitionLoad(definitionSeed);
+	const stepIds = new Set(['overview', ...WIZARD_STEPS.map((step) => step.id)]);
 
-	let currentStepId = $state(
-		loadPlan.mode === 'hydrate' && countLeafFields(loadPlan.definition?.fields || []) > 0
-			? 'build'
-			: 'start'
-	);
+	function stepFromLocation() {
+		if (typeof window === 'undefined') return 'overview';
+		const step = new URL(window.location.href).searchParams.get('step');
+		return step && stepIds.has(step) ? step : 'overview';
+	}
+
+	let currentStepId = $state(stepFromLocation());
 	let definition = $state(
 		loadPlan.mode === 'hydrate'
 			? normalizeLoaded(loadPlan.definition, titleFallback)
@@ -131,7 +136,6 @@
 				if (existing && typeof existing === 'object' && Array.isArray(existing.fields)) {
 					definition = normalizeLoaded(existing, titleFallback);
 					started = countLeafFields(definition.fields) > 0;
-					if (started) currentStepId = 'build';
 				} else {
 					definition = blankDefinition(titleFallback);
 				}
@@ -170,6 +174,11 @@
 	 */
 	function selectStep(stepId) {
 		currentStepId = stepId;
+		if (typeof window === 'undefined') return;
+		const url = new URL(window.location.href);
+		if (!stepId || stepId === 'overview') url.searchParams.delete('step');
+		else url.searchParams.set('step', stepId);
+		window.history.replaceState({}, '', url);
 	}
 
 	/**
@@ -269,7 +278,7 @@
 	}
 
 	function go(stepId) {
-		currentStepId = stepId;
+		selectStep(stepId);
 	}
 </script>
 
@@ -302,7 +311,9 @@
 			<span class="dg-wizard-header-title">
 				{definition.title || 'New portal'}
 			</span>
-			<GateNav {currentStepId} onSelect={selectStep} subtitles={stepSubtitles} />
+			{#if !productMode}
+				<GateNav {currentStepId} onSelect={selectStep} subtitles={stepSubtitles} />
+			{/if}
 			<div class="dg-wizard-header-meta">
 				<button
 					type="button"
@@ -348,7 +359,10 @@
 
 	<!-- Open content on paper ground — no nested content box -->
 	<main class="dg-wizard-main" aria-labelledby="dg-wizard-step-title">
-		{#if logoUrl}
+		{#if productMode}
+			<ProductTabs {currentStepId} onSelect={selectStep} />
+		{/if}
+		{#if logoUrl && currentStepId !== 'overview'}
 			<img
 				class="dg-wizard-mark"
 				src={logoUrl}
@@ -360,6 +374,16 @@
 		{/if}
 		{#if loadState === 'loading'}
 			<p class="dg-wizard-lead">Loading portal…</p>
+		{:else if currentStepId === 'overview'}
+			<OverviewStep
+				{definition}
+				{accessCatalog}
+				{siteDefaults}
+				{applicantStatus}
+				{accepting}
+				publicUrl={livePublicUrl}
+				onEdit={selectStep}
+			/>
 		{:else if currentStepId === 'start'}
 			<StartStep
 				{definition}

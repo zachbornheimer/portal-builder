@@ -10,7 +10,13 @@
       "children": [
         { "id": "work_title", "type": "short_text", "label": "Title of Work", "required": true },
         { "id": "score", "type": "score_file", "label": "Full Score", "required": true, "fileSuffix": "_SCORE" },
-        { "id": "recording", "type": "recording_file", "label": "Recording (MP3)", "required": true, "fileSuffix": "_REC" }
+        {
+          "id": "recording",
+          "type": "recording_file",
+          "label": "Recording (MP3)",
+          "required": true,
+          "fileSuffix": "_REC"
+        }
       ]
     }
   ],

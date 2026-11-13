@@ -15,6 +15,8 @@
 		normalizeAccess,
 		previewUrl,
 		todayAtMidnight,
+		accessSummary,
+		namesForIds,
 	} from '../definitionModel.js';
 
 	/**
@@ -81,6 +83,13 @@
 			? accessCatalog.roles
 			: WORDPRESS_ROLES,
 	);
+	const whoCanSubmit = $derived(accessSummary(access, { membershipPlans }));
+	const viewAsDefaultIds = $derived(
+		Array.isArray(siteDefaults?.viewAsRoles) && siteDefaults.viewAsRoles.length > 0
+			? siteDefaults.viewAsRoles.map(String)
+			: ['administrator'],
+	);
+	const viewAsDefaultNames = $derived(namesForIds(viewAsDefaultIds, siteRoles).join(', '));
 	const audienceChoices = $derived([
 		{ value: 'anyone', id: 'dg-access-anyone', label: 'Anyone' },
 		{ value: 'logged_in', id: 'dg-access-logged-in', label: 'Signed-in users' },
@@ -212,11 +221,11 @@
 	 * @param {boolean} on
 	 */
 	function toggleViewAsRole(roleId, on) {
-		const current = access.viewAsRoles;
+		const base = access.viewAsRoles.length > 0 ? access.viewAsRoles : viewAsDefaultIds;
 		const next = on
-			? Array.from(new Set([...current, roleId]))
-			: current.filter((id) => id !== roleId);
-		setAccess({ viewAsRoles: next });
+			? Array.from(new Set([...base, roleId]))
+			: base.filter((id) => id !== roleId);
+		setAccess({ viewAsRoles: next.length > 0 ? next : [...viewAsDefaultIds] });
 	}
 
 	function addProfileRule() {
@@ -245,6 +254,20 @@
 		setAccess({
 			profileRules: access.profileRules.filter((_, i) => i !== index),
 		});
+	}
+
+	function instantLocal(value) {
+		if (!value || typeof value !== 'string') return '';
+		return value.length >= 16 ? value.slice(0, 16) : value;
+	}
+
+	/**
+	 * @param {string} key
+	 * @param {Event & { currentTarget: HTMLInputElement }} e
+	 */
+	function onInstant(key, e) {
+		const v = e.currentTarget.value;
+		setPublish(key, v ? `${v}:00` : null);
 	}
 
 	function deadlineLocalValue() {
@@ -348,23 +371,43 @@
 	<div class="dg-publish-grid">
 		<div>
 			<Field
+				id="dg-launch-display"
+				label="Shown open"
+				type="datetime-local"
+				value={instantLocal(publish.launchDisplay)}
+				oninput={(e) => onInstant('launchDisplay', e)}
+			/>
+			<p class="dg-field-help">What applicants read. Blank uses the form open time.</p>
+		</div>
+		<div>
+			<Field
 				id="dg-launch"
-				label="Launch date"
+				label="Form opens"
 				type="datetime-local"
 				value={launchLocalValue()}
 				oninput={onLaunch}
 			/>
-			<p class="dg-field-help">When applicants can start. Blank becomes today when you save.</p>
+			<p class="dg-field-help">When the form actually opens. Blank becomes today when you save.</p>
+		</div>
+		<div>
+			<Field
+				id="dg-deadline-display"
+				label="Shown close"
+				type="datetime-local"
+				value={instantLocal(publish.deadlineDisplay)}
+				oninput={(e) => onInstant('deadlineDisplay', e)}
+			/>
+			<p class="dg-field-help">What applicants read. Blank uses the form close time.</p>
 		</div>
 		<div>
 			<Field
 				id="dg-deadline"
-				label="Deadline"
+				label="Form closes"
 				type="datetime-local"
 				value={deadlineLocalValue()}
 				oninput={onDeadline}
 			/>
-			<p class="dg-field-help">Leave empty for no deadline.</p>
+			<p class="dg-field-help">When the form actually closes. Leave empty for no close.</p>
 		</div>
 	</div>
 	<div class="dg-publish-block">
@@ -514,8 +557,9 @@
 			</p>
 		{/if}
 	</div>
-	<div class="dg-publish-block">
+	<div class="dg-publish-block" id="dg-who-can-apply">
 		<p class="dg-field-label" id="dg-access-audience-label">Who can apply</p>
+		<p class="dg-overview-fact" data-dg-who-can-submit>{whoCanSubmit.headline}</p>
 		<RadioGroup.Root
 			value={access.audience}
 			aria-labelledby="dg-access-audience-label"
@@ -531,7 +575,9 @@
 			{/each}
 		</RadioGroup.Root>
 		{#if access.audience === 'members' && membershipPlans.length > 0}
-			<p class="dg-field-help">Leave every plan unchecked to allow any active membership.</p>
+			{#if access.membershipPlanIds.length === 0}
+				<p class="dg-field-help">Leave every plan unchecked to allow any active membership.</p>
+			{/if}
 			<div class="dg-plan-list">
 				{#each membershipPlans as plan (plan.id)}
 					<CheckField
@@ -560,13 +606,22 @@
 	</div>
 	<div class="dg-publish-block">
 		<p class="dg-field-label">Who may use View Portal as</p>
-		<p class="dg-field-help">Leave unchecked to use Default Settings.</p>
+		<p class="dg-field-help">
+			{#if access.viewAsRoles.length === 0}
+				Using Default Settings: {viewAsDefaultNames}. Check a role to override that for this portal.
+			{:else}
+				This portal: {namesForIds(access.viewAsRoles, siteRoles).join(', ')}.
+			{/if}
+		</p>
 		<div class="dg-plan-list">
 			{#each siteRoles as role (role.id)}
 				<CheckField
 					id={`dg-view-as-role-${role.id}`}
 					label={role.name}
-					checked={access.viewAsRoles.includes(String(role.id))}
+					checked={(access.viewAsRoles.length > 0
+						? access.viewAsRoles
+						: viewAsDefaultIds
+					).includes(String(role.id))}
 					onchange={(e) => toggleViewAsRole(String(role.id), e.currentTarget.checked)}
 				/>
 			{/each}

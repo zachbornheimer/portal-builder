@@ -12,6 +12,7 @@
 ## 0.1.9
 
 ### Fixes
+
 - Keep theme upgrades intact and relocate to dragongate-portals
 - Ship CHANGELOG.md in the plugin zip
 
@@ -20,6 +21,7 @@
 ## 0.1.8
 
 ### Features
+
 - Show DragonGate seal and changelog on plugin updates
 
 **Full Changelog**: https://github.com/zachbornheimer/portal-builder/compare/v0.1.7...v0.1.8
@@ -27,6 +29,7 @@
 ## 0.1.7
 
 ### Features
+
 - Let signed-in administrators see members portals
 
 **Full Changelog**: https://github.com/zachbornheimer/portal-builder/compare/v0.1.6...v0.1.7
@@ -34,15 +37,19 @@
 ## 0.1.6
 
 ### Features
+
 - Add view-as preview and receipt From name
 
 ### Fixes
+
 - Show every site disclosure on the definition form
 
 ### Tests
+
 - Assert live CFS form shows all three disclosures
 
 ### Maintenance
+
 - Add mise, Lefthook, aube, and cut-release
 
 **Full Changelog**: https://github.com/zachbornheimer/portal-builder/compare/v0.1.4...v0.1.6
@@ -50,6 +57,7 @@
 ## 0.1.4
 
 ### Features
+
 - Make option promote an admin action and use Bits radios
 
 **Full Changelog**: https://github.com/zachbornheimer/portal-builder/compare/v0.1.3...v0.1.4
@@ -57,11 +65,13 @@
 ## 0.1.3
 
 ### Features
+
 - Add Bits UI, DG_ prefixes, and pb_ to dg_ option move
 - Say on or before a date, or a window like mid-December
 - Ship the Claude Design homepage
 
 ### Fixes
+
 - Store Turnstile keys as dg_turnstile_* and require them on members
 - Give file cards a section break before the next heading
 - Prove file bytes before marking a packet file opened
@@ -72,6 +82,7 @@
 ## 0.1.2
 
 ### Fixes
+
 - Drop “call,” cap the gated pane, follow brand shadow
 
 **Full Changelog**: https://github.com/zachbornheimer/portal-builder/compare/v0.1.1...v0.1.2
@@ -79,6 +90,7 @@
 ## 0.1.1
 
 ### Fixes
+
 - Confirm files in a modal and ship 0.1.1
 - Find GitHub updates when the API is rate-limited
 
@@ -87,6 +99,7 @@
 ## 0.1.0
 
 ### Features
+
 - Let WordPress find GitHub Release updates
 - Let staff and applicants replace a current packet file
 - Mask Google secrets, Turnstile gate, and packet console
@@ -109,6 +122,7 @@
 - Design tokens, wizard shell, and save integrity
 
 ### Fixes
+
 - Build the plugin ZIP without git-archive-all
 - Keep fail-closed and guidelines label on site defaults
 - Keep public POST out of legacy Portal_Submission
@@ -135,6 +149,7 @@
 - Skip empty Google Drive folder IDs in submission processing
 
 ### Tests
+
 - Prove generic host submit writes sheet and receipt
 - Harden portal CRUD list search and REST budgets
 - Stabilize portal admin create-edit-trash via REST (1.4)
@@ -150,15 +165,18 @@
 - Add env assert config and portal fixtures (0.1)
 
 ### Documentation
+
 - Packet console, ZIP upgrade, sitemap and robots
 - Walk ZIP install through the definition wizard
 - Portal domain model contract for full rewrite
 
 ### Maintenance
+
 - Npm CI scripts and GH workflow stubs (0.4)
 - E2e runbook and phase workflow (0.4)
 
 ### Other
+
 - Indent the release ZIP script
 - merge: mockable definition submit pipeline (3.x)
 - merge: portal CRUD e2e from worktree (1.4)

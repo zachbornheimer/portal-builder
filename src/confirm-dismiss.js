@@ -8,7 +8,7 @@
  * @returns {boolean}
  */
 export function shouldDispatchCancel(nextOpen, confirmed) {
-	return !nextOpen && !confirmed;
+  return !nextOpen && !confirmed;
 }
 
 /**
@@ -20,5 +20,5 @@ export function shouldDispatchCancel(nextOpen, confirmed) {
  * @returns {boolean}
  */
 export function confirmedForOpen(isOpen, confirmed) {
-	return isOpen ? false : confirmed;
+  return isOpen ? false : confirmed;
 }

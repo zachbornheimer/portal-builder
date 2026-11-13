@@ -1,41 +1,41 @@
 <?php
+
 // Shortcode for file input
-function dg_file_shortcode( $atts ) {
-	$atts = shortcode_atts(
-		array(
-			'label'    => '',
-			'name'     => '',
-			'required' => false,
-			'accept'   => '',
-			'caption'  => '',
-		),
-		$atts
-	);
+function dg_file_shortcode($atts)
+{
+    $atts = shortcode_atts(array(
+        'label' => '',
+        'name' => '',
+        'required' => false,
+        'accept' => '',
+        'caption' => '',
+    ), $atts);
 
-	$required_attr = $atts['required'] ? 'required' : '';
-	$accept_attr   = $atts['accept'] ? sprintf( 'accept="%s"', esc_attr( $atts['accept'] ) ) : '';
+    $required_attr = $atts['required'] ? 'required' : '';
+    $accept_attr = $atts['accept'] ? sprintf('accept="%s"', esc_attr($atts['accept'])) : '';
 
-	$label = $atts['label'];
+    $label = $atts['label'];
 
-	$caption = $atts['caption'] ? sprintf( '<br /><span class="caption">%s</span>', esc_html( $atts['caption'] ) ) : '';
+    $caption = $atts['caption'] ? sprintf('<br /><span class="caption">%s</span>', esc_html($atts['caption'])) : '';
 
-	if ( $atts['required'] !== false ) {
-		$label .= '*';
-	}
+    if ($atts['required'] !== false) {
+        $label .= '*';
+    }
 
-	$output = sprintf(
-		'<div class="form-group">
+    $output = sprintf(
+        '<div class="form-group">
     <label for="%s">%s</label>
     <input type="file" id="%s" name="%s" %s %s>
 </div>',
-		esc_attr( $atts['name'] ),
-		esc_html( $label ) . $caption,
-		esc_attr( $atts['name'] ),
-		esc_attr( $atts['name'] ),
-		$accept_attr,
-		$required_attr
-	);
+        esc_attr($atts['name']),
+        esc_html($label) . $caption,
+        esc_attr($atts['name']),
+        esc_attr($atts['name']),
+        $accept_attr,
+        $required_attr,
+    );
 
-	return $output;
+    return $output;
 }
-add_shortcode( 'pb_file', 'dg_file_shortcode' );
+
+add_shortcode('pb_file', 'dg_file_shortcode');

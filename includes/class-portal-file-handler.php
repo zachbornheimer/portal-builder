@@ -1,227 +1,250 @@
 <?php
 
-if ( ! class_exists( 'Portal_File_Handler' ) ) {
+if (!class_exists('Portal_File_Handler')) {
+    class Portal_File_Handler
+    {
+        private $files;
+        private $settings;
+        private $anonymize;
+        private $local_temp_dir;
+        private $appId;
+        private $appId_prefix;
+        private $post_id;
+        public $stored_file_paths;
 
-	class Portal_File_Handler {
+        public function __construct($files = null, $settings = array(), $appId_prefix = '', $post_id = null)
+        {
+            $this->files = $files;
+            $this->settings = $settings;
+            $this->appId_prefix = $appId_prefix ?? '';
+            $this->post_id = $post_id;
 
-		private $files;
-		private $settings;
-		private $anonymize;
-		private $local_temp_dir;
-		private $appId;
-		private $appId_prefix;
-		private $post_id;
-		public $stored_file_paths;
+            $this->anonymize = $this->settings['anonymize'] ?? false;
+        }
 
-		public function __construct( $files = null, $settings = array(), $appId_prefix = '', $post_id = null ) {
+        public function get_appId()
+        {
+            return $this->appId;
+        }
 
-			$this->files        = $files;
-			$this->settings     = $settings;
-			$this->appId_prefix = $appId_prefix ?? '';
-			$this->post_id      = $post_id;
+        public function set_appId($id)
+        {
+            $this->appId = $id;
+        }
 
-			$this->anonymize = $this->settings['anonymize'] ?? false;
-		}
+        public function get_temp_file_dir()
+        {
+            return $this->local_temp_dir . '/' . $this->appId . '/';
+        }
 
-		public function get_appId() {
-			return $this->appId;
-		}
+        public function process_temp_files()
+        {
+            // if we don't have an $this->appId, create one
+            if (!isset($this->appId)) {
+                $this->appId = $this->create_appId();
+            }
 
-		public function set_appId( $id ) {
-			$this->appId = $id;
-		}
+            foreach (array_keys($this->files) as $file_key) {
+                $file = $this->files[$file_key];
 
-		public function get_temp_file_dir() {
-			return $this->local_temp_dir . '/' . $this->appId . '/';
-		}
+                $this->store_temp_file(
+                    $file['type'],
+                    $file['tmp_name'],
+                    $file_key,
+                    $this->maybe_get_file_suffix_from_content($file_key),
+                );
+            }
+        }
 
-		public function process_temp_files() {
+        private function maybe_get_file_suffix_from_content($name)
+        {
+            // get the post's content
 
-			// if we don't have an $this->appId, create one
-			if ( ! isset( $this->appId ) ) {
-				$this->appId = $this->create_appId();
-			}
+            $content = get_post_field('post_content', $this->post_id);
 
-			foreach ( array_keys( $this->files ) as $file_key ) {
-				$file = $this->files[ $file_key ];
+            // identify if there's a pb_file shortcode with a file_suffix attribute
+            $pattern = '/\[pb_file[^\]]*name=[\'"]' . $name . '[\'"][^\]]*file_suffix=[\'"]([^\'"]+)[\'"][^\]]*\]/s';
 
-				$this->store_temp_file( $file['type'], $file['tmp_name'], $file_key, $this->maybe_get_file_suffix_from_content( $file_key ) );
-			}
-		}
+            if (preg_match($pattern, $content, $match)) {
+                return $match[1];
+            }
 
-		private function maybe_get_file_suffix_from_content( $name ) {
+            return '';
+        }
 
-			// get the post's content
+        public function set_local_temp_dir($path)
+        {
+            $this->local_temp_dir = $path;
 
-			$content = get_post_field( 'post_content', $this->post_id );
+            if (!file_exists($this->local_temp_dir)) {
+                mkdir($this->local_temp_dir, 0777, true);
+            }
+        }
 
-			// identify if there's a pb_file shortcode with a file_suffix attribute
-			$pattern = '/\[pb_file[^\]]*name=[\'"]' . $name . '[\'"][^\]]*file_suffix=[\'"]([^\'"]+)[\'"][^\]]*\]/s';
+        public function permanently_store_temp()
+        {
+            $permanent_dir = $this->settings['permanent_dir'] ?? '';
+            if ($permanent_dir === '') {
+                throw new Exception('Permanent directory not set');
+            }
 
-			if ( preg_match( $pattern, $content, $match ) ) {
-				return $match[1];
-			}
+            $permanent_dir = $permanent_dir . '/' . $this->appId . '/';
 
-			return '';
-		}
+            if (!file_exists($permanent_dir)) {
+                mkdir($permanent_dir, 0777, true);
+            }
 
-		public function set_local_temp_dir( $path ) {
-			$this->local_temp_dir = $path;
+            $files = glob($this->local_temp_dir . '/' . $this->appId . '/*');
 
-			if ( ! file_exists( $this->local_temp_dir ) ) {
-				mkdir( $this->local_temp_dir, 0777, true );
-			}
-		}
+            foreach ($files as $file) {
+                $file_name = basename($file);
+                $new_file_path = $permanent_dir . '/' . $file_name;
 
-		public function permanently_store_temp() {
-			$permanent_dir = $this->settings['permanent_dir'] ?? '';
-			if ( $permanent_dir === '' ) {
-				throw new Exception( 'Permanent directory not set' );
-			}
+                if (!copy($file, $new_file_path)) {
+                    throw new Exception('Failed to move file to target directory');
+                }
+            }
+        }
 
-			$permanent_dir = $permanent_dir . '/' . $this->appId . '/';
+        private function store_temp_file($type, $tmp_name, $file_key, $suffix = '')
+        {
+            // Definition submit anonymizes via All Intersections. This local
+            // exiftool/qpdf/lame strip is last-resort for the legacy path when
+            // the API is not configured.
 
-			if ( ! file_exists( $permanent_dir ) ) {
-				mkdir( $permanent_dir, 0777, true );
-			}
+            switch ($type) {
+                case 'application/pdf':
+                    if ($this->anonymize) {
+                        $this->store_anonymized_pdf($tmp_name, $file_key, $suffix);
+                    } else {
+                        $this->store_pdf($tmp_name, $file_key, $suffix);
+                    }
+                    break;
+                case 'audio/mpeg':
+                    if ($this->anonymize) {
+                        $this->store_anonymized_mp3($tmp_name, $file_key, $suffix);
+                    } else {
+                        $this->store_mp3($tmp_name, $file_key, $suffix);
+                    }
+                    break;
+            }
+        }
 
-			$files = glob( $this->local_temp_dir . '/' . $this->appId . '/*' );
+        private function create_appId()
+        {
+            $appId = '';
 
-			foreach ( $files as $file ) {
-				$file_name     = basename( $file );
-				$new_file_path = $permanent_dir . '/' . $file_name;
+            do {
+                $appId = uniqid($this->appId_prefix);
+            } while (!mkdir($this->local_temp_dir . '/' . $appId . '/'));
 
-				if ( ! copy( $file, $new_file_path ) ) {
-					throw new Exception( 'Failed to move file to target directory' );
-				}
-			}
-		}
+            return $appId;
+        }
 
-		private function store_temp_file( $type, $tmp_name, $file_key, $suffix = '' ) {
-			// Definition submit anonymizes via All Intersections. This local
-			// exiftool/qpdf/lame strip is last-resort for the legacy path when
-			// the API is not configured.
+        private function store_file($temp_name, $extension, $file_key, $suffix = '')
+        {
+            $file_name = basename($temp_name);
+            $this->stored_file_paths[$file_key] =
+                $this->appId . '/' . str_replace('php', '', $file_name) . $suffix . '.' . $extension;
+            $new_file_path = $this->local_temp_dir . '/' . $this->stored_file_paths[$file_key];
 
-			switch ( $type ) {
-				case 'application/pdf':
-					if ( $this->anonymize ) {
-						$this->store_anonymized_pdf( $tmp_name, $file_key, $suffix );
-					} else {
-						$this->store_pdf( $tmp_name, $file_key, $suffix );
-					}
-					break;
-				case 'audio/mpeg':
-					if ( $this->anonymize ) {
-						$this->store_anonymized_mp3( $tmp_name, $file_key, $suffix );
-					} else {
-						$this->store_mp3( $tmp_name, $file_key, $suffix );
-					}
-					break;
-			}
-		}
+            if (!move_uploaded_file($temp_name, $new_file_path)) {
+                throw new Exception('Failed to move file to temp directory');
+            }
 
-		private function create_appId() {
-			$appId = '';
+            return $new_file_path;
+        }
 
-			do {
-				$appId = uniqid( $this->appId_prefix );
-			} while ( ! mkdir( $this->local_temp_dir . '/' . $appId . '/' ) );
+        private function store_pdf($tmp_name, $file_key, $suffix = '')
+        {
+            return $this->store_file($tmp_name, 'pdf', $file_key, $suffix);
+        }
 
-			return $appId;
-		}
+        private function store_mp3($tmp_name, $file_key, $suffix = '')
+        {
+            return $this->store_file($tmp_name, 'mp3', $file_key, $suffix);
+        }
 
-		private function store_file( $temp_name, $extension, $file_key, $suffix = '' ) {
-			$file_name                            = basename( $temp_name );
-			$this->stored_file_paths[ $file_key ] = $this->appId . '/' . str_replace( 'php', '', $file_name ) . $suffix . '.' . $extension;
-			$new_file_path                        = $this->local_temp_dir . '/' . $this->stored_file_paths[ $file_key ];
+        private function store_anonymized_pdf($tmp_name, $file_key, $suffix = '')
+        {
+            if (!$this->isEnabled('shell_exec')) {
+                throw new Exception('shell_exec is disabled');
+            }
 
-			if ( ! move_uploaded_file( $temp_name, $new_file_path ) ) {
-				throw new Exception( 'Failed to move file to temp directory' );
-			}
+            $path = $this->store_pdf($tmp_name, $file_key, $suffix);
+            $target = escapeshellarg($path);
 
-			return $new_file_path;
-		}
+            $exiftool_path = $this->binary_tool('exiftool');
+            $qpdf_path = $this->binary_tool('qpdf');
 
-		private function store_pdf( $tmp_name, $file_key, $suffix = '' ) {
-			return $this->store_file( $tmp_name, 'pdf', $file_key, $suffix );
-		}
+            shell_exec($exiftool_path . " -overwrite_original -all= $target 2>&1 3>&1");
+            shell_exec($qpdf_path . " --linearize $target $target.new");
 
-		private function store_mp3( $tmp_name, $file_key, $suffix = '' ) {
-			return $this->store_file( $tmp_name, 'mp3', $file_key, $suffix );
-		}
+            // remove any wrapping quotes from target
+            $target = trim($target, "'");
+            $target = trim($target, '"');
 
-		private function store_anonymized_pdf( $tmp_name, $file_key, $suffix = '' ) {
-			if ( ! $this->isEnabled( 'shell_exec' ) ) {
-				throw new Exception( 'shell_exec is disabled' );
-			}
+            if (!rename($target . '.new', $target)) {
+                throw new Exception('Failed to rename anonymized file');
+            }
+        }
 
-			$path   = $this->store_pdf( $tmp_name, $file_key, $suffix );
-			$target = escapeshellarg( $path );
+        private function store_anonymized_mp3($tmp_name, $file_key, $suffix = '')
+        {
+            if (!$this->isEnabled('shell_exec')) {
+                throw new Exception('shell_exec is disabled');
+            }
 
-			$exiftool_path = $this->binary_tool( 'exiftool' );
-			$qpdf_path     = $this->binary_tool( 'qpdf' );
+            $original_target = $this->store_mp3($tmp_name, $file_key, $suffix);
+            $original_altTarget = $original_target . '.alt.mp3';
+            $target = escapeshellarg($original_target);
+            $altTarget = escapeshellarg($original_altTarget);
 
-			shell_exec( $exiftool_path . " -overwrite_original -all= $target 2>&1 3>&1" );
-			shell_exec( $qpdf_path . " --linearize $target $target.new" );
+            $exiftool_path = $this->binary_tool('exiftool');
+            $lame_path = $this->binary_tool('lame');
+            $eyed3_path = $this->binary_tool('eyed3');
+            $perl_path = $this->binary_tool('perl');
 
-			// remove any wrapping quotes from target
-			$target = trim( $target, "'" );
-			$target = trim( $target, '"' );
+            $existingBitrate = shell_exec(
+                "$exiftool_path -AudioBitrate " . $target . " | $perl_path -lpe 's/.*: (\d+) kbps/$1/' 2>&1",
+            );
+            $existingBitrate = rtrim($existingBitrate);
 
-			if ( ! rename( $target . '.new', $target ) ) {
-				throw new Exception( 'Failed to rename anonymized file' );
-			}
-		}
+            if (filter_var($existingBitrate, FILTER_VALIDATE_INT) === false) {
+                $existingBitrate = '256';
+            }
 
-		private function store_anonymized_mp3( $tmp_name, $file_key, $suffix = '' ) {
+            shell_exec("$lame_path -b " . $existingBitrate . ' ' . $target . ' ' . $altTarget . ' 2>&1');
+            shell_exec(
+                "$eyed3_path --remove-all --remove-all-images --remove-all-comments --remove-all-lyrics "
+                . $altTarget
+                . ' 1>/dev/null 2>/dev/null',
+            );
 
-			if ( ! $this->isEnabled( 'shell_exec' ) ) {
-				throw new Exception( 'shell_exec is disabled' );
-			}
+            if (!rename($original_altTarget, $original_target)) {
+                throw new Exception('Failed to rename anonymized file');
+            }
+        }
 
-			$original_target    = $this->store_mp3( $tmp_name, $file_key, $suffix );
-			$original_altTarget = $original_target . '.alt.mp3';
-			$target             = escapeshellarg( $original_target );
-			$altTarget          = escapeshellarg( $original_altTarget );
+        private function isEnabled($func)
+        {
+            return is_callable($func) && false === stripos(ini_get('disable_functions'), $func);
+        }
 
-			$exiftool_path = $this->binary_tool( 'exiftool' );
-			$lame_path     = $this->binary_tool( 'lame' );
-			$eyed3_path    = $this->binary_tool( 'eyed3' );
-			$perl_path     = $this->binary_tool( 'perl' );
+        private function binary_tool($tool)
+        {
+            $path = Portal_Options::get('dg_' . $tool . '_path', '/usr/local/bin/' . $tool);
+            $path = escapeshellarg($path);
 
-			$existingBitrate = shell_exec( "$exiftool_path -AudioBitrate " . $target . " | $perl_path -lpe 's/.*: (\d+) kbps/$1/' 2>&1" );
-			$existingBitrate = rtrim( $existingBitrate );
+            // remove surrounding quotes
+            $path = substr($path, 1, -1);
 
-			if ( filter_var( $existingBitrate, FILTER_VALIDATE_INT ) === false ) {
-				$existingBitrate = '256';
-			}
+            // are these paths valid?
+            if (!file_exists($path)) {
+                throw new Exception('Invalid path to ' . $tool);
+            }
 
-			shell_exec( "$lame_path -b " . $existingBitrate . ' ' . $target . ' ' . $altTarget . ' 2>&1' );
-			shell_exec( "$eyed3_path --remove-all --remove-all-images --remove-all-comments --remove-all-lyrics " . $altTarget . ' 1>/dev/null 2>/dev/null' );
-
-			if ( ! rename( $original_altTarget, $original_target ) ) {
-				throw new Exception( 'Failed to rename anonymized file' );
-			}
-		}
-
-		private function isEnabled( $func ) {
-			return is_callable( $func ) && false === stripos( ini_get( 'disable_functions' ), $func );
-		}
-
-		private function binary_tool( $tool ) {
-
-			$path = Portal_Options::get( 'dg_' . $tool . '_path', '/usr/local/bin/' . $tool );
-			$path = escapeshellarg( $path );
-
-			// remove surrounding quotes
-			$path = substr( $path, 1, -1 );
-
-			// are these paths valid?
-			if ( ! file_exists( $path ) ) {
-				throw new Exception( 'Invalid path to ' . $tool );
-			}
-
-			return $path;
-		}
-	}
+            return $path;
+        }
+    }
 }

@@ -8,62 +8,62 @@
  * Staged REST must return raw bytes (serve_raw_request). A JSON body means the
  * binary serve path failed — treat as not readable (Safari/Chrome Open confirm).
  */
-var PDF_MAGIC = [0x25, 0x50, 0x44, 0x46]
-var PDF_TYPE = 'application/pdf'
-var KIND_IFRAME = 'iframe'
-var KIND_PDF = 'pdf'
+var PDF_MAGIC = [0x25, 0x50, 0x44, 0x46];
+var PDF_TYPE = "application/pdf";
+var KIND_IFRAME = "iframe";
+var KIND_PDF = "pdf";
 
 function missingUrl(url) {
-  return url == null || String(url).trim() === ''
+  return url == null || String(url).trim() === "";
 }
 
 function contentTypeOf(response) {
-  if (!response || !response.headers || typeof response.headers.get !== 'function') {
-    return ''
+  if (!response || !response.headers || typeof response.headers.get !== "function") {
+    return "";
   }
-  return String(response.headers.get('content-type') || '').toLowerCase()
+  return String(response.headers.get("content-type") || "").toLowerCase();
 }
 
 function hasPdfType(type) {
-  return String(type || '').indexOf(PDF_TYPE) !== -1
+  return String(type || "").indexOf(PDF_TYPE) !== -1;
 }
 
 function hasPdfMagic(bytes) {
   if (!bytes || bytes.length < PDF_MAGIC.length) {
-    return false
+    return false;
   }
   for (var i = 0; i < PDF_MAGIC.length; i += 1) {
     if (bytes[i] !== PDF_MAGIC[i]) {
-      return false
+      return false;
     }
   }
-  return true
+  return true;
 }
 
 function needsPdfProof(kind) {
-  return kind === KIND_IFRAME || kind === KIND_PDF
+  return kind === KIND_IFRAME || kind === KIND_PDF;
 }
 
 function resolveFetch(fetchImpl) {
-  if (typeof fetchImpl === 'function') {
-    return fetchImpl
+  if (typeof fetchImpl === "function") {
+    return fetchImpl;
   }
-  if (typeof globalThis.fetch === 'function') {
-    return globalThis.fetch.bind(globalThis)
+  if (typeof globalThis.fetch === "function") {
+    return globalThis.fetch.bind(globalThis);
   }
-  return null
+  return null;
 }
 
 async function readBytes(response) {
-  if (response && typeof response.arrayBuffer === 'function') {
-    var buffer = await response.arrayBuffer()
-    return new Uint8Array(buffer || 0)
+  if (response && typeof response.arrayBuffer === "function") {
+    var buffer = await response.arrayBuffer();
+    return new Uint8Array(buffer || 0);
   }
-  if (response && typeof response.text === 'function') {
-    var text = await response.text()
-    return new TextEncoder().encode(text || '')
+  if (response && typeof response.text === "function") {
+    var text = await response.text();
+    return new TextEncoder().encode(text || "");
   }
-  return new Uint8Array()
+  return new Uint8Array();
 }
 
 function looksLikeJson(type, bytes) {
@@ -91,49 +91,56 @@ function looksLikeJson(type, bytes) {
 
 function decideReadable(kind, response, bytes) {
   if (!response || !response.ok) {
-    var status = response && response.status ? response.status : 0
-    return { ready: false, reason: 'not readable (' + status + ')' }
+    var status = response && response.status ? response.status : 0;
+    return { ready: false, reason: "not readable (" + status + ")" };
   }
   if (!bytes || !bytes.length) {
-    return { ready: false, reason: 'empty body' }
+    return { ready: false, reason: "empty body" };
   }
   if (looksLikeJson(contentTypeOf(response), bytes)) {
     return { ready: false, reason: 'json instead of file bytes' }
   }
   if (needsPdfProof(kind) && !hasPdfType(contentTypeOf(response)) && !hasPdfMagic(bytes)) {
-    return { ready: false, reason: 'not a pdf' }
+    return { ready: false, reason: "not a pdf" };
   }
-  return { ready: true }
+  return { ready: true };
 }
 
 export async function proveReadable(options) {
-  var opts = options || {}
-  var url = opts.url
-  var kind = opts.kind || KIND_IFRAME
-  var fetchImpl = resolveFetch(opts.fetchImpl)
+  var opts = options || {};
+  var url = opts.url;
+  var kind = opts.kind || KIND_IFRAME;
+  var fetchImpl = resolveFetch(opts.fetchImpl);
   if (missingUrl(url)) {
-    throw new Error('file preview: missing url')
+    throw new Error("file preview: missing url");
   }
   if (!fetchImpl) {
-    throw new Error('file preview: fetch unavailable')
+    throw new Error("file preview: fetch unavailable");
   }
-  var response
+  var response;
   try {
+<<<<<<< Updated upstream
     // Same-origin staged REST; cookies/nonce sessions need credentials on Safari.
     response = await fetchImpl(url, { credentials: 'same-origin' })
+||||||| Stash base
+    response = await fetchImpl(url)
+=======
+    response = await fetchImpl(url);
+>>>>>>> Stashed changes
   } catch (err) {
-    throw new Error('file preview: fetch failed')
+    throw new Error("file preview: fetch failed");
   }
-  var bytes = await readBytes(response)
-  var decision = decideReadable(kind, response, bytes)
+  var bytes = await readBytes(response);
+  var decision = decideReadable(kind, response, bytes);
   if (!decision.ready) {
-    throw new Error('file preview: ' + decision.reason)
+    throw new Error("file preview: " + decision.reason);
   }
-  return { ready: true }
+  return { ready: true };
 }
 
-export var FilePreview = { proveReadable: proveReadable }
+export var FilePreview = { proveReadable: proveReadable };
 
+<<<<<<< Updated upstream
 if (typeof globalThis !== 'undefined') {
   globalThis.FilePreview = FilePreview
   try {
@@ -141,4 +148,11 @@ if (typeof globalThis !== 'undefined') {
   } catch (err) {
     /* Event unsupported — definition-form still polls previewReady. */
   }
+||||||| Stash base
+if (typeof globalThis !== 'undefined') {
+  globalThis.FilePreview = FilePreview
+=======
+if (typeof globalThis !== "undefined") {
+  globalThis.FilePreview = FilePreview;
+>>>>>>> Stashed changes
 }

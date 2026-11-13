@@ -10,10 +10,10 @@
 
 /** @type {Clock} */
 export const systemClock = {
-	nowMs() {
-		return Date.now();
-	},
-	nowIso() {
-		return new Date().toISOString();
-	},
+  nowMs() {
+    return Date.now();
+  },
+  nowIso() {
+    return new Date().toISOString();
+  },
 };

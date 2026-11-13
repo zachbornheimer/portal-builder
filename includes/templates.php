@@ -24,39 +24,38 @@ function portal_template_redirect($template)
 
     return $template;
 }
+
 add_filter('template_include', 'portal_template_redirect');
 
 function register_portal_application_title_block()
 {
-    register_block_type(
-        'portal/application-title',
-        array(
-            'attributes'      => array(
-                'align'  => array(
-                    'type'    => 'string',
-                    'default' => 'full',
-                ),
-                'lock'   => array(
-                    'type'    => 'object',
-                    'default' => array(
-                        'move'   => false,
-                        'remove' => true,
-                    ),
-                ),
-                'layout' => array(
-                    'type'    => 'object',
-                    'default' => array(
-                        'type' => 'constrained',
-                    ),
+    register_block_type('portal/application-title', array(
+        'attributes' => array(
+            'align' => array(
+                'type' => 'string',
+                'default' => 'full',
+            ),
+            'lock' => array(
+                'type' => 'object',
+                'default' => array(
+                    'move' => false,
+                    'remove' => true,
                 ),
             ),
-            'render_callback' => 'render_portal_application_title_block',
-            'supports'        => array(
-                'align' => array( 'full', 'wide' ),
+            'layout' => array(
+                'type' => 'object',
+                'default' => array(
+                    'type' => 'constrained',
+                ),
             ),
-        )
-    );
+        ),
+        'render_callback' => 'render_portal_application_title_block',
+        'supports' => array(
+            'align' => array('full', 'wide'),
+        ),
+    ));
 }
+
 add_action('init', 'register_portal_application_title_block');
 
 function render_portal_application_title_block($attributes, $content)
@@ -65,8 +64,8 @@ function render_portal_application_title_block($attributes, $content)
     $guidelines_url = get_post_meta(get_the_ID(), '_portal_guidelines_url', true);
 
     // Get attributes
-    $align     = $attributes['align']          ?? 'full';
-    $layout    = $attributes['layout']['type'] ?? 'is-layout-constrained';
+    $align = $attributes['align'] ?? 'full';
+    $layout = $attributes['layout']['type'] ?? 'is-layout-constrained';
     $className = 'wp-block-group align' . esc_attr($align) . ' layout-' . esc_attr($layout);
 
     $className = 'entry-content alignfull wp-block-post-content has-global-padding is-layout-constrained wp-block-post-content-is-layout-constrained';
@@ -78,7 +77,7 @@ function render_portal_application_title_block($attributes, $content)
 		<p><em>Application Form for:</em></p>
 		<h2 style="text-align: center;"><?php echo esc_html(get_the_title()); ?></h2>
 
-		<?php if (! empty($guidelines_url)) : ?>
+		<?php if (!empty($guidelines_url)): ?>
 			<div style="text-align: center; margin:0px;padding:0px;">
 				<em><span style="font-size: 12px;">Guidelines available at:
 						<a style="text-decoration: underline;" href="<?php echo esc_url($guidelines_url); ?>" target="_blank">
@@ -88,45 +87,44 @@ function render_portal_application_title_block($attributes, $content)
 		<?php endif; ?>
 	</div>
 	<?php
-    // Return the buffer content
-    return ob_get_clean();
+
+	// Return the buffer content
+	return ob_get_clean();
 }
 
 function register_portal_application_formstart_block()
 {
-    register_block_type(
-        'portal/application-formstart',
-        array(
-            'attributes'      => array(
-                'align'  => array(
-                    'type'    => 'string',
-                    'default' => 'full',
-                ),
-                'lock'   => array(
-                    'type'    => 'object',
-                    'default' => array(
-                        'move'   => false,
-                        'remove' => true,
-                    ),
-                ),
-                'layout' => array(
-                    'type'    => 'object',
-                    'default' => array(
-                        'type' => 'constrained',
-                    ),
-                ),
-                'nonce'  => array(
-                    'type'    => 'string',
-                    'default' => 'review_nonce',
+    register_block_type('portal/application-formstart', array(
+        'attributes' => array(
+            'align' => array(
+                'type' => 'string',
+                'default' => 'full',
+            ),
+            'lock' => array(
+                'type' => 'object',
+                'default' => array(
+                    'move' => false,
+                    'remove' => true,
                 ),
             ),
-            'render_callback' => 'render_portal_application_formstart_block',
-            'supports'        => array(
-                'align' => array( 'full', 'wide' ),
+            'layout' => array(
+                'type' => 'object',
+                'default' => array(
+                    'type' => 'constrained',
+                ),
             ),
-        )
-    );
+            'nonce' => array(
+                'type' => 'string',
+                'default' => 'review_nonce',
+            ),
+        ),
+        'render_callback' => 'render_portal_application_formstart_block',
+        'supports' => array(
+            'align' => array('full', 'wide'),
+        ),
+    ));
 }
+
 add_action('init', 'register_portal_application_formstart_block');
 
 function render_portal_application_formstart_block($attributes, $content)
@@ -141,8 +139,8 @@ function render_portal_application_formstart_block($attributes, $content)
     $guidelines_url = get_post_meta(get_the_ID(), '_portal_guidelines_url', true);
 
     // Get attributes
-    $align     = $attributes['align']          ?? 'full';
-    $layout    = $attributes['layout']['type'] ?? 'is-layout-constrained';
+    $align = $attributes['align'] ?? 'full';
+    $layout = $attributes['layout']['type'] ?? 'is-layout-constrained';
     $className = 'wp-block-group align' . esc_attr($align) . ' layout-' . esc_attr($layout);
     $nonceName = $attributes['nonce'] ?? 'review_nonce';
     // if last round had this nonce, change it to the next nonce, which is ready_to_submit_nonce (the last)
@@ -158,43 +156,42 @@ function render_portal_application_formstart_block($attributes, $content)
 	<form action="" enctype="multipart/form-data" method="post">
 		<input type="hidden" name="post_id" value="<?php echo get_the_ID(); ?>" />
 	<?php
-    wp_nonce_field($nonceName, $nonceName);
 
-    // Return the buffer content
-    return ob_get_clean();
+	wp_nonce_field($nonceName, $nonceName);
+
+	// Return the buffer content
+	return ob_get_clean();
 }
 
 function register_portal_application_formend_block()
 {
-    register_block_type(
-        'portal/application-formend',
-        array(
-            'attributes'      => array(
-                'align'  => array(
-                    'type'    => 'string',
-                    'default' => 'full',
-                ),
-                'lock'   => array(
-                    'type'    => 'object',
-                    'default' => array(
-                        'move'   => false,
-                        'remove' => true,
-                    ),
-                ),
-                'layout' => array(
-                    'type'    => 'object',
-                    'default' => array(
-                        'type' => 'constrained',
-                    ),
+    register_block_type('portal/application-formend', array(
+        'attributes' => array(
+            'align' => array(
+                'type' => 'string',
+                'default' => 'full',
+            ),
+            'lock' => array(
+                'type' => 'object',
+                'default' => array(
+                    'move' => false,
+                    'remove' => true,
                 ),
             ),
-            'render_callback' => 'render_portal_application_formend_block',
-            'supports'        => array(
-                'align' => array( 'full', 'wide' ),
+            'layout' => array(
+                'type' => 'object',
+                'default' => array(
+                    'type' => 'constrained',
+                ),
             ),
-        )
-    );
+        ),
+        'render_callback' => 'render_portal_application_formend_block',
+        'supports' => array(
+            'align' => array('full', 'wide'),
+        ),
+    ));
 }
+
 add_action('init', 'register_portal_application_formend_block');
 
 function render_portal_application_formend_block($attributes, $content)
@@ -209,8 +206,8 @@ function render_portal_application_formend_block($attributes, $content)
     $guidelines_url = get_post_meta(get_the_ID(), '_portal_guidelines_url', true);
 
     // Get attributes
-    $align     = $attributes['align']          ?? 'full';
-    $layout    = $attributes['layout']['type'] ?? 'is-layout-constrained';
+    $align = $attributes['align'] ?? 'full';
+    $layout = $attributes['layout']['type'] ?? 'is-layout-constrained';
     $className = 'wp-block-group align' . esc_attr($align) . ' layout-' . esc_attr($layout);
 
     $className = 'entry-content alignfull wp-block-post-content has-global-padding is-layout-constrained wp-block-post-content-is-layout-constrained';
@@ -220,60 +217,59 @@ function render_portal_application_formend_block($attributes, $content)
     ?>
 	</form>
 	<?php
-    // Return the buffer content
-    return ob_get_clean();
+
+	// Return the buffer content
+	return ob_get_clean();
 }
 
 function register_portal_application_file_review_block()
 {
-    register_block_type(
-        'portal/application-file-review',
-        array(
-            'attributes'      => array(
-                'align'  => array(
-                    'type'    => 'string',
-                    'default' => 'full',
-                ),
-                'lock'   => array(
-                    'type'    => 'object',
-                    'default' => array(
-                        'move'   => false,
-                        'remove' => true,
-                    ),
-                ),
-                'layout' => array(
-                    'type'    => 'object',
-                    'default' => array(
-                        'type' => 'constrained',
-                    ),
-                ),
-                'nonce'  => array(
-                    'type'    => 'string',
-                    'default' => 'review_nonce',
+    register_block_type('portal/application-file-review', array(
+        'attributes' => array(
+            'align' => array(
+                'type' => 'string',
+                'default' => 'full',
+            ),
+            'lock' => array(
+                'type' => 'object',
+                'default' => array(
+                    'move' => false,
+                    'remove' => true,
                 ),
             ),
-            'render_callback' => 'render_portal_application_file_review_block',
-            'supports'        => array(
-                'align' => array( 'full', 'wide' ),
+            'layout' => array(
+                'type' => 'object',
+                'default' => array(
+                    'type' => 'constrained',
+                ),
             ),
-        )
-    );
+            'nonce' => array(
+                'type' => 'string',
+                'default' => 'review_nonce',
+            ),
+        ),
+        'render_callback' => 'render_portal_application_file_review_block',
+        'supports' => array(
+            'align' => array('full', 'wide'),
+        ),
+    ));
 }
+
 add_action('init', 'register_portal_application_file_review_block');
 
 function render_portal_application_file_review_block($attributes, $content)
 {
     // Get the guidelines URL from the post meta
 
-    if (! isset($_POST['review_nonce'])) {
+    if (!isset($_POST['review_nonce'])) {
         return;
     }
 
     $guidelines_url = get_post_meta(get_the_ID(), '_portal_guidelines_url', true);
 
     // Get attributes
-    $align     = $attributes['align']          ?? 'full';
-    $layout    = $attributes['layout']['type'] ?? 'is-layout-constrained';
+    $align = $attributes['align'] ?? 'full';
+    $layout = $attributes['layout']['type'] ?? 'is-layout-constrained';
     $className = 'wp-block-group align' . esc_attr($align) . ' layout-' . esc_attr($layout);
     $nonceName = $attributes['nonce'] ?? 'review_nonce';
     // if last round had this nonce, change it to the next nonce, which is ready_to_submit_nonce (the last)
@@ -292,33 +288,41 @@ function render_portal_application_file_review_block($attributes, $content)
 			<span class="instructions">Please review your files to ensure that they have been processed correctly. Each link opens in a new tab</span>
 			<ul>
 				<?php
-                $file_handler = DG_FILE_HANDLER;
-    foreach (array_keys($file_handler->stored_file_paths) as $key) {
-        $file       = $_FILES[ $key ];
-        $file_name  = basename($file['tmp_name']);
-        $file_size  = $file['size'];
-        $file_type  = $file['type'];
-        $file_error = $file['error'];
 
-        if ($file_error === 0) {
-            # get the correct extension based on MIME
-            $extension = '';
-            switch ($file_type) {
-                case 'application/pdf':
-                    $extension = '.pdf';
-                    break;
-                case 'audio/mpeg':
-                    $extension = '.mp3';
-                    break;
-                default:
-                    $extension = '';
-                    break;
-            }
-            $url = site_url(DG_RELATIVE_TMP_UPLOADS_DIR . '/' . $file_handler->stored_file_paths[ $key ]);
-            echo '<li><a href="' . $url . '" target="_blank" data-display-label-override="1" data-display-label="' . $key . '">' . esc_html($file_name) . '</a></li>';
-        }
-    }
-    ?>
+				$file_handler = DG_FILE_HANDLER;
+				foreach (array_keys($file_handler->stored_file_paths) as $key) {
+    				$file = $_FILES[$key];
+    				$file_name = basename($file['tmp_name']);
+    				$file_size = $file['size'];
+    				$file_type = $file['type'];
+    				$file_error = $file['error'];
+
+    				if ($file_error === 0) {
+        				// get the correct extension based on MIME
+        				$extension = '';
+        				switch ($file_type) {
+            				case 'application/pdf':
+                				$extension = '.pdf';
+                				break;
+            				case 'audio/mpeg':
+                				$extension = '.mp3';
+                				break;
+            				default:
+                				$extension = '';
+                				break;
+        				}
+        				$url = site_url(DG_RELATIVE_TMP_UPLOADS_DIR . '/' . $file_handler->stored_file_paths[$key]);
+        				echo
+            				'<li><a href="'
+                				. $url
+                				. '" target="_blank" data-display-label-override="1" data-display-label="'
+                				. $key
+                				. '">'
+                				. esc_html($file_name)
+                				. '</a></li>';
+    				}
+				}
+				?>
 			</ul>
 		</fieldset>
 		<input type="hidden" name="eappId" value="<?php echo $_POST['eappId']; ?>" />
@@ -326,46 +330,43 @@ function render_portal_application_file_review_block($attributes, $content)
 	</div>
 	<?php
 
-    // Return the buffer content
-    return ob_get_clean();
+	// Return the buffer content
+	return ob_get_clean();
 }
 
 function register_portal_application_upload_notes_block()
 {
-    register_block_type(
-        'portal/application-upload-notes',
-        array(
-            'attributes'      => array(
-                'align'  => array(
-                    'type'    => 'string',
-                    'default' => 'full',
-                ),
-                'lock'   => array(
-                    'type'    => 'object',
-                    'default' => array(
-                        'move'   => false,
-                        'remove' => true,
-                    ),
-                ),
-                'layout' => array(
-                    'type'    => 'object',
-                    'default' => array(
-                        'type' => 'constrained',
-                    ),
+    register_block_type('portal/application-upload-notes', array(
+        'attributes' => array(
+            'align' => array(
+                'type' => 'string',
+                'default' => 'full',
+            ),
+            'lock' => array(
+                'type' => 'object',
+                'default' => array(
+                    'move' => false,
+                    'remove' => true,
                 ),
             ),
-            'render_callback' => 'render_portal_application_upload_notes_block',
-            'supports'        => array(
-                'align' => array( 'full', 'wide' ),
+            'layout' => array(
+                'type' => 'object',
+                'default' => array(
+                    'type' => 'constrained',
+                ),
             ),
-        )
-    );
+        ),
+        'render_callback' => 'render_portal_application_upload_notes_block',
+        'supports' => array(
+            'align' => array('full', 'wide'),
+        ),
+    ));
 }
+
 add_action('init', 'register_portal_application_upload_notes_block');
 
 function render_portal_application_upload_notes_block($attributes, $content)
 {
-
     if (defined('DG_APPLICATION_SUBMITTED') && DG_APPLICATION_SUBMITTED) {
         return;
     }
@@ -381,8 +382,8 @@ function render_portal_application_upload_notes_block($attributes, $content)
     $guidelines_url = get_post_meta(get_the_ID(), '_portal_guidelines_url', true);
 
     // Get attributes
-    $align     = $attributes['align']          ?? 'full';
-    $layout    = $attributes['layout']['type'] ?? 'is-layout-constrained';
+    $align = $attributes['align'] ?? 'full';
+    $layout = $attributes['layout']['type'] ?? 'is-layout-constrained';
     $className = 'wp-block-group align' . esc_attr($align) . ' layout-' . esc_attr($layout);
 
     $className = 'entry-content alignfull wp-block-post-content has-global-padding is-layout-constrained wp-block-post-content-is-layout-constrained';
@@ -403,41 +404,40 @@ function render_portal_application_upload_notes_block($attributes, $content)
 		</div>
 	</div>
 	<?php
-    // Return the buffer content
-    return ob_get_clean();
+
+	// Return the buffer content
+	return ob_get_clean();
 }
 
 function register_portal_application_agreements_block()
 {
-    register_block_type(
-        'portal/application-agreements',
-        array(
-            'attributes'      => array(
-                'align'  => array(
-                    'type'    => 'string',
-                    'default' => 'full',
-                ),
-                'lock'   => array(
-                    'type'    => 'object',
-                    'default' => array(
-                        'move'   => false,
-                        'remove' => true,
-                    ),
-                ),
-                'layout' => array(
-                    'type'    => 'object',
-                    'default' => array(
-                        'type' => 'constrained',
-                    ),
+    register_block_type('portal/application-agreements', array(
+        'attributes' => array(
+            'align' => array(
+                'type' => 'string',
+                'default' => 'full',
+            ),
+            'lock' => array(
+                'type' => 'object',
+                'default' => array(
+                    'move' => false,
+                    'remove' => true,
                 ),
             ),
-            'render_callback' => 'render_portal_application_agreements_block',
-            'supports'        => array(
-                'align' => array( 'full', 'wide' ),
+            'layout' => array(
+                'type' => 'object',
+                'default' => array(
+                    'type' => 'constrained',
+                ),
             ),
-        )
-    );
+        ),
+        'render_callback' => 'render_portal_application_agreements_block',
+        'supports' => array(
+            'align' => array('full', 'wide'),
+        ),
+    ));
 }
+
 add_action('init', 'register_portal_application_agreements_block');
 
 function render_portal_application_agreements_block($attributes, $content)
@@ -449,88 +449,88 @@ function render_portal_application_agreements_block($attributes, $content)
         return;
     }
 
-    $align     = $attributes['align']          ?? 'full';
-    $layout    = $attributes['layout']['type'] ?? 'is-layout-constrained';
+    $align = $attributes['align'] ?? 'full';
+    $layout = $attributes['layout']['type'] ?? 'is-layout-constrained';
     $className = 'wp-block-group align' . esc_attr($align) . ' layout-' . esc_attr($layout);
     $className = 'entry-content alignfull wp-block-post-content has-global-padding is-layout-constrained wp-block-post-content-is-layout-constrained';
 
-    $disclaimers = json_decode(Portal_Options::get( 'dg_legal_disclaimers', json_encode(array())), true);
-    # keep decoding until we get an array
-    while (! is_array($disclaimers)) {
+    $disclaimers = json_decode(Portal_Options::get('dg_legal_disclaimers', json_encode(array())), true);
+    // keep decoding until we get an array
+    while (!is_array($disclaimers)) {
         $disclaimers = json_decode($disclaimers, true);
     }
     $agreements = array();
     foreach ($disclaimers as $disclaimer) {
         if ($disclaimer[0]) {
-            $agreements[ $disclaimer[0] ] = array(
-                'text'    => $disclaimer[1],
-                'checked' => $_POST[ 'sub_agreement_' . $disclaimer[0] ] ?? false,
+            $agreements[$disclaimer[0]] = array(
+                'text' => $disclaimer[1],
+                'checked' => $_POST['sub_agreement_' . $disclaimer[0]] ?? false,
             );
         }
     }
 
     $disclaimers = $agreements;
-    $readonly    = isset($_POST['review_nonce']) ? ' disabled="disabled" ' : '';
+    $readonly = isset($_POST['review_nonce']) ? ' disabled="disabled" ' : '';
 
     ob_start();
     ?>
 	<div class="<?php echo $className; ?>" style="margin-top:30px">
-		<?php if ($disclaimers) : ?>
+		<?php if ($disclaimers): ?>
 		<p class="row description">Please mark the statements below. To proceed with the application, all statements must be agreed to.</p>
 		<?php endif; ?>
 		<?php
-        foreach ($disclaimers as $index => $disclaimer) :
-            $checked = isset($_POST[ 'sub_agreement_' . $index ]) ? 'checked="checked"' : '';
-            ?>
+
+		foreach ($disclaimers as $index => $disclaimer):
+    		$checked = isset($_POST['sub_agreement_' . $index]) ? 'checked="checked"' : '';
+    		?>
 			<p class="row">
-				<input required id="sub_agreement_<?php echo $index; ?>" name="sub_agreement_<?php echo $index; ?>" type="checkbox" <?php echo $checked . ' ' . $readonly; ?> />
+				<input required id="sub_agreement_<?php echo $index; ?>" name="sub_agreement_<?php echo
+    				$index; ?>" type="checkbox" <?php echo $checked . ' ' . $readonly; ?> />
 				<label for="sub_agreement_<?php echo $index; ?>"><?php echo esc_html($disclaimer['text']); ?></label>
 			</p>
-			<?php
-        endforeach;
-    ?>
+			<?php endforeach;
+		?>
 
-		<?php if (! $readonly) : ?>
+		<?php if (!$readonly): ?>
 			[portal-recaptcha] <?php endif; ?>
 		&nbsp;
-		<p class="sub_submit_container"><input class="btn btn-primary sub_submit" name="sub_submit" type="submit" value="<?php echo($readonly ? 'Submit' : 'Continue'); ?>" /></p>
+		<p class="sub_submit_container"><input class="btn btn-primary sub_submit" name="sub_submit" type="submit" value="<?php echo
+    		$readonly ? 'Submit' : 'Continue'; ?>" /></p>
 	</div>
 		<?php
 
-    return do_shortcode(ob_get_clean());
+		return do_shortcode(ob_get_clean());
 }
 
 function register_portal_application_information_block()
 {
-    register_block_type(
-        'portal/application-information',
-        array(
-            'attributes'      => array(
-                'align'  => array(
-                    'type'    => 'string',
-                    'default' => 'full',
-                ),
-                'lock'   => array(
-                    'type'    => 'object',
-                    'default' => array(
-                        'move'   => false,
-                        'remove' => true,
-                    ),
-                ),
-                'layout' => array(
-                    'type'    => 'object',
-                    'default' => array(
-                        'type' => 'constrained',
-                    ),
+    register_block_type('portal/application-information', array(
+        'attributes' => array(
+            'align' => array(
+                'type' => 'string',
+                'default' => 'full',
+            ),
+            'lock' => array(
+                'type' => 'object',
+                'default' => array(
+                    'move' => false,
+                    'remove' => true,
                 ),
             ),
-            'render_callback' => 'render_portal_application_information_block',
-            'supports'        => array(
-                'align' => array( 'full', 'wide' ),
+            'layout' => array(
+                'type' => 'object',
+                'default' => array(
+                    'type' => 'constrained',
+                ),
             ),
-        )
-    );
+        ),
+        'render_callback' => 'render_portal_application_information_block',
+        'supports' => array(
+            'align' => array('full', 'wide'),
+        ),
+    ));
 }
+
 add_action('init', 'register_portal_application_information_block');
 
 function render_portal_application_information_block($attributes, $content)
@@ -539,8 +539,8 @@ function render_portal_application_information_block($attributes, $content)
     $guidelines_url = get_post_meta(get_the_ID(), '_portal_guidelines_url', true);
 
     // Get attributes
-    $align     = $attributes['align']          ?? 'full';
-    $layout    = $attributes['layout']['type'] ?? 'is-layout-constrained';
+    $align = $attributes['align'] ?? 'full';
+    $layout = $attributes['layout']['type'] ?? 'is-layout-constrained';
     $className = 'wp-block-group align' . esc_attr($align) . ' layout-' . esc_attr($layout);
 
     $className = 'entry-content alignfull wp-block-post-content has-global-padding is-layout-constrained wp-block-post-content-is-layout-constrained';
@@ -552,8 +552,9 @@ function render_portal_application_information_block($attributes, $content)
 		[portal-applicant-information]
 	</div>
 	<?php
-    // Return the buffer content
-    return do_shortcode(ob_get_clean());
+
+	// Return the buffer content
+	return do_shortcode(ob_get_clean());
 }
 
 // Function to get the portal or global script URL
@@ -564,7 +565,7 @@ function get_portal_county_region_script_url($post_id)
 
     // If the portal-specific script is empty, fallback to the global setting
     if (empty($portal_script_url)) {
-        $portal_script_url = Portal_Options::get( 'dg_county_region_script', '');
+        $portal_script_url = Portal_Options::get('dg_county_region_script', '');
     }
 
     return esc_url($portal_script_url);
@@ -577,11 +578,12 @@ function enqueue_portal_script_classic()
         global $post;
         $script_url = get_portal_county_region_script_url($post->ID);
 
-        if (! empty($script_url)) {
+        if (!empty($script_url)) {
             echo '<script type="text/javascript" src="' . $script_url . '" defer></script>';
         }
     }
 }
+
 add_action('wp_head', 'enqueue_portal_script_classic');
 
 // Function to enqueue the script for block themes
@@ -591,18 +593,43 @@ function enqueue_portal_county_region_script()
         global $post;
         $script_url = get_portal_county_region_script_url($post->ID);
 
-        if (! empty($script_url)) {
-            wp_enqueue_script('portal-county-region-script', $script_url, array( 'jquery', 'jquery-ui-core' ), DG_VERSION, true);
+        if (!empty($script_url)) {
+            wp_enqueue_script(
+                'portal-county-region-script',
+                $script_url,
+                array('jquery', 'jquery-ui-core'),
+                DG_VERSION,
+                true,
+            );
         }
     }
 }
+
 add_action('wp_enqueue_scripts', 'enqueue_portal_county_region_script');
 
 // Legacy Google reCAPTCHA — only when leftover sitekey is set (definition path uses Turnstile).
 function enqueue_recaptcha_script()
 {
+<<<<<<< Updated upstream
     if (! is_singular('portal')) {
         return;
+||||||| Stash base
+    if (is_singular('portal')) {
+        global $post;
+        $script_url = 'https://www.google.com/recaptcha/api.js';
+
+        if (! empty($script_url)) {
+            wp_enqueue_script('recaptcha', $script_url, array(), DG_VERSION, true);
+        }
+=======
+    if (is_singular('portal')) {
+        global $post;
+        $script_url = 'https://www.google.com/recaptcha/api.js';
+
+        if (!empty($script_url)) {
+            wp_enqueue_script('recaptcha', $script_url, array(), DG_VERSION, true);
+        }
+>>>>>>> Stashed changes
     }
     $sitekey = class_exists('Portal_Options')
         ? Portal_Options::get('dg_recaptcha_sitekey', '')
@@ -612,6 +639,7 @@ function enqueue_recaptcha_script()
     }
     wp_enqueue_script('recaptcha', 'https://www.google.com/recaptcha/api.js', array(), DG_VERSION, true);
 }
+
 add_action('wp_enqueue_scripts', 'enqueue_recaptcha_script');
 
 // // Conditionally enqueue the appropriate script loader
@@ -630,7 +658,8 @@ function portal_enqueue_styles()
         wp_enqueue_style('portal-styles', plugins_url('../assets/portal.css', __FILE__), array(), DG_VERSION);
 
         // enqueue portal.js
-        wp_enqueue_script('portal-js', plugins_url('../assets/portal.js', __FILE__), array( 'jquery' ), DG_VERSION, true);
+        wp_enqueue_script('portal-js', plugins_url('../assets/portal.js', __FILE__), array('jquery'), DG_VERSION, true);
     }
 }
+
 add_action('wp_enqueue_scripts', 'portal_enqueue_styles');
