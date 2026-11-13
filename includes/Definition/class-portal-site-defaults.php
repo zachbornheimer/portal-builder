@@ -17,14 +17,16 @@ if ( ! class_exists( 'Portal_Site_Defaults' ) ) {
 		const OPTION_ANONYMIZE_API_KEY     = 'pb_default_anonymize_api_key';
 		const OPTION_ANONYMIZE_ACK         = 'pb_default_anonymize_ack';
 		const OPTION_ANONYMIZE_FAIL_CLOSED = 'pb_default_anonymize_fail_closed';
-		const OPTION_GUIDELINES_URL     = 'pb_default_guidelines_url';
-		const OPTION_FREE_FOR_MEMBERS   = 'pb_default_free_for_members';
-		const OPTION_TIMEZONE           = 'pb_default_timezone';
-		const OPTION_BRAND              = 'pb_default_brand';
+		const OPTION_GUIDELINES_URL        = 'pb_default_guidelines_url';
+		const OPTION_GUIDELINES_LINK_LABEL = 'pb_default_guidelines_link_label';
+		const OPTION_FREE_FOR_MEMBERS      = 'pb_default_free_for_members';
+		const OPTION_TIMEZONE              = 'pb_default_timezone';
+		const OPTION_BRAND                 = 'pb_default_brand';
 
-		const BUILTIN_ANONYMIZE_ENDPOINT = 'https://api.allintersections.com';
-		const BUILTIN_ANONYMIZE_ACK      = 'I certify that my scores and recordings exclude any information that might identify the composer but do include title of work, instrumentation, and duration.';
-		const BUILTIN_TIMEZONE           = 'America/New_York';
+		const BUILTIN_ANONYMIZE_ENDPOINT    = 'https://api.allintersections.com';
+		const BUILTIN_ANONYMIZE_ACK         = 'I certify that my scores and recordings exclude any information that might identify the composer but do include title of work, instrumentation, and duration.';
+		const BUILTIN_TIMEZONE              = 'America/New_York';
+		const BUILTIN_GUIDELINES_LINK_LABEL = 'Link to Guidelines';
 
 		/**
 		 * Effective options: portal if set, else site, else built-in.
@@ -34,7 +36,7 @@ if ( ! class_exists( 'Portal_Site_Defaults' ) ) {
 		 *
 		 * @param array $definition Definition document (options + publish).
 		 * @param array $site       Site bag with the same keys as the return value.
-		 * @return array{anonymize:bool,anonymizeFailClosed:bool,anonymizeEndpoint:string,anonymizeApiKey:string,anonymizeAck:string,guidelinesUrl:?string,freeForMembers:bool,timezone:string,brand:?array}
+		 * @return array{anonymize:bool,anonymizeFailClosed:bool,anonymizeEndpoint:string,anonymizeApiKey:string,anonymizeAck:string,guidelinesUrl:?string,guidelinesLinkLabel:string,freeForMembers:bool,timezone:string,brand:?array}
 		 */
 		public static function resolve( array $definition, array $site = array() ) {
 			$options = isset( $definition['options'] ) && is_array( $definition['options'] )
@@ -53,17 +55,23 @@ if ( ! class_exists( 'Portal_Site_Defaults' ) ) {
 					$site,
 					self::BUILTIN_ANONYMIZE_ENDPOINT
 				),
-				'anonymizeApiKey'   => self::resolve_string( $options, 'anonymizeApiKey', $site, '' ),
-				'anonymizeAck'      => self::resolve_string(
+				'anonymizeApiKey'     => self::resolve_string( $options, 'anonymizeApiKey', $site, '' ),
+				'anonymizeAck'        => self::resolve_string(
 					$options,
 					'anonymizeAck',
 					$site,
 					self::BUILTIN_ANONYMIZE_ACK
 				),
-				'guidelinesUrl'     => self::resolve_string( $options, 'guidelinesUrl', $site, null ),
-				'freeForMembers'    => self::resolve_bool( $options, 'freeForMembers', $site, false ),
-				'timezone'          => self::resolve_string( $publish, 'timezone', $site, self::BUILTIN_TIMEZONE ),
-				'brand'             => self::resolve_brand( $options, $site ),
+				'guidelinesUrl'       => self::resolve_string( $options, 'guidelinesUrl', $site, null ),
+				'guidelinesLinkLabel' => self::resolve_string(
+					$options,
+					'guidelinesLinkLabel',
+					$site,
+					self::BUILTIN_GUIDELINES_LINK_LABEL
+				),
+				'freeForMembers'      => self::resolve_bool( $options, 'freeForMembers', $site, false ),
+				'timezone'            => self::resolve_string( $publish, 'timezone', $site, self::BUILTIN_TIMEZONE ),
+				'brand'               => self::resolve_brand( $options, $site ),
 			);
 		}
 
@@ -80,12 +88,13 @@ if ( ! class_exists( 'Portal_Site_Defaults' ) ) {
 				'anonymize'           => ! empty( get_option( self::OPTION_ANONYMIZE, false ) ),
 				'anonymizeFailClosed' => ! empty( get_option( self::OPTION_ANONYMIZE_FAIL_CLOSED, false ) ),
 				'anonymizeEndpoint'   => self::trim_or_null( get_option( self::OPTION_ANONYMIZE_ENDPOINT, '' ) ),
-				'anonymizeApiKey'   => self::trim_or_null( get_option( self::OPTION_ANONYMIZE_API_KEY, '' ) ),
-				'anonymizeAck'      => self::trim_or_null( get_option( self::OPTION_ANONYMIZE_ACK, '' ) ),
-				'guidelinesUrl'     => self::trim_or_null( get_option( self::OPTION_GUIDELINES_URL, '' ) ),
-				'freeForMembers'    => ! empty( get_option( self::OPTION_FREE_FOR_MEMBERS, false ) ),
-				'timezone'          => self::trim_or_null( get_option( self::OPTION_TIMEZONE, '' ) ),
-				'brand'             => self::read_brand_option(),
+				'anonymizeApiKey'     => self::trim_or_null( get_option( self::OPTION_ANONYMIZE_API_KEY, '' ) ),
+				'anonymizeAck'        => self::trim_or_null( get_option( self::OPTION_ANONYMIZE_ACK, '' ) ),
+				'guidelinesUrl'       => self::trim_or_null( get_option( self::OPTION_GUIDELINES_URL, '' ) ),
+				'guidelinesLinkLabel' => self::trim_or_null( get_option( self::OPTION_GUIDELINES_LINK_LABEL, '' ) ),
+				'freeForMembers'      => ! empty( get_option( self::OPTION_FREE_FOR_MEMBERS, false ) ),
+				'timezone'            => self::trim_or_null( get_option( self::OPTION_TIMEZONE, '' ) ),
+				'brand'               => self::read_brand_option(),
 			);
 		}
 
@@ -108,15 +117,16 @@ if ( ! class_exists( 'Portal_Site_Defaults' ) ) {
 			$site = self::read_site();
 			$key  = isset( $site['anonymizeApiKey'] ) ? $site['anonymizeApiKey'] : null;
 			return array(
-				'anonymize'            => ! empty( $site['anonymize'] ),
-				'anonymizeFailClosed'  => ! empty( $site['anonymizeFailClosed'] ),
-				'anonymizeEndpoint'    => self::non_empty_string( $site, 'anonymizeEndpoint', self::BUILTIN_ANONYMIZE_ENDPOINT ),
-				'anonymizeApiKeySet'   => is_string( $key ) && '' !== $key,
-				'anonymizeApiKeyHint'  => self::key_hint( $key ),
-				'anonymizeAck'         => self::non_empty_string( $site, 'anonymizeAck', self::BUILTIN_ANONYMIZE_ACK ),
-				'guidelinesUrl'        => isset( $site['guidelinesUrl'] ) ? $site['guidelinesUrl'] : null,
-				'freeForMembers'       => ! empty( $site['freeForMembers'] ),
-				'timezone'             => self::non_empty_string( $site, 'timezone', self::BUILTIN_TIMEZONE ),
+				'anonymize'           => ! empty( $site['anonymize'] ),
+				'anonymizeFailClosed' => ! empty( $site['anonymizeFailClosed'] ),
+				'anonymizeEndpoint'   => self::non_empty_string( $site, 'anonymizeEndpoint', self::BUILTIN_ANONYMIZE_ENDPOINT ),
+				'anonymizeApiKeySet'  => is_string( $key ) && '' !== $key,
+				'anonymizeApiKeyHint' => self::key_hint( $key ),
+				'anonymizeAck'        => self::non_empty_string( $site, 'anonymizeAck', self::BUILTIN_ANONYMIZE_ACK ),
+				'guidelinesUrl'       => isset( $site['guidelinesUrl'] ) ? $site['guidelinesUrl'] : null,
+				'guidelinesLinkLabel' => isset( $site['guidelinesLinkLabel'] ) ? $site['guidelinesLinkLabel'] : null,
+				'freeForMembers'      => ! empty( $site['freeForMembers'] ),
+				'timezone'            => self::non_empty_string( $site, 'timezone', self::BUILTIN_TIMEZONE ),
 			);
 		}
 
