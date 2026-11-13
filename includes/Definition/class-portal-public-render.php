@@ -342,9 +342,16 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 		 */
 		public static function render_packet_head( $title ) {
 			$plugin_file = dirname( __DIR__, 2 ) . '/portal-builder.php';
-			$seal        = sprintf(
+			$seal_src    = plugins_url( 'assets/icon.svg', $plugin_file );
+			if ( class_exists( 'Portal_Brand' ) ) {
+				$logo = Portal_Brand::logo_url( self::effective_brand() );
+				if ( '' !== $logo ) {
+					$seal_src = $logo;
+				}
+			}
+			$seal = sprintf(
 				'<img class="dg-seal" src="%s" alt="" width="56" height="56" />',
-				esc_url( plugins_url( 'assets/icon.svg', $plugin_file ) )
+				esc_url( $seal_src )
 			);
 			$rule = '<div class="dg-rule-ornament" aria-hidden="true"><svg width="10" height="10" viewBox="0 0 10 10"><path d="M5 0.6 9.2 5 5 9.4 0.8 5Z" fill="currentColor"/></svg></div>';
 
@@ -524,6 +531,11 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 				array(),
 				null
 			);
+			$brand      = self::effective_brand();
+			$host_fonts = class_exists( 'Portal_Brand' ) ? Portal_Brand::fonts_url( $brand ) : '';
+			if ( '' !== $host_fonts ) {
+				wp_enqueue_style( 'dg-host-fonts', $host_fonts, array(), null );
+			}
 			wp_enqueue_style(
 				'dg-tokens',
 				plugins_url( 'assets/tokens.css', $plugin_file ),
@@ -536,6 +548,9 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 				array( 'dg-public-fonts', 'dg-tokens', 'portal-styles' ),
 				self::asset_version( $plugin_dir . '/assets/definition-form.css' )
 			);
+			if ( class_exists( 'Portal_Brand' ) && Portal_Brand::is_host( $brand ) && '' !== Portal_Brand::css( $brand ) ) {
+				add_action( 'wp_head', array( __CLASS__, 'print_host_brand_style' ), 40 );
+			}
 			wp_enqueue_script(
 				'dg-definition-form',
 				plugins_url( 'assets/definition-form.js', $plugin_file ),
@@ -574,6 +589,38 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 		}
 
 		/**
+		 * Resolved site brand bag. Empty inherit is null; product is not a host look.
+		 *
+		 * @return array|null
+		 */
+		private static function effective_brand() {
+			if ( ! class_exists( 'Portal_Site_Defaults' ) ) {
+				return null;
+			}
+			$resolved = Portal_Site_Defaults::resolve_for_site( array() );
+			return isset( $resolved['brand'] ) && is_array( $resolved['brand'] )
+				? $resolved['brand']
+				: null;
+		}
+
+		/**
+		 * Variable remap only — existing form stylesheet stays the owner of rules.
+		 *
+		 * @return void
+		 */
+		public static function print_host_brand_style() {
+			if ( ! class_exists( 'Portal_Brand' ) ) {
+				return;
+			}
+			$css = Portal_Brand::css( self::effective_brand() );
+			if ( '' === $css ) {
+				return;
+			}
+			$safe = function_exists( 'wp_strip_all_tags' ) ? wp_strip_all_tags( $css ) : $css;
+			echo '<style id="dg-host-brand">' . $safe . '</style>';
+		}
+
+		/**
 		 * Filemtime so a deploy is visible without bumping PB_VERSION.
 		 *
 		 * @param string $path Absolute path.
@@ -595,6 +642,15 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 		 */
 		public static function font_preconnect( $urls, $relation_type ) {
 			if ( 'preconnect' !== $relation_type || ! is_singular( 'portal' ) ) {
+				return $urls;
+			}
+			$fonts = class_exists( 'Portal_Brand' ) ? Portal_Brand::fonts_url( self::effective_brand() ) : '';
+			if ( '' !== $fonts && false !== strpos( $fonts, 'fonts.googleapis.com' ) ) {
+				$urls[] = array( 'href' => 'https://fonts.googleapis.com' );
+				$urls[] = array(
+					'href'        => 'https://fonts.gstatic.com',
+					'crossorigin' => 'anonymous',
+				);
 				return $urls;
 			}
 			$urls[] = array(

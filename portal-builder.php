@@ -52,6 +52,7 @@ require_once plugin_dir_path( __FILE__ ) . 'includes/class-data-table.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-portal-about.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/Definition/class-portal-definition.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/Definition/class-portal-site-defaults.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/Definition/class-portal-brand.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/Definition/class-portal-definition-renderer.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/Definition/class-portal-open-state.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/Definition/class-portal-access.php';

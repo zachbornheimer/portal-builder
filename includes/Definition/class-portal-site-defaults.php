@@ -19,6 +19,7 @@ if ( ! class_exists( 'Portal_Site_Defaults' ) ) {
 		const OPTION_GUIDELINES_URL     = 'pb_default_guidelines_url';
 		const OPTION_FREE_FOR_MEMBERS   = 'pb_default_free_for_members';
 		const OPTION_TIMEZONE           = 'pb_default_timezone';
+		const OPTION_BRAND              = 'pb_default_brand';
 
 		const BUILTIN_ANONYMIZE_ENDPOINT = 'https://api.allintersections.com';
 		const BUILTIN_ANONYMIZE_ACK      = 'I certify that my scores and recordings exclude any information that might identify the composer but do include title of work, instrumentation, and duration.';
@@ -32,7 +33,7 @@ if ( ! class_exists( 'Portal_Site_Defaults' ) ) {
 		 *
 		 * @param array $definition Definition document (options + publish).
 		 * @param array $site       Site bag with the same keys as the return value.
-		 * @return array{anonymize:bool,anonymizeEndpoint:string,anonymizeApiKey:string,anonymizeAck:string,guidelinesUrl:?string,freeForMembers:bool,timezone:string}
+		 * @return array{anonymize:bool,anonymizeEndpoint:string,anonymizeApiKey:string,anonymizeAck:string,guidelinesUrl:?string,freeForMembers:bool,timezone:string,brand:?array}
 		 */
 		public static function resolve( array $definition, array $site = array() ) {
 			$options = isset( $definition['options'] ) && is_array( $definition['options'] )
@@ -60,6 +61,7 @@ if ( ! class_exists( 'Portal_Site_Defaults' ) ) {
 				'guidelinesUrl'     => self::resolve_string( $options, 'guidelinesUrl', $site, null ),
 				'freeForMembers'    => self::resolve_bool( $options, 'freeForMembers', $site, false ),
 				'timezone'          => self::resolve_string( $publish, 'timezone', $site, self::BUILTIN_TIMEZONE ),
+				'brand'             => self::resolve_brand( $options, $site ),
 			);
 		}
 
@@ -80,6 +82,7 @@ if ( ! class_exists( 'Portal_Site_Defaults' ) ) {
 				'guidelinesUrl'     => self::trim_or_null( get_option( self::OPTION_GUIDELINES_URL, '' ) ),
 				'freeForMembers'    => ! empty( get_option( self::OPTION_FREE_FOR_MEMBERS, false ) ),
 				'timezone'          => self::trim_or_null( get_option( self::OPTION_TIMEZONE, '' ) ),
+				'brand'             => self::read_brand_option(),
 			);
 		}
 
@@ -129,6 +132,37 @@ if ( ! class_exists( 'Portal_Site_Defaults' ) ) {
 			}
 			$tail = strlen( $trimmed ) >= 4 ? substr( $trimmed, -4 ) : $trimmed;
 			return '••••' . $tail;
+		}
+
+		/**
+		 * Empty/null inherits. A stored bag (including product) is a value.
+		 *
+		 * @param array $portal Portal options.
+		 * @param array $site   Site bag.
+		 * @return array|null
+		 */
+		private static function resolve_brand( array $portal, array $site ) {
+			$from_portal = self::brand_or_null( array_key_exists( 'brand', $portal ) ? $portal['brand'] : null );
+			if ( null !== $from_portal ) {
+				return $from_portal;
+			}
+			return self::brand_or_null( array_key_exists( 'brand', $site ) ? $site['brand'] : null );
+		}
+
+		/**
+		 * @param mixed $value Raw brand.
+		 * @return array|null
+		 */
+		private static function brand_or_null( $value ) {
+			return is_array( $value ) && array() !== $value ? $value : null;
+		}
+
+		/**
+		 * @return array|null
+		 */
+		private static function read_brand_option() {
+			$raw = get_option( self::OPTION_BRAND, null );
+			return self::brand_or_null( $raw );
 		}
 
 		/**
