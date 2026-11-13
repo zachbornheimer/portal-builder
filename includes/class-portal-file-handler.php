@@ -98,7 +98,9 @@ if ( ! class_exists( 'Portal_File_Handler' ) ) {
 		}
 
 		private function store_temp_file( $type, $tmp_name, $file_key, $suffix = '' ) {
-			// if anonymize
+			// Definition submit anonymizes via All Intersections. This local
+			// exiftool/qpdf/lame strip is last-resort for the legacy path when
+			// the API is not configured.
 
 			switch ( $type ) {
 				case 'application/pdf':

@@ -1,0 +1,32 @@
+{
+  "portalId": "call-for-scores",
+  "values": {
+    "sub_title": "Mr",
+    "sub_name": "John Doe",
+    "sub_email": "scores-applicant@example.com",
+    "sub_inst_affil": "ISJAC",
+    "sub_address_first_part": "123 Main St",
+    "sub_city": "Raleigh",
+    "sub_country": "US",
+    "sub_state": "NC",
+    "sub_zip": "27601",
+    "sub_phone": "+1-919-555-0100",
+    "sub_category": "scores",
+    "sub_score_kind": "large",
+    "sub_large_title": "Fanfare for Brass"
+  },
+  "files": {
+    "bio": {
+      "name": "sample-score.pdf",
+      "path": "tests/fixtures/files/sample-score.pdf"
+    },
+    "large_score": {
+      "name": "sample-score.pdf",
+      "path": "tests/fixtures/files/sample-score.pdf"
+    },
+    "large_rec": {
+      "name": "sample-recording.mp3",
+      "path": "tests/fixtures/files/sample-recording.mp3"
+    }
+  }
+}

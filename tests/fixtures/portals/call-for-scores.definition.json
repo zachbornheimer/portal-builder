@@ -1,0 +1,264 @@
+{
+  "version": 1,
+  "title": "Call for Scores and Papers",
+  "fields": [
+    {
+      "id": "applicant",
+      "type": "applicant_pack",
+      "label": "Your Information",
+      "required": true
+    },
+    {
+      "id": "filetype_notice",
+      "type": "static_html",
+      "label": "Accepted filetypes",
+      "html": "<p><strong>Accepted filetypes are .mp3 for audio and .pdf for text/score.</strong></p>"
+    },
+    {
+      "id": "checklist_heading",
+      "type": "static_html",
+      "label": "Support Materials Checklist",
+      "html": "<p><em>Support Materials Checklist</em></p>"
+    },
+    {
+      "id": "bio",
+      "type": "bio_file",
+      "label": "Bio",
+      "required": true,
+      "help": "100 word maximum",
+      "fileSuffix": "_BIO"
+    },
+    {
+      "id": "category",
+      "type": "branch",
+      "label": "Application Category",
+      "required": true,
+      "options": [
+        {
+          "id": "poster",
+          "label": "Poster Sessions",
+          "children": [
+            {
+              "id": "poster_description",
+              "type": "score_file",
+              "label": "Brief Description",
+              "required": true,
+              "help": "250 words",
+              "fileSuffix": "_POSTER_DESC"
+            }
+          ]
+        },
+        {
+          "id": "papers",
+          "label": "Research/Analysis Papers",
+          "children": [
+            {
+              "id": "paper_title",
+              "type": "short_text",
+              "label": "Title of Work or Presentation",
+              "required": true,
+              "help": "to appear in program"
+            },
+            {
+              "id": "paper_abstract",
+              "type": "score_file",
+              "label": "Abstract",
+              "required": true,
+              "help": "PDF only",
+              "fileSuffix": "_ABSTRACT"
+            }
+          ]
+        },
+        {
+          "id": "scores",
+          "label": "Scores/Recordings",
+          "children": [
+            {
+              "id": "scores_note",
+              "type": "static_html",
+              "label": "Scores note",
+              "html": "<p>For Composition Master Class and ISJAC Awards consideration. Please attach a PDF of the score as well as an MP3 of each work. Make sure your name does not appear on either the score or the recording. Applicants may only submit one work.</p>"
+            },
+            {
+              "id": "score_kind",
+              "type": "branch",
+              "label": "Select a Category",
+              "required": true,
+              "options": [
+                {
+                  "id": "large",
+                  "label": "New Music Masterclass Workshop (Large Ensemble)",
+                  "children": [
+                    {
+                      "id": "large_title",
+                      "type": "short_text",
+                      "label": "Title of Work or Presentation",
+                      "required": true,
+                      "help": "to appear in program"
+                    },
+                    {
+                      "id": "large_score",
+                      "type": "score_file",
+                      "label": "Score",
+                      "required": true,
+                      "help": "PDF only",
+                      "fileSuffix": "_NMML_SCORE"
+                    },
+                    {
+                      "id": "large_rec",
+                      "type": "recording_file",
+                      "label": "Recording Submitted",
+                      "required": true,
+                      "help": "MP3 only",
+                      "fileSuffix": "_NMML_REC"
+                    }
+                  ]
+                },
+                {
+                  "id": "small",
+                  "label": "New Music Masterclass Workshop (Small Ensemble)",
+                  "children": [
+                    {
+                      "id": "small_title",
+                      "type": "short_text",
+                      "label": "Title of Work or Presentation",
+                      "required": true,
+                      "help": "to appear in program"
+                    },
+                    {
+                      "id": "small_score",
+                      "type": "score_file",
+                      "label": "Score",
+                      "required": true,
+                      "help": "PDF only",
+                      "fileSuffix": "_NMMS_SCORE"
+                    },
+                    {
+                      "id": "small_rec",
+                      "type": "recording_file",
+                      "label": "Recording Submitted",
+                      "required": true,
+                      "help": "MP3 only",
+                      "fileSuffix": "_NMMS_REC"
+                    }
+                  ]
+                },
+                {
+                  "id": "arrangement",
+                  "label": "New Music Masterclass Workshop (Arrangement)",
+                  "children": [
+                    {
+                      "id": "arrangement_title",
+                      "type": "short_text",
+                      "label": "Title of Work or Presentation",
+                      "required": true,
+                      "help": "to appear in program"
+                    },
+                    {
+                      "id": "arrangement_score",
+                      "type": "score_file",
+                      "label": "Score",
+                      "required": true,
+                      "help": "PDF only",
+                      "fileSuffix": "_NMMA_SCORE"
+                    },
+                    {
+                      "id": "arrangement_rec",
+                      "type": "recording_file",
+                      "label": "Recording Submitted",
+                      "required": true,
+                      "help": "MP3 only",
+                      "fileSuffix": "_NMMA_REC"
+                    }
+                  ]
+                },
+                {
+                  "id": "first_takes",
+                  "label": "First Takes",
+                  "children": [
+                    {
+                      "id": "first_takes_title",
+                      "type": "short_text",
+                      "label": "Title of Work or Presentation",
+                      "required": true,
+                      "help": "to appear in program"
+                    },
+                    {
+                      "id": "first_takes_score",
+                      "type": "score_file",
+                      "label": "Score",
+                      "required": true,
+                      "help": "PDF only",
+                      "fileSuffix": "_FT_SCORE"
+                    },
+                    {
+                      "id": "first_takes_rec",
+                      "type": "recording_file",
+                      "label": "Recording Submitted",
+                      "required": true,
+                      "help": "MP3 only",
+                      "fileSuffix": "_FT_REC"
+                    }
+                  ]
+                },
+                {
+                  "id": "student",
+                  "label": "Student/Young Artist",
+                  "children": [
+                    {
+                      "id": "student_eligibility",
+                      "type": "static_html",
+                      "label": "Student eligibility",
+                      "html": "<p>Must be 26 or younger OR actively enrolled in a university degree program.</p>"
+                    },
+                    {
+                      "id": "student_title",
+                      "type": "short_text",
+                      "label": "Title of Work or Presentation",
+                      "required": true,
+                      "help": "to appear in program"
+                    },
+                    {
+                      "id": "student_score",
+                      "type": "score_file",
+                      "label": "Score",
+                      "required": true,
+                      "help": "PDF only",
+                      "fileSuffix": "_STUDENT_SCORE"
+                    },
+                    {
+                      "id": "student_rec",
+                      "type": "recording_file",
+                      "label": "Recording Submitted",
+                      "required": true,
+                      "help": "MP3 only",
+                      "fileSuffix": "_STUDENT_REC"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "mapping": {
+    "sheets": [],
+    "drive": []
+  },
+  "publish": {
+    "deadline": null,
+    "timezone": "America/New_York",
+    "applicationFee": null,
+    "forceClosed": false
+  },
+  "options": {
+    "anonymize": false,
+    "skipHeader": false,
+    "guidelinesUrl": null,
+    "applicantNotificationDate": null,
+    "freeForMembers": false,
+    "anonymizeEndpoint": null
+  }
+}

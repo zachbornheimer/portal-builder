@@ -90,4 +90,7 @@
 	/* Wizard shell layout */
 	--wizard-sidebar-width: 236px;
 	--wizard-topbar-height: 44px;
+
+	/* Packet column — Tailwind lg / max-w-5xl */
+	--measure: 64rem;
 }

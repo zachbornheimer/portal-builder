@@ -35,8 +35,8 @@ if ( ! class_exists( 'Portal_Test_Mode' ) ) {
 		 */
 		public static function is_enabled() {
 			$env = getenv( self::ENV_FLAG );
-			if ( false !== $env && self::is_truthy( $env ) ) {
-				return true;
+			if ( false !== $env && '' !== $env ) {
+				return self::is_truthy( $env );
 			}
 
 			if ( defined( self::CONSTANT_FLAG ) && constant( self::CONSTANT_FLAG ) ) {
