@@ -12,14 +12,18 @@ require_once $repo_root . '/vendor/autoload.php';
 require_once $repo_root . '/gsuite-filestore/vendor/autoload.php';
 require_once $repo_root . '/gsuite-filestore/zysys-file-store.class.php';
 
-$sheet_id = '';
+$sheet_id  = '';
 $folder_id = '';
+$file_id   = '';
 foreach ( array_slice( $argv, 1 ) as $arg ) {
 	if ( 0 === strpos( $arg, '--sheet=' ) ) {
 		$sheet_id = substr( $arg, strlen( '--sheet=' ) );
 	}
 	if ( 0 === strpos( $arg, '--drive-children=' ) ) {
 		$folder_id = substr( $arg, strlen( '--drive-children=' ) );
+	}
+	if ( 0 === strpos( $arg, '--download=' ) ) {
+		$file_id = substr( $arg, strlen( '--download=' ) );
 	}
 }
 
@@ -28,8 +32,12 @@ if ( '' !== $folder_id ) {
 	echo wp_json_encode( drive_children( $store, $folder_id ), JSON_UNESCAPED_SLASHES ) . "\n";
 	exit( 0 );
 }
+if ( '' !== $file_id ) {
+	echo wp_json_encode( download_file( $store, $file_id ), JSON_UNESCAPED_SLASHES ) . "\n";
+	exit( 0 );
+}
 if ( '' === $sheet_id ) {
-	fwrite( STDERR, "usage: --sheet=ID or --drive-children=ID\n" );
+	fwrite( STDERR, "usage: --sheet=ID or --drive-children=ID or --download=FILE_ID\n" );
 	exit( 2 );
 }
 echo wp_json_encode( last_named_row( $store, $sheet_id ), JSON_UNESCAPED_SLASHES ) . "\n";
@@ -124,9 +132,15 @@ function drive_children( $store, $id ) {
 	$names   = array();
 	$folders = array();
 	$files   = array();
+	$entries = array();
 	foreach ( $items as $item ) {
 		$name = (string) $item->getName();
+		$fid  = (string) $item->getId();
 		$names[] = $name;
+		$entries[] = array(
+			'id'   => $fid,
+			'name' => $name,
+		);
 		if ( 'application/vnd.google-apps.folder' === $item->getMimeType() ) {
 			$folders[] = $name;
 		} else {
@@ -138,6 +152,24 @@ function drive_children( $store, $id ) {
 		'names'   => $names,
 		'folders' => $folders,
 		'files'   => $files,
+		'entries' => $entries,
+	);
+}
+
+/**
+ * @param Zysys_FileStore $store FileStore.
+ * @param string          $id    Drive file id.
+ * @return array{id:string,bytes:int,sha256:string,pdf:bool}
+ */
+function download_file( $store, $id ) {
+	$drive   = $store->__get( 'driveAgent' );
+	$content = $drive->files->get( $id, array( 'alt' => 'media' ) );
+	$bytes   = $content->getBody()->getContents();
+	return array(
+		'id'     => $id,
+		'bytes'  => strlen( $bytes ),
+		'sha256' => hash( 'sha256', $bytes ),
+		'pdf'    => 0 === strpos( $bytes, '%PDF' ),
 	);
 }
 

@@ -21,7 +21,7 @@ if ( ! class_exists( 'Portal_Submission_Destinations' ) ) {
 		const FILE_URL_PREFIX    = 'https://drive.google.com/file/d/';
 		const FOLDER_URL_PREFIX  = 'https://drive.google.com/drive/folders/';
 
-		const EXTRA_KEYS = array( 'selection_path', 'portalId', 'createdAt', 'status', 'files', 'applicationId' );
+		const EXTRA_KEYS = array( 'selection_path', 'portalId', 'createdAt', 'status', 'files', 'applicationId', 'receiptUrl', 'email', 'dateReceived' );
 
 		/**
 		 * @param string $dest Pipe-joined dest string.

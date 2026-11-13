@@ -258,3 +258,89 @@ test('poster submit writes a second top-level Drive folder', async ({ browser })
 	expect(base.folders, JSON.stringify(base)).toContain(appId);
 	console.log(`cfs_poster_ok app=${appId} files=${named.Files} base_folders=${base.folders.length}`);
 });
+
+function latestMailPayload() {
+	const dir = path.resolve('tests/.artifacts/mail');
+	if (!fs.existsSync(dir)) {
+		return null;
+	}
+	const files = fs
+		.readdirSync(dir)
+		.filter((name) => name.endsWith('.json'))
+		.map((name) => {
+			const full = path.join(dir, name);
+			return { full, mtime: fs.statSync(full).mtimeMs };
+		})
+		.sort((a, b) => b.mtime - a.mtime);
+	if (!files.length) {
+		return null;
+	}
+	return JSON.parse(fs.readFileSync(files[0].full, 'utf8')) as {
+		to?: string;
+		subject?: string;
+		body?: string;
+		tokens?: Record<string, string>;
+		wpMail?: boolean;
+		error?: string;
+	};
+}
+
+test('papers submit writes dest row, Drive folder, and a receipt URL without email=', async ({
+	browser,
+}) => {
+	const before = readSheet();
+	const beforeApp = before.named['Application ID'] || '';
+	const beforeFiles = before.named.Files || '';
+
+	const ctx = await browser.newContext();
+	const page = await ctx.newPage();
+	const title = `Playwright Papers ${stamp}`;
+	const email = `cfs.papers+${stamp}@example.com`;
+
+	try {
+		await openPublicForm(page);
+		await fillApplicant(page, 'Playwright Papers', email);
+		await confirmFileCard(page, 'bio', /Bio/, scorePdf);
+		await page.getByLabel(/Research\/Analysis Papers/i).check();
+		const titleInput = page.locator('#sub_paper_title');
+		await expect(titleInput).toBeVisible();
+		await titleInput.fill(title);
+		await confirmFileCard(page, 'paper_abstract', /Abstract/, scorePdf);
+
+		await page.getByRole('button', { name: 'Submit application' }).click({
+			timeout: 240_000,
+			noWaitAfter: true,
+		});
+		const success = page.locator('[data-dg-submit-status="success"]');
+		const error = page.locator('[data-dg-submit-status="error"]');
+		await expect(success.or(error)).toBeVisible({ timeout: 240_000 });
+		if (await error.count()) {
+			throw new Error(`papers submit failed: ${await error.innerText()}`);
+		}
+		await expect(success).toBeVisible();
+	} finally {
+		await ctx.close();
+	}
+
+	const sheet = readSheet();
+	const named = sheet.named;
+	expect(named['Application ID'], JSON.stringify(named)).toBeTruthy();
+	expect(named['Application ID']).not.toBe(beforeApp);
+	expect(String(named['Application Category'] || '')).toMatch(/papers/i);
+	expect(String(named['Title of Work or Presentation'] || '')).toContain('Playwright Papers');
+	expect(String(named.Files || '')).toMatch(new RegExp(`^${FOLDER_URL_PREFIX}`));
+	expect(named.Files).not.toBe(beforeFiles);
+
+	const appId = named['Application ID'];
+	const base = readDrive(DRIVE_BASE);
+	expect(base.folders, JSON.stringify(base)).toContain(appId);
+
+	const mail = latestMailPayload();
+	expect(mail, 'expected a captured mail JSON after papers submit').toBeTruthy();
+	const blob = `${mail?.subject || ''}\n${mail?.body || ''}\n${JSON.stringify(mail?.tokens || {})}`;
+	expect(blob).toMatch(/dg-receipt=1/);
+	expect(blob).not.toMatch(/email=/i);
+	console.log(
+		`cfs_papers_ok app=${appId} files=${named.Files} date=${named['Date Received'] || ''} receipt=${named['Application Receipt Link'] || ''} wpMail=${mail?.wpMail === true}`,
+	);
+});
