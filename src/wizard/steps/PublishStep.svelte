@@ -1,5 +1,5 @@
 <script>
-	import { Label } from 'bits-ui';
+	import { Label, RadioGroup } from 'bits-ui';
 	import Field from '../../ui/Field.svelte';
 	import CheckField from '../../ui/CheckField.svelte';
 	import SelectField from '../../ui/SelectField.svelte';
@@ -81,6 +81,15 @@
 			? accessCatalog.roles
 			: WORDPRESS_ROLES,
 	);
+	const audienceChoices = $derived([
+		{ value: 'anyone', id: 'dg-access-anyone', label: 'Anyone' },
+		{ value: 'logged_in', id: 'dg-access-logged-in', label: 'Signed-in users' },
+		{
+			value: 'members',
+			id: 'dg-access-members',
+			label: membershipPlans.length > 0 ? 'Members only' : 'Specific WordPress role',
+		},
+	]);
 
 	/**
 	 * @param {unknown} portalValue
@@ -494,39 +503,21 @@
 		{/if}
 	</div>
 	<div class="dg-publish-block">
-		<p class="dg-field-label">Who can apply</p>
-		<div class="dg-check-row">
-			<input
-				id="dg-access-anyone"
-				type="radio"
-				name="dg-access-audience"
-				checked={access.audience === 'anyone'}
-				onchange={() => setAccess({ audience: 'anyone' })}
-			/>
-			<Label.Root for="dg-access-anyone">Anyone</Label.Root>
-		</div>
-		<div class="dg-check-row">
-			<input
-				id="dg-access-logged-in"
-				type="radio"
-				name="dg-access-audience"
-				checked={access.audience === 'logged_in'}
-				onchange={() => setAccess({ audience: 'logged_in' })}
-			/>
-			<Label.Root for="dg-access-logged-in">Signed-in users</Label.Root>
-		</div>
-		<div class="dg-check-row">
-			<input
-				id="dg-access-members"
-				type="radio"
-				name="dg-access-audience"
-				checked={access.audience === 'members'}
-				onchange={() => setAccess({ audience: 'members' })}
-			/>
-			<Label.Root for="dg-access-members"
-				>{membershipPlans.length > 0 ? 'Members only' : 'Specific WordPress role'}</Label.Root
-			>
-		</div>
+		<p class="dg-field-label" id="dg-access-audience-label">Who can apply</p>
+		<RadioGroup.Root
+			value={access.audience}
+			aria-labelledby="dg-access-audience-label"
+			onValueChange={(next) => {
+				if (next) setAccess({ audience: next });
+			}}
+		>
+			{#each audienceChoices as choice (choice.value)}
+				<div class="dg-check-row">
+					<RadioGroup.Item id={choice.id} value={choice.value} class="dg-radio" />
+					<Label.Root for={choice.id}>{choice.label}</Label.Root>
+				</div>
+			{/each}
+		</RadioGroup.Root>
 		{#if access.audience === 'members' && membershipPlans.length > 0}
 			<p class="dg-field-help">Leave every plan unchecked to allow any active membership.</p>
 			<div class="dg-plan-list">

@@ -141,7 +141,6 @@ function dg_initialize_plugin() {
 
 	handle_submissions();
 }
-add_action( 'plugins_loaded', array( 'Portal_Options', 'promote' ), 1 );
 add_action( 'plugins_loaded', 'dg_initialize_plugin' );
 
 // Function to register meta boxes
