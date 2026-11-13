@@ -243,7 +243,7 @@ test('settings and meta PHP use generic members wording, not Consortium', () => 
 	assert.doesNotMatch(publishStep, /consortium/i);
 	assert.match(meta, /_portal_free_for_members/);
 	assert.match(meta, /Free for members/);
-	assert.match(settings, /pb_default_free_for_members/);
+	assert.match(settings, /dg_default_free_for_members/);
 	assert.match(settings, /Free for members/);
 	assert.match(publishStep, /Free for members/);
 	assert.match(brand, /PRESET_ISJAC/);

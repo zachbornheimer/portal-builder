@@ -1,5 +1,5 @@
 /**
- * Plugin header Version must be semver and match PB_VERSION.
+ * Plugin header Version must be semver and match DG_VERSION.
  * README must document ZIP upgrade that keeps _portal_definition.
  */
 import test from 'node:test';
@@ -32,15 +32,15 @@ function headerField(name) {
 }
 
 function runtimeVersion() {
-	const match = bootstrap.match(/define\(\s*'PB_VERSION'\s*,\s*'([^']+)'\s*\)/);
-	assert.ok(match, 'PB_VERSION constant missing from plugin bootstrap');
+	const match = bootstrap.match(/define\(\s*'DG_VERSION'\s*,\s*'([^']+)'\s*\)/);
+	assert.ok(match, 'DG_VERSION constant missing from plugin bootstrap');
 	return match[1];
 }
 
-test('plugin header Version is semver and equals PB_VERSION', () => {
+test('plugin header Version is semver and equals DG_VERSION', () => {
 	const version = headerField('Version');
 	assert.match(version, SEMVER, `Version ${version} is not X.Y.Z semver`);
-	assert.equal(runtimeVersion(), version, 'PB_VERSION drifted from header Version');
+	assert.equal(runtimeVersion(), version, 'DG_VERSION drifted from header Version');
 });
 
 test('plugin header declares PHP 8.0 and WordPress 6.4 floors', () => {

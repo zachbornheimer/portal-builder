@@ -207,14 +207,14 @@ test('setup screen and wizard mount site defaults on the same channel as accessC
 	assert.match(setup, /Portal_Site_Defaults::for_wizard/);
 	assert.match(index, /data-dg-site-defaults/);
 	assert.match(index, /siteDefaults/);
-	assert.match(settings, /pb_default_anonymize/);
-	assert.match(settings, /pb_default_anonymize_endpoint/);
-	assert.match(settings, /pb_default_anonymize_api_key/);
-	assert.match(settings, /pb_default_anonymize_ack/);
-	assert.match(settings, /pb_default_anonymize_fail_closed/);
-	assert.match(settings, /pb_default_guidelines_url/);
-	assert.match(settings, /pb_default_guidelines_link_label/);
-	assert.match(settings, /pb_default_free_for_members/);
+	assert.match(settings, /dg_default_anonymize/);
+	assert.match(settings, /dg_default_anonymize_endpoint/);
+	assert.match(settings, /dg_default_anonymize_api_key/);
+	assert.match(settings, /dg_default_anonymize_ack/);
+	assert.match(settings, /dg_default_anonymize_fail_closed/);
+	assert.match(settings, /dg_default_guidelines_url/);
+	assert.match(settings, /dg_default_guidelines_link_label/);
+	assert.match(settings, /dg_default_free_for_members/);
 	const publishStep = fs.readFileSync(
 		path.join(root, 'src/wizard/steps/PublishStep.svelte'),
 		'utf8',
@@ -222,12 +222,18 @@ test('setup screen and wizard mount site defaults on the same channel as accessC
 	assert.match(publishStep, /guidelinesLinkLabel/);
 	assert.match(publishStep, /Using site default/);
 	assert.match(publishStep, /BUILTIN_GUIDELINES_LINK_LABEL|Link to Guidelines/);
-	assert.match(settings, /pb_default_timezone/);
-	assert.match(settings, /pb_default_brand/);
+	assert.match(settings, /dg_default_timezone/);
+	assert.match(settings, /dg_default_brand/);
 	assert.match(settings, /White label/);
 	assert.match(settings, /docs\/design\/ANONYMIZER\.md/);
-	assert.match(settings, /pb_login_url/);
-	assert.match(settings, /pb_join_url/);
+	assert.match(settings, /dg_login_url/);
+	assert.match(settings, /dg_join_url/);
+	const optionsFacade = fs.readFileSync(
+		path.join(root, 'includes/class-portal-options.php'),
+		'utf8',
+	);
+	assert.match(optionsFacade, /LEGACY_PREFIX\s*=\s*'pb_'/);
+	assert.match(optionsFacade, /CANONICAL_PREFIX\s*=\s*'dg_'/);
 	assert.match(settings, /Sign-in URL/);
 	assert.match(settings, /Membership URL/);
 	assert.match(settings, /sanitize_path_or_url/);
@@ -284,6 +290,14 @@ test('stored login and join options override builtins; join builtin is /membersh
 	});
 	assert.equal(joinOver.code, 0, joinOver.out);
 	assert.equal(joinOver.data.join_url, 'https://example.test/join-now');
+
+	const dgWins = resolve({
+		name: 'login-dg-wins',
+		action: 'login_url',
+		options: { pb_login_url: '/old', dg_login_url: '/new' },
+	});
+	assert.equal(dgWins.code, 0, dgWins.out);
+	assert.match(dgWins.data.login_url, /https:\/\/example\.test\/new$/);
 });
 
 test('portal brand empty + empty site → brand is null', () => {

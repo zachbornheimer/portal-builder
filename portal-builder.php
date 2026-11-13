@@ -4,7 +4,7 @@
  * Plugin Name: DragonGate Portals
  * Plugin URI:  https://dragongateportals.com
  * Description: A plugin to build portals for accepting applications and managing submissions with Google Sheets and Google Drive integration.
- * Version:     0.1.2
+ * Version:     0.1.3
  * Requires at least: 6.4
  * Requires PHP: 8.0
  * Update URI:  https://github.com/zachbornheimer/portal-builder
@@ -26,11 +26,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 // Upload roots resolve after Portal_Upload_Store is loaded (not ABSPATH).
 
 // Define plugin version constant
-if ( ! defined( 'PB_VERSION' ) ) {
-	define( 'PB_VERSION', '0.1.2' );
+if ( ! defined( 'DG_VERSION' ) ) {
+	define( 'DG_VERSION', '0.1.3' );
 }
 
 // Include the necessary files
+require_once plugin_dir_path( __FILE__ ) . 'includes/class-portal-options.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-portal-builder.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-portal-post-type.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-portal-settings.php';
@@ -88,12 +89,12 @@ require_once plugin_dir_path( __FILE__ ) . 'gsuite-filestore/zysys-file-store.cl
 // include composer's autoload file
 require_once plugin_dir_path( __FILE__ ) . 'vendor/autoload.php';
 
-if ( ! defined( 'PB_TMP_UPLOADS_DIR' ) ) {
-	define( 'PB_TMP_UPLOADS_DIR', Portal_Upload_Store::tmp_dir() );
+if ( ! defined( 'DG_TMP_UPLOADS_DIR' ) ) {
+	define( 'DG_TMP_UPLOADS_DIR', Portal_Upload_Store::tmp_dir() );
 }
 
-if ( ! defined( 'PB_PERMANENT_UPLOADS_DIR' ) ) {
-	define( 'PB_PERMANENT_UPLOADS_DIR', Portal_Upload_Store::store_dir() );
+if ( ! defined( 'DG_PERMANENT_UPLOADS_DIR' ) ) {
+	define( 'DG_PERMANENT_UPLOADS_DIR', Portal_Upload_Store::store_dir() );
 }
 
 // Function to run on plugin activation
@@ -119,7 +120,7 @@ add_action( Portal_Upload_Store::CLEANUP_HOOK, array( 'Portal_Upload_Store', 'pu
 add_action( 'init', array( 'Portal_Packet_Policy', 'register_caps' ) );
 
 // Initialize the plugin
-function pb_initialize_plugin() {
+function dg_initialize_plugin() {
 	$portal_builder = new Portal_Builder();
 	$portal_builder->init();
 
@@ -133,21 +134,22 @@ function pb_initialize_plugin() {
 
 	// Register meta boxes only on admin side
 	if ( is_admin() ) {
-		pb_register_meta_boxes( $portal_meta );
-		add_action( 'admin_notices', 'pb_duplicate_success_notice' );
+		dg_register_meta_boxes( $portal_meta );
+		add_action( 'admin_notices', 'dg_duplicate_success_notice' );
 		add_action( 'admin_notices', array( 'Portal_Google_Connect', 'render_admin_notice' ) );
 	}
 
 	handle_submissions();
 }
-add_action( 'plugins_loaded', 'pb_initialize_plugin' );
+add_action( 'plugins_loaded', array( 'Portal_Options', 'promote' ), 1 );
+add_action( 'plugins_loaded', 'dg_initialize_plugin' );
 
 // Function to register meta boxes
-function pb_register_meta_boxes( $portal_meta ) {
-	// get the client-email from pb_google_secret_key option, if possible
+function dg_register_meta_boxes( $portal_meta ) {
+	// get the client-email from dg_google_secret_key option, if possible
 	$client_email  = '';
 	$label         = '';
-	$client_secret = get_option( 'pb_google_secret_key' );
+	$client_secret = Portal_Options::get( 'dg_google_secret_key' );
 	if ( $client_secret ) {
 		$client_secret = json_decode( $client_secret, true );
 		if ( isset( $client_secret['client_email'] ) ) {
@@ -223,7 +225,7 @@ function pb_register_meta_boxes( $portal_meta ) {
 				'id'          => '_portal_county_region_script',
 				'label'       => 'County/Region Dropdown Menu JS Script',
 				'type'        => 'url',
-				'placeholder' => get_option( 'pb_county_region_script', '' ),
+				'placeholder' => Portal_Options::get( 'dg_county_region_script', '' ),
 			),
 			array(
 				'id'    => '_portal_guidelines_url',
@@ -308,15 +310,15 @@ function handle_submissions() {
 
 			if ( ! empty( $outcome['ok'] ) ) {
 				$result = isset( $outcome['result'] ) ? $outcome['result'] : array();
-				if ( ! defined( 'PB_APPLICATION_SUBMITTED' ) ) {
-					define( 'PB_APPLICATION_SUBMITTED', true );
+				if ( ! defined( 'DG_APPLICATION_SUBMITTED' ) ) {
+					define( 'DG_APPLICATION_SUBMITTED', true );
 				}
 				if ( ! defined( 'DG_DEFINITION_SUBMIT_OK' ) ) {
 					define( 'DG_DEFINITION_SUBMIT_OK', true );
 				}
-				if ( ! defined( 'PB_RECEIPT_LINK' ) ) {
+				if ( ! defined( 'DG_RECEIPT_LINK' ) ) {
 					$receipt = isset( $result['receipt_url'] ) ? $result['receipt_url'] : '';
-					define( 'PB_RECEIPT_LINK', $receipt );
+					define( 'DG_RECEIPT_LINK', $receipt );
 				}
 			} elseif ( ! defined( 'DG_DEFINITION_SUBMIT_ERRORS' ) ) {
 				define( 'DG_DEFINITION_SUBMIT_ERRORS', true );
@@ -339,22 +341,22 @@ function handle_submissions() {
 
 			global $pb_file_handler;
 			$file_handler = new Portal_File_Handler( $_FILES, $file_handler_settings, '', $_POST['post_id'] );
-			$file_handler->set_local_temp_dir( PB_TMP_UPLOADS_DIR );
+			$file_handler->set_local_temp_dir( DG_TMP_UPLOADS_DIR );
 			$file_handler->process_temp_files();
 
 			// encrypt the appid and the
 			$_POST['appId']  = $file_handler->get_appId();
-			$_POST['eappId'] = pb_encrypt_str( 'APPID_' . $_POST['appId'] );
-			$_POST['efiles'] = pb_encrypt_str( json_encode( $file_handler->stored_file_paths ) );
+			$_POST['eappId'] = dg_encrypt_str( 'APPID_' . $_POST['appId'] );
+			$_POST['efiles'] = dg_encrypt_str( json_encode( $file_handler->stored_file_paths ) );
 
-			if ( ! defined( 'PB_FILE_HANDLER' ) ) {
-				define( 'PB_FILE_HANDLER', $file_handler );
+			if ( ! defined( 'DG_FILE_HANDLER' ) ) {
+				define( 'DG_FILE_HANDLER', $file_handler );
 			}
 
-			add_filter( 'the_content', 'pb_reviewable_content_filter', 10, 1 );
+			add_filter( 'the_content', 'dg_reviewable_content_filter', 10, 1 );
 		} elseif ( $_SERVER['REQUEST_METHOD'] === 'POST' && isset( $_POST['ready_to_submit_nonce'] ) ) {
-			$appId             = pb_decrypt_str( $_POST['eappId'] );
-			$stored_file_paths = json_decode( pb_decrypt_str( $_POST['efiles'] ), true );
+			$appId             = dg_decrypt_str( $_POST['eappId'] );
+			$stored_file_paths = json_decode( dg_decrypt_str( $_POST['efiles'] ), true );
 			// get the labels for the files
 			$labels = array();
 			foreach ( $stored_file_paths as $key => $path ) {
@@ -378,16 +380,16 @@ function handle_submissions() {
 			// check the anonymize setting
 			$file_handler_settings = array(
 				'anonymize'     => get_post_meta( $_POST['post_id'], '_portal_anonymize', true ),
-				'permanent_dir' => PB_PERMANENT_UPLOADS_DIR . '/' . $slug,
+				'permanent_dir' => DG_PERMANENT_UPLOADS_DIR . '/' . $slug,
 			);
 
 			$file_handler = new Portal_File_Handler( null, $file_handler_settings, '', $_POST['post_id'] );
-			$file_handler->set_local_temp_dir( PB_TMP_UPLOADS_DIR );
+			$file_handler->set_local_temp_dir( DG_TMP_UPLOADS_DIR );
 			$file_handler->set_appId( $_POST['APPID'] );
 
-			define( 'PB_FILE_LABELS', $labels );
+			define( 'DG_FILE_LABELS', $labels );
 
-			$definition_submit = pb_try_definition_submission( $_POST, $stored_file_paths );
+			$definition_submit = dg_try_definition_submission( $_POST, $stored_file_paths );
 			if ( is_array( $definition_submit ) && ! empty( $definition_submit['ok'] ) ) {
 				$application_notification_date = Portal_Notification_When::phrase( $_POST['post_id'] );
 				$receipt                       = ! empty( $definition_submit['mailPath'] ) ? $definition_submit['mailPath'] : '';
@@ -398,7 +400,7 @@ function handle_submissions() {
 			}
 		}
 	} catch ( Exception $e ) {
-		pb_record_public_submit_failure( $e );
+		dg_record_public_submit_failure( $e );
 		return;
 	}
 }
@@ -409,7 +411,7 @@ function handle_submissions() {
  * @param Exception $exception Caught failure.
  * @return void
  */
-function pb_record_public_submit_failure( $exception ) {
+function dg_record_public_submit_failure( $exception ) {
 	if ( class_exists( 'Portal_Submission_Pipeline' ) ) {
 		Portal_Submission_Pipeline::record_public_failure( $exception );
 		Portal_Submission_Pipeline::mark_public_errors();
@@ -428,7 +430,7 @@ function pb_record_public_submit_failure( $exception ) {
  * @param array $stored_file_paths   Map of input name => absolute temp path.
  * @return array|false Result payload on success; false when the portal has no definition.
  */
-function pb_try_definition_submission( $post_values, $stored_file_paths ) {
+function dg_try_definition_submission( $post_values, $stored_file_paths ) {
 	if ( ! class_exists( 'Portal_Submission_Pipeline' ) || ! class_exists( 'Portal_Definition' ) ) {
 		return false;
 	}
@@ -490,7 +492,7 @@ function get_label_for_pb_file_name( $post_id, $name ) {
  * @param string $content The content containing the form.
  * @return string Modified content with inputs replaced by spans.
  */
-function pb_reviewable_content_filter( $c ) {
+function dg_reviewable_content_filter( $c ) {
 	// Load the submitted data
 	$submitted_data = $_POST;
 
@@ -634,22 +636,22 @@ function pb_reviewable_content_filter( $c ) {
 	return $content;
 }
 
-function pb_post_submitted_content_filter( $c ) {
+function dg_post_submitted_content_filter( $c ) {
 	// Load the submitted data
 
-	$phrase   = defined( 'PB_APPLICATION_NOTIFICATION_DATE' ) ? PB_APPLICATION_NOTIFICATION_DATE : '';
+	$phrase   = defined( 'DG_APPLICATION_NOTIFICATION_DATE' ) ? DG_APPLICATION_NOTIFICATION_DATE : '';
 	$content  = '<div class="entry-content alignfull wp-block-post-content has-global-padding is-layout-constrained wp-block-post-content-is-layout-constrained">';
 	$content .= Portal_Notification_When::success_copy( $phrase );
-	$content .= sprintf( '<br /><br/><a href="%s" target="_new">Click here to view the details of your application. Please print / save this for your records.</a>', PB_RECEIPT_LINK );
+	$content .= sprintf( '<br /><br/><a href="%s" target="_new">Click here to view the details of your application. Please print / save this for your records.</a>', DG_RECEIPT_LINK );
 	$content .= '</div>';
 
-	if ( ! defined( 'PB_APPLICATION_SUBMITTED' ) ) {
-		define( 'PB_APPLICATION_SUBMITTED', true );
+	if ( ! defined( 'DG_APPLICATION_SUBMITTED' ) ) {
+		define( 'DG_APPLICATION_SUBMITTED', true );
 	}
 	return $content;
 }
 
-function pb_encrypt_str( $string ) {
+function dg_encrypt_str( $string ) {
 	// encrypt the $string using the NONCE_SALT as the key
 	$key       = NONCE_SALT;
 	$method    = 'aes-256-cbc';
@@ -658,7 +660,7 @@ function pb_encrypt_str( $string ) {
 	return base64_encode( $iv . $encrypted );
 }
 
-function pb_decrypt_str( $string ) {
+function dg_decrypt_str( $string ) {
 	// decrypt the $string using the NONCE_SALT as the key
 	$key       = NONCE_SALT;
 	$method    = 'aes-256-cbc';
@@ -685,7 +687,7 @@ function is_application_deadline_passed( $post_id ) {
 /**
  * Display success notice when a portal is duplicated
  */
-function pb_duplicate_success_notice() {
+function dg_duplicate_success_notice() {
 	if ( isset( $_GET['duplicated'] ) && $_GET['duplicated'] == '1' ) {
 		echo '<div class="notice notice-success is-dismissible">';
 		echo '<p><strong>' . __( 'DragonGate Portal duplicated successfully!', 'dragongate-portals' ) . '</strong> ' . __( 'You are now editing the duplicate.', 'dragongate-portals' ) . '</p>';

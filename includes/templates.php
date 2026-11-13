@@ -131,7 +131,7 @@ add_action('init', 'register_portal_application_formstart_block');
 
 function render_portal_application_formstart_block($attributes, $content)
 {
-    if (defined('PB_APPLICATION_SUBMITTED') && PB_APPLICATION_SUBMITTED) {
+    if (defined('DG_APPLICATION_SUBMITTED') && DG_APPLICATION_SUBMITTED) {
         return;
     }
     if (class_exists('Portal_Public_Render') && Portal_Public_Render::form_chrome_hidden()) {
@@ -199,7 +199,7 @@ add_action('init', 'register_portal_application_formend_block');
 
 function render_portal_application_formend_block($attributes, $content)
 {
-    if (defined('PB_APPLICATION_SUBMITTED') && PB_APPLICATION_SUBMITTED) {
+    if (defined('DG_APPLICATION_SUBMITTED') && DG_APPLICATION_SUBMITTED) {
         return;
     }
     if (class_exists('Portal_Public_Render') && Portal_Public_Render::form_chrome_hidden()) {
@@ -292,7 +292,7 @@ function render_portal_application_file_review_block($attributes, $content)
 			<span class="instructions">Please review your files to ensure that they have been processed correctly. Each link opens in a new tab</span>
 			<ul>
 				<?php
-                $file_handler = PB_FILE_HANDLER;
+                $file_handler = DG_FILE_HANDLER;
     foreach (array_keys($file_handler->stored_file_paths) as $key) {
         $file       = $_FILES[ $key ];
         $file_name  = basename($file['tmp_name']);
@@ -314,7 +314,7 @@ function render_portal_application_file_review_block($attributes, $content)
                     $extension = '';
                     break;
             }
-            $url = site_url(PB_RELATIVE_TMP_UPLOADS_DIR . '/' . $file_handler->stored_file_paths[ $key ]);
+            $url = site_url(DG_RELATIVE_TMP_UPLOADS_DIR . '/' . $file_handler->stored_file_paths[ $key ]);
             echo '<li><a href="' . $url . '" target="_blank" data-display-label-override="1" data-display-label="' . $key . '">' . esc_html($file_name) . '</a></li>';
         }
     }
@@ -366,7 +366,7 @@ add_action('init', 'register_portal_application_upload_notes_block');
 function render_portal_application_upload_notes_block($attributes, $content)
 {
 
-    if (defined('PB_APPLICATION_SUBMITTED') && PB_APPLICATION_SUBMITTED) {
+    if (defined('DG_APPLICATION_SUBMITTED') && DG_APPLICATION_SUBMITTED) {
         return;
     }
     if (class_exists('Portal_Public_Render') && Portal_Public_Render::leftover_shortcode_is_silent()) {
@@ -442,7 +442,7 @@ add_action('init', 'register_portal_application_agreements_block');
 
 function render_portal_application_agreements_block($attributes, $content)
 {
-    if (defined('PB_APPLICATION_SUBMITTED') && PB_APPLICATION_SUBMITTED) {
+    if (defined('DG_APPLICATION_SUBMITTED') && DG_APPLICATION_SUBMITTED) {
         return;
     }
     if (class_exists('Portal_Public_Render') && Portal_Public_Render::leftover_shortcode_is_silent()) {
@@ -454,7 +454,7 @@ function render_portal_application_agreements_block($attributes, $content)
     $className = 'wp-block-group align' . esc_attr($align) . ' layout-' . esc_attr($layout);
     $className = 'entry-content alignfull wp-block-post-content has-global-padding is-layout-constrained wp-block-post-content-is-layout-constrained';
 
-    $disclaimers = json_decode(get_option('pb_legal_disclaimers', json_encode(array())), true);
+    $disclaimers = json_decode(Portal_Options::get( 'dg_legal_disclaimers', json_encode(array())), true);
     # keep decoding until we get an array
     while (! is_array($disclaimers)) {
         $disclaimers = json_decode($disclaimers, true);
@@ -564,7 +564,7 @@ function get_portal_county_region_script_url($post_id)
 
     // If the portal-specific script is empty, fallback to the global setting
     if (empty($portal_script_url)) {
-        $portal_script_url = get_option('pb_county_region_script', '');
+        $portal_script_url = Portal_Options::get( 'dg_county_region_script', '');
     }
 
     return esc_url($portal_script_url);
@@ -592,7 +592,7 @@ function enqueue_portal_county_region_script()
         $script_url = get_portal_county_region_script_url($post->ID);
 
         if (! empty($script_url)) {
-            wp_enqueue_script('portal-county-region-script', $script_url, array( 'jquery', 'jquery-ui-core' ), PB_VERSION, true);
+            wp_enqueue_script('portal-county-region-script', $script_url, array( 'jquery', 'jquery-ui-core' ), DG_VERSION, true);
         }
     }
 }
@@ -606,7 +606,7 @@ function enqueue_recaptcha_script()
         $script_url = 'https://www.google.com/recaptcha/api.js';
 
         if (! empty($script_url)) {
-            wp_enqueue_script('recaptcha', $script_url, array(), PB_VERSION, true);
+            wp_enqueue_script('recaptcha', $script_url, array(), DG_VERSION, true);
         }
     }
 }
@@ -625,10 +625,10 @@ function portal_enqueue_styles()
 {
     // Check if we are on a single portal post
     if (is_singular('portal')) {
-        wp_enqueue_style('portal-styles', plugins_url('../assets/portal.css', __FILE__), array(), PB_VERSION);
+        wp_enqueue_style('portal-styles', plugins_url('../assets/portal.css', __FILE__), array(), DG_VERSION);
 
         // enqueue portal.js
-        wp_enqueue_script('portal-js', plugins_url('../assets/portal.js', __FILE__), array( 'jquery' ), PB_VERSION, true);
+        wp_enqueue_script('portal-js', plugins_url('../assets/portal.js', __FILE__), array( 'jquery' ), DG_VERSION, true);
     }
 }
 add_action('wp_enqueue_scripts', 'portal_enqueue_styles');

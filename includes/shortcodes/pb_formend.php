@@ -1,6 +1,6 @@
 <?php
 function portal_application_formend_shortcode() {
-	if ( defined( 'PB_APPLICATION_SUBMITTED' ) && PB_APPLICATION_SUBMITTED ) {
+	if ( defined( 'DG_APPLICATION_SUBMITTED' ) && DG_APPLICATION_SUBMITTED ) {
 		return '';
 	}
 	if ( class_exists( 'Portal_Public_Render' ) && Portal_Public_Render::form_chrome_hidden() ) {

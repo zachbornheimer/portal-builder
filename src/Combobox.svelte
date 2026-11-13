@@ -1,225 +1,172 @@
 <script>
-  import { createEventDispatcher } from 'svelte';
-  import { onMount } from 'svelte';
-  
-  
+	import { Combobox, Label } from 'bits-ui';
+	import { createEventDispatcher } from 'svelte';
 
-  /**
-   * @typedef {Object} Props
-   * @property {any} [options]
-   * @property {any} [selected]
-   * @property {string} [placeholder]
-   * @property {string} [label]
-   * @property {any} [displayValue]
-   * @property {any} [filterBy]
-   * @property {boolean} [allowCustom]
-   * @property {boolean} [disabled]
-   */
+	/**
+	 * @typedef {Object} Props
+	 * @property {any} [options]
+	 * @property {any} [selected]
+	 * @property {string} [placeholder]
+	 * @property {string} [label]
+	 * @property {any} [displayValue]
+	 * @property {any} [filterBy]
+	 * @property {boolean} [allowCustom]
+	 * @property {boolean} [disabled]
+	 */
 
-  /** @type {Props} */
-  let {
-    options = [],
-    selected = $bindable(null),
-    placeholder = 'Search...',
-    label = '',
-    displayValue = (item) => item?.name || '',
-    filterBy = (option, query) => {
-    if (!query) return true;
-    const searchText = displayValue(option).toLowerCase();
-    return searchText.includes(query.toLowerCase());
-  },
-    allowCustom = false,
-    disabled = false
-  } = $props();
+	/** @type {Props} */
+	let {
+		options = [],
+		selected = $bindable(null),
+		placeholder = 'Search...',
+		label = '',
+		displayValue = (item) => item?.name || '',
+		filterBy = (option, query) => {
+			if (!query) return true;
+			const searchText = displayValue(option).toLowerCase();
+			return searchText.includes(query.toLowerCase());
+		},
+		allowCustom = false,
+		disabled = false,
+	} = $props();
 
-  const dispatch = createEventDispatcher();
-  
-  // Expose clear method
-  export function clear() {
-    query = '';
-    selected = null;
-  }
-  
-  let query = $state('');
-  let isOpen = $state(false);
-  let inputElement = $state();
-  let optionsElement = $state();
-  let focusedIndex = $state(-1);
-  let inputId = `combobox-${Math.random().toString(36).substr(2, 9)}`;
+	const dispatch = createEventDispatcher();
 
-  // Filter options based on query
-  let filteredOptions = $derived(query === '' 
-    ? options 
-    : options.filter(option => filterBy(option, query)));
+	let query = $state('');
+	let isOpen = $state(false);
+	let customValue = $state('');
+	let inputId = `combobox-${Math.random().toString(36).slice(2, 11)}`;
+	let customId = `${inputId}-custom`;
 
-  // Handle input changes
-  function handleInput(event) {
-    query = event.target.value;
-    isOpen = true;
-    focusedIndex = -1;
-  }
+	let filteredOptions = $derived(
+		query === '' ? options : options.filter((option) => filterBy(option, query)),
+	);
 
-  // Handle option selection
-  function selectOption(option) {
-    selected = option;
-    query = '';
-    isOpen = false;
-    focusedIndex = -1;
-    dispatch('change', option);
-  }
+	function optionKey(option) {
+		return String(option?.uuid || option?.value || displayValue(option));
+	}
 
-  // Handle input blur
-  function handleBlur() {
-    // Delay to allow option clicks to register
-    setTimeout(() => {
-      isOpen = false;
-      query = '';
-      focusedIndex = -1;
-    }, 150);
-  }
+	function optionByKey(key) {
+		return options.find((option) => optionKey(option) === key) || null;
+	}
 
-  // Handle input focus
-  function handleFocus() {
-    isOpen = true;
-  }
+	function selectOption(option) {
+		selected = option;
+		query = '';
+		customValue = '';
+		isOpen = false;
+		dispatch('change', option);
+	}
 
-  // Handle keyboard navigation
-  function handleKeydown(event) {
-    if (!isOpen) {
-      if (event.key === 'ArrowDown' || event.key === 'Enter' || event.key === ' ') {
-        event.preventDefault();
-        isOpen = true;
-        return;
-      }
-    }
+	function handleValueChange(next) {
+		const option = optionByKey(next);
+		if (option) {
+			selectOption(option);
+		}
+	}
 
-    switch (event.key) {
-      case 'ArrowDown':
-        event.preventDefault();
-        focusedIndex = Math.min(focusedIndex + 1, filteredOptions.length - 1);
-        break;
-      case 'ArrowUp':
-        event.preventDefault();
-        focusedIndex = Math.max(focusedIndex - 1, -1);
-        break;
-      case 'Enter':
-        event.preventDefault();
-        if (focusedIndex >= 0 && focusedIndex < filteredOptions.length) {
-          selectOption(filteredOptions[focusedIndex]);
-        } else if (allowCustom && query.trim()) {
-          selectOption({ name: query.trim(), value: query.trim() });
-        }
-        break;
-      case 'Escape':
-        isOpen = false;
-        query = '';
-        focusedIndex = -1;
-        inputElement?.blur();
-        break;
-    }
-  }
+	function addCustom() {
+		const text = customValue.trim();
+		if (!allowCustom || !text) {
+			return;
+		}
+		selectOption({ name: text, value: text });
+	}
 
-  // Handle custom option creation
-  function handleCustomOption() {
-    if (allowCustom && query.trim()) {
-      const customOption = { name: query.trim(), value: query.trim() };
-      selectOption(customOption);
-    }
-  }
-
-  // Click outside to close
-  function handleClickOutside(event) {
-    if (!event.target.closest('.combobox-container')) {
-      isOpen = false;
-      query = '';
-      focusedIndex = -1;
-    }
-  }
-
-  onMount(() => {
-    document.addEventListener('click', handleClickOutside);
-    return () => {
-      document.removeEventListener('click', handleClickOutside);
-    };
-  });
+	export function clear() {
+		query = '';
+		customValue = '';
+		selected = null;
+	}
 </script>
 
 <div class="combobox-container relative">
-  {#if label}
-    <label for={inputId} class="block text-sm/6 font-medium text-gray-900 mb-2">{label}</label>
-  {/if}
-  
-  <div class="relative">
-    <input
-      id={inputId}
-      bind:this={inputElement}
-      type="text"
-      class="block w-full rounded-md bg-white py-1.5 pl-3 pr-12 text-base text-gray-900 outline outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6 {disabled ? 'opacity-50 cursor-not-allowed' : ''}"
-      placeholder={placeholder}
-      value={query || displayValue(selected)}
-      oninput={handleInput}
-      onfocus={handleFocus}
-      onblur={handleBlur}
-      onkeydown={handleKeydown}
-      {disabled}
-    />
-    
-    <button
-      type="button"
-      class="absolute inset-y-0 right-0 flex items-center rounded-r-md px-2 focus:outline-none {disabled ? 'cursor-not-allowed' : ''}"
-      onclick={() => isOpen = !isOpen}
-      {disabled}
-    >
-      <svg 
-        class="size-5 text-gray-400 transition-transform {isOpen ? 'rotate-180' : ''}" 
-        fill="none" 
-        viewBox="0 0 24 24" 
-        stroke-width="1.5" 
-        stroke="currentColor"
-      >
-        <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
-      </svg>
-    </button>
+	{#if label}
+		<Label.Root for={inputId} class="mb-2 block text-sm/6 font-medium text-gray-900">{label}</Label.Root>
+	{/if}
 
-    {#if isOpen && !disabled}
-      <div 
-        bind:this={optionsElement}
-        class="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg outline outline-1 outline-black/5 sm:text-sm"
-      >
-        {#if allowCustom && query.length > 0}
-          <button
-            type="button"
-            class="w-full text-left cursor-default select-none px-3 py-2 text-gray-900 hover:bg-indigo-600 hover:text-white focus:bg-indigo-600 focus:text-white focus:outline-none {focusedIndex === -1 ? 'bg-indigo-600 text-white' : ''}"
-            onclick={handleCustomOption}
-            onmouseenter={() => focusedIndex = -1}
-          >
-            Create "{query}"
-          </button>
-        {/if}
-        
-        {#each filteredOptions as option, index (option.uuid || option.value || index)}
-          <button
-            type="button"
-            class="w-full text-left cursor-default select-none px-3 py-2 text-gray-900 hover:bg-indigo-600 hover:text-white focus:bg-indigo-600 focus:text-white focus:outline-none {focusedIndex === index ? 'bg-indigo-600 text-white' : ''}"
-            onclick={() => selectOption(option)}
-            onmouseenter={() => focusedIndex = index}
-          >
-            <div class="flex flex-col">
-              <span class="block truncate">{displayValue(option)}</span>
-              {#if option.group}
-                <span class="caption text-xs text-gray-500 {focusedIndex === index ? 'text-white' : ''}">{option.group}</span>
-              {/if}
-              {#if option.username}
-                <span class="ml-2 block truncate text-gray-500 {focusedIndex === index ? 'text-white' : ''}">{option.username}</span>
-              {/if}
-            </div>
-          </button>
-        {/each}
-        
-        {#if filteredOptions.length === 0 && !allowCustom}
-          <div class="px-3 py-2 text-gray-500">No options found</div>
-        {/if}
-      </div>
-    {/if}
-  </div>
+	<Combobox.Root
+		type="single"
+		bind:open={isOpen}
+		disabled={disabled}
+		onValueChange={handleValueChange}
+	>
+		<div class="relative">
+			<Combobox.Input
+				id={inputId}
+				class="block w-full rounded-md bg-white py-1.5 pl-3 pr-12 text-base text-gray-900 outline outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6 {disabled
+					? 'opacity-50 cursor-not-allowed'
+					: ''}"
+				placeholder={placeholder}
+				value={query || displayValue(selected)}
+				oninput={(e) => {
+					query = e.currentTarget.value;
+					isOpen = true;
+				}}
+			/>
+			<Combobox.Trigger
+				class="absolute inset-y-0 right-0 flex items-center rounded-r-md px-2 focus:outline-none {disabled
+					? 'cursor-not-allowed'
+					: ''}"
+			>
+				<svg
+					class="size-5 text-gray-400 transition-transform {isOpen ? 'rotate-180' : ''}"
+					fill="none"
+					viewBox="0 0 24 24"
+					stroke-width="1.5"
+					stroke="currentColor"
+				>
+					<path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+				</svg>
+			</Combobox.Trigger>
+		</div>
+		<Combobox.Portal>
+			<Combobox.Content
+				class="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg outline outline-1 outline-black/5 sm:text-sm"
+			>
+				{#each filteredOptions as option (optionKey(option))}
+					<Combobox.Item
+						class="w-full cursor-default select-none px-3 py-2 text-left text-gray-900 data-highlighted:bg-indigo-600 data-highlighted:text-white"
+						value={optionKey(option)}
+						label={displayValue(option)}
+					>
+						<div class="flex flex-col">
+							<span class="block truncate">{displayValue(option)}</span>
+							{#if option.group}
+								<span class="caption text-xs text-gray-500">{option.group}</span>
+							{/if}
+							{#if option.username}
+								<span class="ml-2 block truncate text-gray-500">{option.username}</span>
+							{/if}
+						</div>
+					</Combobox.Item>
+				{/each}
+				{#if filteredOptions.length === 0 && !allowCustom}
+					<div class="px-3 py-2 text-gray-500">No options found</div>
+				{/if}
+			</Combobox.Content>
+		</Combobox.Portal>
+	</Combobox.Root>
+
+	{#if allowCustom}
+		<div class="mt-2">
+			<Label.Root for={customId} class="mb-1 block text-xs font-medium text-gray-700"
+				>Add custom</Label.Root
+			>
+			<input
+				id={customId}
+				type="text"
+				class="block w-full rounded-md bg-white py-1.5 px-3 text-sm text-gray-900 outline outline-1 -outline-offset-1 outline-gray-300"
+				placeholder="Type a custom value and press Enter"
+				bind:value={customValue}
+				onkeydown={(e) => {
+					if (e.key === 'Enter') {
+						e.preventDefault();
+						addCustom();
+					}
+				}}
+				{disabled}
+			/>
+		</div>
+	{/if}
 </div>

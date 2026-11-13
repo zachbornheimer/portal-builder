@@ -118,14 +118,14 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 			if ( ! $completed ) {
 				return 'error';
 			}
-			if ( ! defined( 'PB_RECEIPT_LINK' ) ) {
-				define( 'PB_RECEIPT_LINK', (string) $receipt_link );
+			if ( ! defined( 'DG_RECEIPT_LINK' ) ) {
+				define( 'DG_RECEIPT_LINK', (string) $receipt_link );
 			}
-			if ( ! defined( 'PB_APPLICATION_NOTIFICATION_DATE' ) ) {
-				define( 'PB_APPLICATION_NOTIFICATION_DATE', (string) $notification_date );
+			if ( ! defined( 'DG_APPLICATION_NOTIFICATION_DATE' ) ) {
+				define( 'DG_APPLICATION_NOTIFICATION_DATE', (string) $notification_date );
 			}
 			if ( function_exists( 'add_filter' ) ) {
-				add_filter( 'the_content', 'pb_post_submitted_content_filter', 10, 1 );
+				add_filter( 'the_content', 'dg_post_submitted_content_filter', 10, 1 );
 			}
 			return 'success';
 		}

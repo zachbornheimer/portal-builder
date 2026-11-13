@@ -1,5 +1,5 @@
 <?php
-function pb_group_shortcode( $atts, $content = null ) {
+function dg_group_shortcode( $atts, $content = null ) {
 	$atts = shortcode_atts(
 		array(
 			'label' => '', // Legend for the fieldset
@@ -52,4 +52,4 @@ function pb_group_shortcode( $atts, $content = null ) {
 
 	return do_shortcode( $output );
 }
-add_shortcode( 'pb_group', 'pb_group_shortcode' );
+add_shortcode( 'pb_group', 'dg_group_shortcode' );

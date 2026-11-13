@@ -124,7 +124,7 @@ test('public render prints host style id and settings own White label', () => {
 	assert.match(render, /<style id="dg-host-brand">/);
 	assert.match(render, /dg-host-fonts/);
 	assert.match(settings, /White label/);
-	assert.match(settings, /pb_default_brand/);
+	assert.match(settings, /dg_default_brand/);
 	assert.match(settings, /Example host \(ISJAC guide\)/);
 	assert.match(brand, /class Portal_Brand/);
 	assert.doesNotMatch(brand, /\.isjac-/);
