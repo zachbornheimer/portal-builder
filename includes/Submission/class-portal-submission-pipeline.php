@@ -286,6 +286,21 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 			if ( null === $definition ) {
 				return new WP_Error( 'dg_submission_no_definition', 'Portal has no valid definition.' );
 			}
+			if ( class_exists( 'Portal_Access' ) ) {
+				$access    = isset( $definition['access'] ) && is_array( $definition['access'] )
+					? $definition['access']
+					: array();
+				$options   = isset( $definition['options'] ) && is_array( $definition['options'] )
+					? $definition['options']
+					: array();
+				$decision  = Portal_Access::decide( $access, $options, Portal_Access::current_applicant() );
+				if ( empty( $decision['allowed'] ) ) {
+					return new WP_Error(
+						'dg_submission_forbidden',
+						Portal_Access::message_for( $access, isset( $decision['reason'] ) ? $decision['reason'] : 'profile' )
+					);
+				}
+			}
 			if ( ! Portal_Test_Mode::is_enabled() ) {
 				return new WP_Error(
 					'dg_submission_not_test_mode',
@@ -415,6 +430,10 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 			foreach ( $drive_paths as $field_id => $path ) {
 				$row[ $field_id . '_path' ] = $path;
 				$row[ $field_id . '_link' ] = $path;
+			}
+
+			foreach ( Portal_Submission_Selections::columns( $definition, $validated['values'] ) as $key => $val ) {
+				$row[ $key ] = $val;
 			}
 
 			if ( isset( $definition['title'] ) ) {

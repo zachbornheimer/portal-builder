@@ -98,7 +98,9 @@ if ( ! class_exists( 'Portal_File_Handler' ) ) {
 		}
 
 		private function store_temp_file( $type, $tmp_name, $file_key, $suffix = '' ) {
-			// if anonymize
+			// Anonymize API (options.anonymizeEndpoint) is TBD. If the endpoint is
+			// empty or the call fails, keep the original file (fail-open). Local
+			// exiftool/qpdf/lame stripping below stays the in-process path.
 
 			switch ( $type ) {
 				case 'application/pdf':
