@@ -284,7 +284,16 @@ if ( ! class_exists( 'Portal_Update' ) ) {
 		 */
 		public static function keep_folder( $source, $remote_source, $upgrader, $hook_extra = array() ) {
 			unset( $remote_source, $upgrader );
-			$plugin = isset( $hook_extra['plugin'] ) ? (string) $hook_extra['plugin'] : self::plugin_file();
+			if ( ! is_array( $hook_extra ) ) {
+				return $source;
+			}
+			if ( ! empty( $hook_extra['theme'] ) ) {
+				return $source;
+			}
+			$plugin = isset( $hook_extra['plugin'] ) ? (string) $hook_extra['plugin'] : '';
+			if ( '' === $plugin || 'portal-builder.php' !== basename( $plugin ) ) {
+				return $source;
+			}
 			$folder = dirname( $plugin );
 			if ( '.' === $folder || '' === $folder ) {
 				return $source;

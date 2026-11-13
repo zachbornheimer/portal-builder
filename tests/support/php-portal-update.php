@@ -74,6 +74,45 @@ array_map( 'unlink', glob( $dir . '/portal-builder-0.0.4a/*' ) ?: array() );
 @rmdir( $dir . '/portal-builder' );
 @rmdir( $dir );
 
+// keep_folder must only rename when THIS plugin is upgrading (Kadence outage class).
+$upgrader = (object) array();
+$theme_dir = sys_get_temp_dir() . '/dg-keep-theme-' . bin2hex( random_bytes( 4 ) );
+mkdir( $theme_dir );
+mkdir( $theme_dir . '/kadence' );
+file_put_contents( $theme_dir . '/kadence/style.css', "/* theme */\n" );
+$theme_source = $theme_dir . '/kadence/';
+$theme_kept   = Portal_Update::keep_folder( $theme_source, '', $upgrader, array( 'theme' => 'kadence' ) );
+$theme_ok     = $theme_kept === $theme_source
+	&& is_dir( $theme_dir . '/kadence' )
+	&& ! is_dir( $theme_dir . '/portal-builder' )
+	&& ! is_dir( $theme_dir . '/portal-builder-0.0.4a' );
+array_map( 'unlink', glob( $theme_dir . '/kadence/*' ) ?: array() );
+@rmdir( $theme_dir . '/kadence' );
+@rmdir( $theme_dir );
+
+$empty_source = '/tmp/unpacked-something/';
+$empty_kept   = Portal_Update::keep_folder( $empty_source, '', $upgrader, array() );
+$empty_ok     = $empty_kept === $empty_source;
+
+$plugin_dir = sys_get_temp_dir() . '/dg-keep-plugin-' . bin2hex( random_bytes( 4 ) );
+mkdir( $plugin_dir );
+mkdir( $plugin_dir . '/portal-builder' );
+file_put_contents( $plugin_dir . '/portal-builder/portal-builder.php', "<?php\n" );
+$plugin_source = $plugin_dir . '/portal-builder/';
+$plugin_kept   = Portal_Update::keep_folder(
+	$plugin_source,
+	'',
+	$upgrader,
+	array( 'plugin' => 'portal-builder-0.0.4a/portal-builder.php' )
+);
+$plugin_ok = basename( rtrim( (string) $plugin_kept, '/\\' ) ) === 'portal-builder-0.0.4a'
+	&& is_dir( $plugin_dir . '/portal-builder-0.0.4a' )
+	&& is_file( $plugin_dir . '/portal-builder-0.0.4a/portal-builder.php' );
+array_map( 'unlink', glob( $plugin_dir . '/portal-builder-0.0.4a/*' ) ?: array() );
+@rmdir( $plugin_dir . '/portal-builder-0.0.4a' );
+@rmdir( $plugin_dir . '/portal-builder' );
+@rmdir( $plugin_dir );
+
 $release_info = array(
 	'tag_name'     => 'v0.1.7',
 	'prerelease'   => false,
@@ -116,6 +155,9 @@ echo json_encode(
 		'newVersion'   => is_object( $injected ) ? (string) $injected->new_version : '',
 		'folderKept'   => $kept,
 		'renamedPath'  => basename( rtrim( (string) $renamed, '/\\' ) ),
+		'themeUnchanged'  => $theme_ok,
+		'emptyUnchanged'  => $empty_ok,
+		'pluginRenamed'   => $plugin_ok,
 		'semverV'      => Portal_Update::semver( 'v0.1.0' ),
 		'notNewer'     => ! Portal_Update::is_newer( '0.1.0', '0.1.0' ),
 		'fromLocation' => Portal_Update::release_from_location(

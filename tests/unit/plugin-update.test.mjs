@@ -36,6 +36,13 @@ test('update injects the live plugin basename and keeps portal-builder-0.0.4a', 
 	assert.equal(data.renamedPath, 'portal-builder-0.0.4a');
 });
 
+test('keep_folder only renames when this plugin is upgrading (not themes or other packages)', () => {
+	const data = run();
+	assert.equal(data.themeUnchanged, true, 'theme upgrade must leave source path untouched');
+	assert.equal(data.emptyUnchanged, true, 'empty hook_extra must leave source path untouched');
+	assert.equal(data.pluginRenamed, true, 'this plugin upgrade still renames to live folder');
+});
+
 test('inject offers the DragonGate seal icons and compatibility fields', () => {
 	const data = run();
 	assert.equal(data.hasIcons, true, 'inject must set icons');
