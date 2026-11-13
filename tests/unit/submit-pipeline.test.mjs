@@ -258,6 +258,73 @@ test('preview request does not write to the fake google store', () => {
   assert.equal(calls.length, 0, `expected zero store calls, got ${JSON.stringify(calls)}`);
 });
 
+const BUILTIN_ANONYMIZE_ACK =
+  'I certify that my scores and recordings exclude any information that might identify the composer but do include title of work, instrumentation, and duration.';
+
+/**
+ * Minimal definition + values for anonymize_ack validation cases.
+ * @param {boolean} anonymize
+ * @param {Record<string, string>} [extraValues]
+ */
+function runAnonAckPipeline(anonymize, extraValues = {}) {
+  const defPath = path.join(artifactDir, `anon-ack-def-${anonymize ? 'on' : 'off'}.json`);
+  const subPath = path.join(artifactDir, `anon-ack-sub-${Date.now()}-${Math.random().toString(16).slice(2)}.json`);
+  fs.mkdirSync(artifactDir, { recursive: true });
+  fs.writeFileSync(
+    defPath,
+    JSON.stringify({
+      version: 1,
+      fields: [{ id: 'piece', type: 'short_text', label: 'Piece', required: true }],
+      options: { anonymize },
+      publish: { enabled: true },
+    }),
+  );
+  fs.writeFileSync(
+    subPath,
+    JSON.stringify({
+      portalId: `anon-ack-${anonymize ? 'on' : 'off'}`,
+      values: { sub_piece: 'Test Piece', ...extraValues },
+      files: {},
+    }),
+  );
+  const r = spawnSync(
+    'php',
+    [harness, defPath, subPath, artifactDir, `anon-ack-${anonymize ? 'on' : 'off'}`],
+    { encoding: 'utf8', env: { ...process.env, DG_TEST_MODE: '1' } },
+  );
+  return {
+    code: r.status,
+    out: (r.stdout || '') + (r.stderr || ''),
+    stdout: r.stdout || '',
+    stderr: r.stderr || '',
+  };
+}
+
+test('anonymize on without ack fails validation on anonymize_ack', () => {
+  const { code, out } = runAnonAckPipeline(true);
+  assert.notEqual(code, 0, out);
+  assert.match(out, /dg_submission_invalid|must be accepted/i);
+  assert.match(out, /anonymize_ack|I certify that my scores and recordings/i);
+  // Prefer full label in the error when present.
+  if (out.includes('must be accepted')) {
+    assert.match(out, new RegExp(BUILTIN_ANONYMIZE_ACK.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  }
+});
+
+test('anonymize on with sub_anonymize_ack checked passes validation', () => {
+  const { code, out, stdout } = runAnonAckPipeline(true, { sub_anonymize_ack: '1' });
+  assert.equal(code, 0, out);
+  const data = JSON.parse(stdout.trim());
+  assert.equal(data.ok, true);
+});
+
+test('anonymize off without ack is still valid', () => {
+  const { code, out, stdout } = runAnonAckPipeline(false);
+  assert.equal(code, 0, out);
+  const data = JSON.parse(stdout.trim());
+  assert.equal(data.ok, true);
+});
+
 test('multi-dest fieldDest writes two spreadsheet ids', () => {
   const env = { ...process.env };
   delete env.DG_TEST_MODE;

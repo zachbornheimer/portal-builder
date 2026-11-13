@@ -15,11 +15,13 @@ if ( ! class_exists( 'Portal_Site_Defaults' ) ) {
 		const OPTION_ANONYMIZE          = 'pb_default_anonymize';
 		const OPTION_ANONYMIZE_ENDPOINT = 'pb_default_anonymize_endpoint';
 		const OPTION_ANONYMIZE_API_KEY  = 'pb_default_anonymize_api_key';
+		const OPTION_ANONYMIZE_ACK      = 'pb_default_anonymize_ack';
 		const OPTION_GUIDELINES_URL     = 'pb_default_guidelines_url';
 		const OPTION_FREE_FOR_MEMBERS   = 'pb_default_free_for_members';
 		const OPTION_TIMEZONE           = 'pb_default_timezone';
 
 		const BUILTIN_ANONYMIZE_ENDPOINT = 'https://api.allintersections.com';
+		const BUILTIN_ANONYMIZE_ACK      = 'I certify that my scores and recordings exclude any information that might identify the composer but do include title of work, instrumentation, and duration.';
 		const BUILTIN_TIMEZONE           = 'America/New_York';
 
 		/**
@@ -30,7 +32,7 @@ if ( ! class_exists( 'Portal_Site_Defaults' ) ) {
 		 *
 		 * @param array $definition Definition document (options + publish).
 		 * @param array $site       Site bag with the same keys as the return value.
-		 * @return array{anonymize:bool,anonymizeEndpoint:string,anonymizeApiKey:string,guidelinesUrl:?string,freeForMembers:bool,timezone:string}
+		 * @return array{anonymize:bool,anonymizeEndpoint:string,anonymizeApiKey:string,anonymizeAck:string,guidelinesUrl:?string,freeForMembers:bool,timezone:string}
 		 */
 		public static function resolve( array $definition, array $site = array() ) {
 			$options = isset( $definition['options'] ) && is_array( $definition['options'] )
@@ -49,6 +51,12 @@ if ( ! class_exists( 'Portal_Site_Defaults' ) ) {
 					self::BUILTIN_ANONYMIZE_ENDPOINT
 				),
 				'anonymizeApiKey'   => self::resolve_string( $options, 'anonymizeApiKey', $site, '' ),
+				'anonymizeAck'      => self::resolve_string(
+					$options,
+					'anonymizeAck',
+					$site,
+					self::BUILTIN_ANONYMIZE_ACK
+				),
 				'guidelinesUrl'     => self::resolve_string( $options, 'guidelinesUrl', $site, null ),
 				'freeForMembers'    => self::resolve_bool( $options, 'freeForMembers', $site, false ),
 				'timezone'          => self::resolve_string( $publish, 'timezone', $site, self::BUILTIN_TIMEZONE ),
@@ -68,6 +76,7 @@ if ( ! class_exists( 'Portal_Site_Defaults' ) ) {
 				'anonymize'         => ! empty( get_option( self::OPTION_ANONYMIZE, false ) ),
 				'anonymizeEndpoint' => self::trim_or_null( get_option( self::OPTION_ANONYMIZE_ENDPOINT, '' ) ),
 				'anonymizeApiKey'   => self::trim_or_null( get_option( self::OPTION_ANONYMIZE_API_KEY, '' ) ),
+				'anonymizeAck'      => self::trim_or_null( get_option( self::OPTION_ANONYMIZE_ACK, '' ) ),
 				'guidelinesUrl'     => self::trim_or_null( get_option( self::OPTION_GUIDELINES_URL, '' ) ),
 				'freeForMembers'    => ! empty( get_option( self::OPTION_FREE_FOR_MEMBERS, false ) ),
 				'timezone'          => self::trim_or_null( get_option( self::OPTION_TIMEZONE, '' ) ),
@@ -97,6 +106,7 @@ if ( ! class_exists( 'Portal_Site_Defaults' ) ) {
 				'anonymizeEndpoint'    => self::non_empty_string( $site, 'anonymizeEndpoint', self::BUILTIN_ANONYMIZE_ENDPOINT ),
 				'anonymizeApiKeySet'   => is_string( $key ) && '' !== $key,
 				'anonymizeApiKeyHint'  => self::key_hint( $key ),
+				'anonymizeAck'         => self::non_empty_string( $site, 'anonymizeAck', self::BUILTIN_ANONYMIZE_ACK ),
 				'guidelinesUrl'        => isset( $site['guidelinesUrl'] ) ? $site['guidelinesUrl'] : null,
 				'freeForMembers'       => ! empty( $site['freeForMembers'] ),
 				'timezone'             => self::non_empty_string( $site, 'timezone', self::BUILTIN_TIMEZONE ),

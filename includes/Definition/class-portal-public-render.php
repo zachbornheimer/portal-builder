@@ -19,6 +19,7 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 		const MSG_DEADLINE        = 'The application deadline has passed.';
 		const MSG_CLOSED          = 'This portal is closed.';
 		const MSG_NOT_ACCEPTING   = 'This portal is not currently accepting applications.';
+		const MSG_RECEIPT_INVALID = 'This receipt link is invalid or has expired.';
 
 		const PUBLIC_FONTS_URL = 'https://fonts.bunny.net/css?family=fraunces:500,600,700|ibm-plex-mono:400,500|inter:400,500,600&display=swap';
 
@@ -133,12 +134,15 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 					}
 				}
 				$title = get_the_title( $post_id );
+				$site  = class_exists( 'Portal_Site_Defaults' )
+					? Portal_Site_Defaults::read_site()
+					: array();
 				return self::wrap_packet(
 					$banner
 					. self::render_packet_head( $title )
 					. self::render_packet_meta( $definition )
 					. $errors_html
-					. Portal_Definition_Renderer::render( $definition )
+					. Portal_Definition_Renderer::render( $definition, $site )
 				);
 			}
 
@@ -153,22 +157,36 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 		 */
 		public static function render_receipt_view( $post_id ) {
 			// phpcs:ignore WordPress.Security.NonceVerification.Recommended
-			$app_id = isset( $_GET['app-id'] ) ? sanitize_text_field( wp_unslash( $_GET['app-id'] ) ) : '';
+			$app_id = isset( $_GET['app'] ) ? sanitize_text_field( wp_unslash( $_GET['app'] ) ) : '';
 			// phpcs:ignore WordPress.Security.NonceVerification.Recommended
-			$name = isset( $_GET['name'] ) ? sanitize_text_field( wp_unslash( $_GET['name'] ) ) : '';
-			// phpcs:ignore WordPress.Security.NonceVerification.Recommended
-			$email = isset( $_GET['email'] ) ? sanitize_text_field( wp_unslash( $_GET['email'] ) ) : '';
-			// phpcs:ignore WordPress.Security.NonceVerification.Recommended
-			$work = isset( $_GET['work_title'] ) ? sanitize_text_field( wp_unslash( $_GET['work_title'] ) ) : '';
+			$token = isset( $_GET['t'] ) ? sanitize_text_field( wp_unslash( $_GET['t'] ) ) : '';
+
+			$record = class_exists( 'Portal_Receipt' )
+				? Portal_Receipt::load( $app_id, $token )
+				: null;
+
+			if ( ! is_array( $record ) ) {
+				$missing = sprintf(
+					'<div class="dg-receipt" data-dg-receipt="missing"><p>%s</p></div>',
+					esc_html__( 'This receipt link is invalid or has expired.', 'dragongate-portals' )
+				);
+				return self::wrap_packet(
+					self::render_packet_head( get_the_title( $post_id ) ) . $missing
+				);
+			}
+
+			$stored_id   = isset( $record['applicationId'] ) ? (string) $record['applicationId'] : $app_id;
+			$stored_name = isset( $record['applicantName'] ) ? (string) $record['applicantName'] : '';
+			$stored_mail = isset( $record['email'] ) ? (string) $record['email'] : '';
+			$portal      = isset( $record['portalTitle'] ) ? (string) $record['portalTitle'] : get_the_title( $post_id );
 
 			$receipt = sprintf(
-				'<div class="dg-receipt" data-dg-receipt="1" data-dg-app-id="%1$s"><h2>%2$s</h2><p>Application ID: <code>%1$s</code></p><p>Portal: %3$s</p>%4$s%5$s%6$s</div>',
-				esc_attr( $app_id ),
+				'<div class="dg-receipt" data-dg-receipt="1" data-dg-app-id="%1$s"><h2>%2$s</h2><p>Application ID: <code>%1$s</code></p><p>Portal: %3$s</p>%4$s%5$s</div>',
+				esc_attr( $stored_id ),
 				esc_html__( 'Application receipt', 'dragongate-portals' ),
-				esc_html( get_the_title( $post_id ) ),
-				$name ? '<p>Name: ' . esc_html( $name ) . '</p>' : '',
-				$email ? '<p>Email: ' . esc_html( $email ) . '</p>' : '',
-				$work ? '<p>Work: ' . esc_html( $work ) . '</p>' : ''
+				esc_html( $portal ),
+				$stored_name ? '<p>Name: ' . esc_html( $stored_name ) . '</p>' : '',
+				$stored_mail ? '<p>Email: ' . esc_html( $stored_mail ) . '</p>' : ''
 			);
 
 			return self::wrap_packet(
@@ -326,7 +344,7 @@ if ( ! class_exists( 'Portal_Public_Render' ) ) {
 			return sprintf(
 				'<p class="dg-privacy">%1$s<span>%2$s</span></p>',
 				$lock,
-				esc_html__( 'Your information is kept private and used only for this application. We do not share your data with third parties.', 'dragongate-portals' )
+				esc_html__( 'Your information is used to process this application. Files and answers go to the host’s Google Drive and Sheets. We do not sell your data.', 'dragongate-portals' )
 			);
 		}
 

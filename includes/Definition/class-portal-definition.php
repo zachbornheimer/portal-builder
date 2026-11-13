@@ -122,6 +122,9 @@ if ( ! class_exists( 'Portal_Definition' ) ) {
 					'anonymizeApiKey'           => self::nullable_string(
 						array_key_exists( 'anonymizeApiKey', $options ) ? $options['anonymizeApiKey'] : null
 					),
+					'anonymizeAck'              => self::nullable_string(
+						array_key_exists( 'anonymizeAck', $options ) ? $options['anonymizeAck'] : null
+					),
 				),
 				'access'  => self::normalize_access( $access ),
 			);

@@ -285,6 +285,15 @@ if (! class_exists('Portal_Settings')) {
             );
             register_setting(
                 'pb_settings_group',
+                'pb_default_anonymize_ack',
+                array(
+                    'type'              => 'string',
+                    'sanitize_callback' => 'sanitize_textarea_field',
+                    'default'           => '',
+                )
+            );
+            register_setting(
+                'pb_settings_group',
                 'pb_default_guidelines_url',
                 array(
                     'type'              => 'string',
@@ -331,6 +340,13 @@ if (! class_exists('Portal_Settings')) {
                 'pb_default_anonymize_api_key',
                 __( 'Anonymize API key', 'portal-builder' ),
                 array( $this, 'render_default_anonymize_api_key_field' ),
+                'portal-default-settings',
+                'pb_anonymizer_defaults_section'
+            );
+            add_settings_field(
+                'pb_default_anonymize_ack',
+                __( 'Anonymize certification', 'portal-builder' ),
+                array( $this, 'render_default_anonymize_ack_field' ),
                 'portal-default-settings',
                 'pb_anonymizer_defaults_section'
             );
@@ -460,6 +476,18 @@ if (! class_exists('Portal_Settings')) {
                 : __( 'Paste API key', 'portal-builder' );
             echo '<input type="password" name="pb_default_anonymize_api_key" class="regular-text" value="" autocomplete="new-password" placeholder="' . esc_attr( $placeholder ) . '" />';
             echo '<p class="description">' . esc_html__( 'Never shown on the public form. Leave blank to keep the saved key.', 'portal-builder' ) . '</p>';
+        }
+
+        /**
+         * @return void
+         */
+        public function render_default_anonymize_ack_field() {
+            $value   = (string) get_option( 'pb_default_anonymize_ack', '' );
+            $builtin = class_exists( 'Portal_Site_Defaults' )
+                ? Portal_Site_Defaults::BUILTIN_ANONYMIZE_ACK
+                : 'I certify that my scores and recordings exclude any information that might identify the composer but do include title of work, instrumentation, and duration.';
+            echo '<textarea name="pb_default_anonymize_ack" class="large-text" rows="3" placeholder="' . esc_attr( $builtin ) . '">' . esc_textarea( $value ) . '</textarea>';
+            echo '<p class="description">' . esc_html__( 'Shown as a required checkbox when anonymize is on. Leave blank to use the built-in sentence. Portals may override.', 'portal-builder' ) . '</p>';
         }
 
         /**

@@ -21,13 +21,14 @@ if ( ! class_exists( 'Portal_Submission_Validator' ) ) {
 		 * @param array               $definition Validated definition (fields required).
 		 * @param array<string,mixed> $values     Form values (sub_* and/or bare field ids).
 		 * @param array<string,mixed> $files      Map fieldId => file meta (name/contents/path).
+		 * @param array               $site       Site bag for inherit resolve (empty in CLI harness).
 		 * @return array|WP_Error {
 		 *   values: map fieldId => scalar,
 		 *   files: map fieldId => meta,
 		 *   applicant: map sub_* => scalar
 		 * }
 		 */
-		public static function validate( array $definition, array $values, array $files = array() ) {
+		public static function validate( array $definition, array $values, array $files = array(), array $site = array() ) {
 			if ( empty( $definition['fields'] ) || ! is_array( $definition['fields'] ) ) {
 				return new WP_Error( self::ERROR_CODE, 'Definition has no fields to validate.' );
 			}
@@ -40,6 +41,7 @@ if ( ! class_exists( 'Portal_Submission_Validator' ) ) {
 			$errors    = array();
 
 			self::walk_fields( $definition['fields'], $values, $files, $collected, $errors, true );
+			self::require_anonymize_ack( $definition, $values, $collected, $errors, $site );
 
 			if ( ! empty( $errors ) ) {
 				return new WP_Error(
@@ -50,6 +52,37 @@ if ( ! class_exists( 'Portal_Submission_Validator' ) ) {
 			}
 
 			return $collected;
+		}
+
+		/**
+		 * When resolved anonymize is on, require the certification checkbox.
+		 *
+		 * @param array $definition Definition.
+		 * @param array $values     Raw values.
+		 * @param array $collected  Accumulator.
+		 * @param array $errors     Field errors.
+		 * @param array $site       Site bag.
+		 * @return void
+		 */
+		private static function require_anonymize_ack( array $definition, array $values, array &$collected, array &$errors, array $site ) {
+			if ( ! class_exists( 'Portal_Site_Defaults' ) ) {
+				return;
+			}
+			$resolved = Portal_Site_Defaults::resolve( $definition, $site );
+			if ( empty( $resolved['anonymize'] ) ) {
+				return;
+			}
+			$text = isset( $resolved['anonymizeAck'] ) ? (string) $resolved['anonymizeAck'] : '';
+			if ( '' === $text ) {
+				$text = Portal_Site_Defaults::BUILTIN_ANONYMIZE_ACK;
+			}
+			// Posted as sub_anonymize_ack; lookup_value accepts bare or sub_ keys.
+			$raw = Portal_Submission_Field_Rules::lookup_value( $values, 'anonymize_ack' );
+			if ( ! Portal_Submission_Field_Rules::is_checked( $raw ) ) {
+				$errors['anonymize_ack'] = sprintf( '"%s" must be accepted.', $text );
+				return;
+			}
+			$collected['values']['anonymize_ack'] = true;
 		}
 
 		/**

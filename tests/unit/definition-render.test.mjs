@@ -92,3 +92,42 @@ test('group with short_text only renders label and input', () => {
 	assert.match(data.html, /name="sub_piece"/);
 	assert.match(data.html, /data-dg-render="definition"/);
 });
+
+const BUILTIN_ANONYMIZE_ACK =
+	'I certify that my scores and recordings exclude any information that might identify the composer but do include title of work, instrumentation, and duration.';
+
+test('anonymize true injects required certification checkbox with builtin text', () => {
+	const p = path.join(root, 'tests/.artifacts/anon-ack-on-definition.json');
+	fs.writeFileSync(
+		p,
+		JSON.stringify({
+			version: 1,
+			fields: [{ id: 'piece', type: 'short_text', label: 'Piece', required: true }],
+			options: { anonymize: true },
+		}),
+	);
+	const { code, out } = runPhp(p);
+	assert.equal(code, 0, out);
+	const data = JSON.parse(out.trim());
+	assert.match(data.html, /name="sub_anonymize_ack"/);
+	assert.match(data.html, new RegExp(BUILTIN_ANONYMIZE_ACK.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+	assert.match(data.html, /dg-field--disclaimer/);
+	assert.match(data.html, /data-dg-field-id="anonymize_ack"/);
+});
+
+test('anonymize false does not inject anonymize_ack checkbox', () => {
+	const p = path.join(root, 'tests/.artifacts/anon-ack-off-definition.json');
+	fs.writeFileSync(
+		p,
+		JSON.stringify({
+			version: 1,
+			fields: [{ id: 'piece', type: 'short_text', label: 'Piece', required: true }],
+			options: { anonymize: false },
+		}),
+	);
+	const { code, out } = runPhp(p);
+	assert.equal(code, 0, out);
+	const data = JSON.parse(out.trim());
+	assert.equal(data.html.includes('sub_anonymize_ack'), false);
+	assert.equal(data.html.includes('anonymize_ack'), false);
+});

@@ -153,6 +153,39 @@ test('empty anonymizeEndpoint persists as null', () => {
   assert.equal(data.definition.publish.launchAt, null);
 });
 
+test('anonymizeAck persists as nullable string', () => {
+  const withText = path.join(root, 'tests/.artifacts/anonymize-ack-text.json');
+  fs.writeFileSync(
+    withText,
+    JSON.stringify({
+      version: 1,
+      fields: [{ id: 'work_title', type: 'short_text', label: 'Title' }],
+      options: {
+        anonymize: true,
+        anonymizeAck: 'Portal-level certification sentence.',
+      },
+    }),
+  );
+  const on = runPhp(withText);
+  assert.equal(on.code, 0, on.out);
+  const onData = JSON.parse(on.out.trim());
+  assert.equal(onData.definition.options.anonymizeAck, 'Portal-level certification sentence.');
+
+  const empty = path.join(root, 'tests/.artifacts/anonymize-ack-empty.json');
+  fs.writeFileSync(
+    empty,
+    JSON.stringify({
+      version: 1,
+      fields: [{ id: 'work_title', type: 'short_text', label: 'Title' }],
+      options: { anonymize: true, anonymizeAck: '' },
+    }),
+  );
+  const off = runPhp(empty);
+  assert.equal(off.code, 0, off.out);
+  const offData = JSON.parse(off.out.trim());
+  assert.equal(offData.definition.options.anonymizeAck, null);
+});
+
 test('legacy forceClosed dual-writes enabled false', () => {
   const file = path.join(root, 'tests/.artifacts/legacy-force-closed.json');
   fs.writeFileSync(

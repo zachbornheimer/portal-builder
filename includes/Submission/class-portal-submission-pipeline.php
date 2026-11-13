@@ -19,7 +19,10 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 		const STATUS_SYNCED   = 'synced';
 		const STATUS_FAILED   = 'failed';
 
-		const RECEIPT_SUBJECT_PREFIX = 'Application receipt';
+		const RECEIPT_SUBJECT_PREFIX   = 'Application receipt';
+		const DATE_RECEIVED_FORMAT     = 'M d, Y';
+		const META_NOTIFICATION_DATE   = '_portal_applicant_notification_date';
+		const NOTIFICATION_DATE_FORMAT = 'l, F j, Y';
 
 		/** Single-step definition form nonce (Phase 3). */
 		const NONCE_ACTION = 'dg_definition_submit';
@@ -51,9 +54,9 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 		/**
 		 * Process a definition single-step form POST (values + $_FILES).
 		 *
-		 * @param int                  $portal_id Portal post ID.
-		 * @param array<string,mixed>  $post      $_POST-like map.
-		 * @param array<string,mixed>  $files     $_FILES-like map.
+		 * @param int                 $portal_id Portal post ID.
+		 * @param array<string,mixed> $post      $_POST-like map.
+		 * @param array<string,mixed> $files     $_FILES-like map.
 		 * @return array{ok:bool,errors?:array,result?:array}
 		 */
 		public static function process_request( $portal_id, array $post, array $files ) {
@@ -70,7 +73,10 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 						'message'  => 'This portal has no form definition.',
 					),
 				);
-				return array( 'ok' => false, 'errors' => self::$last_errors );
+				return array(
+					'ok'     => false,
+					'errors' => self::$last_errors,
+				);
 			}
 
 			$file_meta = self::normalize_uploaded_files( $files );
@@ -79,13 +85,23 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 
 			if ( is_wp_error( $result ) ) {
 				self::$last_errors = self::errors_from_wp_error( $result );
-				return array( 'ok' => false, 'errors' => self::$last_errors );
+				return array(
+					'ok'     => false,
+					'errors' => self::$last_errors,
+				);
 			}
 
-			$receipt_url = self::build_receipt_url( $portal_id, $result );
-			$result['receipt_url'] = $receipt_url;
-			self::$last_success    = $result;
-			return array( 'ok' => true, 'result' => $result );
+			if ( empty( $result['receipt_url'] ) && class_exists( 'Portal_Receipt' ) ) {
+				$app_id = isset( $result['row']['applicationId'] ) ? (string) $result['row']['applicationId'] : '';
+				if ( '' !== $app_id ) {
+					$result['receipt_url'] = Portal_Receipt::url( $portal_id, $app_id );
+				}
+			}
+			self::$last_success = $result;
+			return array(
+				'ok'     => true,
+				'result' => $result,
+			);
 		}
 
 		/**
@@ -185,29 +201,15 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 		}
 
 		/**
-		 * @param int   $portal_id Portal ID.
-		 * @param array $result    Pipeline result.
+		 * @param int    $portal_id Portal ID.
+		 * @param string $app_id    Application id.
 		 * @return string
 		 */
-		private static function build_receipt_url( $portal_id, array $result ) {
-			$args = array(
-				'dg-receipt' => '1',
-				'portal-id'  => (int) $portal_id,
-			);
-			if ( ! empty( $result['applicant']['sub_email'] ) ) {
-				$args['email'] = $result['applicant']['sub_email'];
+		private static function build_receipt_url( $portal_id, $app_id ) {
+			if ( class_exists( 'Portal_Receipt' ) ) {
+				return Portal_Receipt::url( $portal_id, $app_id );
 			}
-			if ( ! empty( $result['applicant']['sub_name'] ) ) {
-				$args['name'] = $result['applicant']['sub_name'];
-			}
-			if ( ! empty( $result['values']['work_title'] ) ) {
-				$args['work_title'] = $result['values']['work_title'];
-			}
-			$permalink = get_permalink( $portal_id );
-			if ( ! $permalink ) {
-				$permalink = home_url( '/' );
-			}
-			return add_query_arg( $args, $permalink );
+			return '';
 		}
 
 		/** @var object Sheet port (append_row). */
@@ -345,13 +347,13 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 				return new WP_Error( 'dg_submission_no_definition', 'Portal has no valid definition.' );
 			}
 			if ( class_exists( 'Portal_Access' ) ) {
-				$access              = isset( $definition['access'] ) && is_array( $definition['access'] )
+				$access             = isset( $definition['access'] ) && is_array( $definition['access'] )
 					? $definition['access']
 					: array();
-				$definition_options  = isset( $definition['options'] ) && is_array( $definition['options'] )
+				$definition_options = isset( $definition['options'] ) && is_array( $definition['options'] )
 					? $definition['options']
 					: array();
-				$decision            = Portal_Access::decide( $access, $definition_options, Portal_Access::current_applicant() );
+				$decision           = Portal_Access::decide( $access, $definition_options, Portal_Access::current_applicant() );
 				if ( empty( $decision['allowed'] ) ) {
 					return new WP_Error(
 						'dg_submission_forbidden',
@@ -376,7 +378,10 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 		 */
 		public function process( $portal_id, array $definition, array $values, array $files = array() ) {
 			$portal_id = (string) $portal_id;
-			$validated = Portal_Submission_Validator::validate( $definition, $values, $files );
+			$site      = class_exists( 'Portal_Site_Defaults' )
+				? Portal_Site_Defaults::read_site()
+				: array();
+			$validated = Portal_Submission_Validator::validate( $definition, $values, $files, $site );
 			if ( is_wp_error( $validated ) ) {
 				return $validated;
 			}
@@ -406,10 +411,10 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 						sprintf( 'Could not read upload for field "%s".', $field_id )
 					);
 				}
-				$buffer                     = $this->anonymize_judge_bytes( $definition, $buffer, $filename, $meta );
-				$path                       = $this->drive->store_file( $portal_id, $field_id, $buffer, $filename );
-				$drive_paths[ $field_id ]   = $path;
-				$file_meta[ $field_id ]     = array(
+				$buffer                   = $this->anonymize_judge_bytes( $definition, $buffer, $filename, $meta );
+				$path                     = $this->drive->store_file( $portal_id, $field_id, $buffer, $filename );
+				$drive_paths[ $field_id ] = $path;
+				$file_meta[ $field_id ]   = array(
 					'fieldId'  => $field_id,
 					'filename' => $filename,
 					'path'     => $path,
@@ -428,58 +433,76 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 					$row['files'] = $folder_url;
 				}
 			}
-			$sheet_path = $this->sheets->append_row( $portal_id, $row );
 
-			$to = isset( $validated['applicant']['sub_email'] )
-				? $validated['applicant']['sub_email']
-				: null;
-			if ( null === $to ) {
-				// Fallback: any email-type field value.
-				foreach ( $validated['values'] as $fid => $val ) {
-					if ( is_string( $val ) && false !== strpos( $fid, 'email' ) ) {
-						$to = $val;
-						break;
-					}
-				}
+			$to            = self::applicant_email( $validated );
+			$title         = isset( $definition['title'] ) ? (string) $definition['title'] : 'Portal';
+			$applicant     = isset( $validated['applicant']['sub_name'] ) ? (string) $validated['applicant']['sub_name'] : '';
+			$date_received = gmdate( self::DATE_RECEIVED_FORMAT );
+			$receipt_url   = class_exists( 'Portal_Receipt' )
+				? Portal_Receipt::url( $portal_id, $submission_id )
+				: '';
+			$selection     = isset( $row['selection_path'] ) ? (string) $row['selection_path'] : '';
+
+			$row['receiptUrl']   = $receipt_url;
+			$row['email']        = $to ? $to : '';
+			$row['dateReceived'] = $date_received;
+
+			if ( class_exists( 'Portal_Receipt' ) ) {
+				Portal_Receipt::store(
+					$submission_id,
+					array(
+						'applicationId' => $submission_id,
+						'portalId'      => $portal_id,
+						'portalTitle'   => $title,
+						'applicantName' => $applicant,
+						'email'         => $row['email'],
+						'receiptUrl'    => $receipt_url,
+						'selection'     => $selection,
+						'submittedAt'   => $date_received,
+						'dateReceived'  => $date_received,
+					)
+				);
 			}
 
-			$title   = isset( $definition['title'] ) ? (string) $definition['title'] : 'Portal';
-			$subject = self::RECEIPT_SUBJECT_PREFIX . ': ' . $title;
-			$mail_path = $this->mailer->capture(
+			$sheet_path = $this->sheets->append_row( $portal_id, $row );
+			$mail_path  = $this->send_receipt_mail(
+				$to,
+				$portal_id,
+				$title,
 				array(
-					'to'       => $to ? $to : Portal_Mailer::UNKNOWN_RECIPIENT,
-					'subject'  => $subject,
-					'portalId' => $portal_id,
-					'title'    => $title,
-					'body'     => sprintf(
-						'We received your application for %s.',
-						$title
-					),
-					'values'   => $validated['values'],
-					'files'    => $file_meta,
-				)
+					'application_id'    => $submission_id,
+					'applicant_name'    => $applicant,
+					'portal_title'      => $title,
+					'receipt_url'       => $receipt_url,
+					'selection'         => $selection,
+					'submitted_at'      => $date_received,
+					'notification_date' => self::notification_date( $portal_id ),
+				),
+				$validated['values'],
+				$file_meta
 			);
 
 			return array(
-				'ok'         => true,
-				'status'     => self::STATUS_SYNCED,
-				'portalId'   => $portal_id,
-				'sheetPath'  => $sheet_path,
-				'drivePaths' => $drive_paths,
-				'mailPath'   => $mail_path,
-				'row'        => $row,
-				'values'     => $validated['values'],
-				'files'      => $file_meta,
-				'applicant'  => $validated['applicant'],
+				'ok'          => true,
+				'status'      => self::STATUS_SYNCED,
+				'portalId'    => $portal_id,
+				'sheetPath'   => $sheet_path,
+				'drivePaths'  => $drive_paths,
+				'mailPath'    => $mail_path,
+				'receipt_url' => $receipt_url,
+				'row'         => $row,
+				'values'      => $validated['values'],
+				'files'       => $file_meta,
+				'applicant'   => $validated['applicant'],
 			);
 		}
 
 		/**
 		 * Flatten validated data into a sheet row (field ids as keys).
 		 *
-		 * @param string              $portal_id    Portal id.
-		 * @param array               $definition   Definition.
-		 * @param array               $validated    Validator output.
+		 * @param string               $portal_id    Portal id.
+		 * @param array                $definition   Definition.
+		 * @param array                $validated    Validator output.
 		 * @param array<string,string> $drive_paths Field id => stored path.
 		 * @return array<string,mixed>
 		 */
@@ -592,6 +615,71 @@ if ( ! class_exists( 'Portal_Submission_Pipeline' ) ) {
 			$type    = isset( $meta['type'] ) ? (string) $meta['type'] : null;
 			$owner   = new Portal_Anonymizer( $options, $this->transport );
 			return $owner->maybe_anonymize( $buffer, $filename, $type );
+		}
+
+		/**
+		 * Fail-open receipt mail. Sheet/drive already written.
+		 *
+		 * @param string|null          $to       Recipient.
+		 * @param string               $portal_id Portal id.
+		 * @param string               $title    Portal title.
+		 * @param array<string,string> $tokens  Closed token set.
+		 * @param array                $values   Validated values.
+		 * @param array                $files    File meta.
+		 * @return string Capture path.
+		 */
+		private function send_receipt_mail( $to, $portal_id, $title, array $tokens, array $values, array $files ) {
+			$message = array(
+				'to'       => $to ? $to : Portal_Mailer::UNKNOWN_RECIPIENT,
+				'portalId' => $portal_id,
+				'title'    => $title,
+				'tokens'   => $tokens,
+				'values'   => $values,
+				'files'    => $files,
+			);
+			if ( method_exists( $this->mailer, 'send' ) ) {
+				return $this->mailer->send( $message );
+			}
+			return $this->mailer->capture( $message );
+		}
+
+		/**
+		 * Applicant email from the pack, or any email-named field.
+		 *
+		 * @param array $validated Validator output.
+		 * @return string|null
+		 */
+		private static function applicant_email( array $validated ) {
+			if ( ! empty( $validated['applicant']['sub_email'] ) && is_string( $validated['applicant']['sub_email'] ) ) {
+				return $validated['applicant']['sub_email'];
+			}
+			foreach ( $validated['values'] as $fid => $val ) {
+				if ( is_string( $val ) && false !== strpos( $fid, 'email' ) ) {
+					return $val;
+				}
+			}
+			return null;
+		}
+
+		/**
+		 * Human notification date from portal meta.
+		 *
+		 * @param string|int $portal_id Portal id.
+		 * @return string
+		 */
+		private static function notification_date( $portal_id ) {
+			if ( ! function_exists( 'get_post_meta' ) ) {
+				return '';
+			}
+			$raw = get_post_meta( (int) $portal_id, self::META_NOTIFICATION_DATE, true );
+			if ( ! is_string( $raw ) || '' === $raw ) {
+				return '';
+			}
+			$ts = strtotime( $raw );
+			if ( false === $ts ) {
+				return $raw;
+			}
+			return gmdate( self::NOTIFICATION_DATE_FORMAT, $ts );
 		}
 
 		/**
