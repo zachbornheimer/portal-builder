@@ -35,7 +35,8 @@ if ( ! class_exists( 'Portal_Post_Type' ) ) {
 			'show_in_menu'    => true,
 			'show_in_rest'    => true, // required for harness seed/cleanup + future REST clients
 			'menu_icon'       => $this->get_menu_icon_data_uri(),
-			'supports'        => array( 'title', 'editor', 'thumbnail' ),
+			// Title only: product UI is the DragonGate wizard (no block/classic editor).
+			'supports'        => array( 'title' ),
 			'capability_type' => 'post',
 			'rewrite'         => array( 'slug' => 'portal' ),
 			'description'     => __( 'DragonGate Portals - Simply collect data, save it locally, and sync across Google Sheets and Drive. Build custom forms that automatically organize submissions and streamline your data workflow.', 'dragongate-portals' ),

@@ -2,7 +2,7 @@
 
 **Status:** accepted (v0.1)  
 **Source of truth:** this file + `src/tokens.css` (must stay in sync)  
-**Consumers:** Svelte admin app (`src/`), `tailwind.config.js` theme.extend  
+**Consumers:** Svelte admin app (`src/` → `assets/dist/dragongate-portal.js`), `tailwind.config.js` theme.extend. Stack is Svelte 5 + Vite only — tokens are not a stepping-stone to Alpine or another framework.  
 **Visual refs:** `docs/design/mockups/01–04-*.png`, `docs/design/dragongate-brand-guide.html`
 
 Values are frozen for implementation. Change them here first, then in `src/tokens.css` and Tailwind maps.

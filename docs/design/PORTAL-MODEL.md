@@ -1,7 +1,7 @@
 # DragonGate Portals — Domain Model Contract
 
 **Status:** accepted (v0.1) — rewrite target, not a description of the shortcode era  
-**Framework:** Svelte 5 + Vite (admin + public UI)  
+**Framework:** Svelte 5 + Vite (admin + public product UI) — locked; not Alpine/React/Vue  
 **Design tokens:** `docs/design/TOKENS.md`  
 **Companion:** mockups in `docs/design/mockups/`
 
@@ -291,7 +291,7 @@ Atomic save: one `update_post_meta` for definition JSON with proper JSON sanitiz
 | Decision | Choice | Why |
 |----------|--------|-----|
 | Authoring | Structured fields, not shortcodes | Maintainability + wizard + a11y |
-| UI stack | Svelte 5 everywhere for product UI | Already chosen; one language |
+| UI stack | **Svelte 5 + Vite** for all product UI (admin wizard, field builders, any interactive public chrome) | Complex UI (form builder, mapping, gate state) needs components and compile-time guarantees. Vite build is intentional. **Rejected (2026-07 design session, confirmed 2026-08):** Alpine.js was floated for “zero build / WP sprinkle” maintainability — inferior for structured builder/canvas; Svelte is the better fit. React/Vue add stack cost with no gain. Do not re-open without a product reason. |
 | Legacy | Import then delete path | User not locked to shortcodes |
 | Preview | Capability-based, ignores closed for editors | Design without fighting deadlines |
 | Mapping | Keep Google Sheets/Drive as backends | Core value of the product |

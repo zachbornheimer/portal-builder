@@ -117,7 +117,35 @@ function initWizard() {
 			return;
 		}
 
-		const app = mount(WizardShell, { target: container });
+		const portalId = Number(container.getAttribute('data-portal-id') || '0');
+		const restRoot = container.getAttribute('data-rest-root') || '';
+		const restNonce = container.getAttribute('data-rest-nonce') || '';
+		const wpRestRoot =
+			container.getAttribute('data-wp-rest-root') ||
+			(typeof window !== 'undefined' && window.wpApiSettings?.root) ||
+			'/wp-json/';
+		const portalTitle = container.getAttribute('data-portal-title') || '';
+		const publicUrl = container.getAttribute('data-public-url') || '';
+		const postStatus = container.getAttribute('data-post-status') || 'draft';
+		const productMode = container.getAttribute('data-product-mode') === '1';
+		const listUrl = container.getAttribute('data-list-url') || '';
+		const logoUrl = container.getAttribute('data-logo-url') || '';
+
+		const app = mount(WizardShell, {
+			target: container,
+			props: {
+				portalId,
+				restRoot,
+				restNonce,
+				wpRestRoot,
+				portalTitle,
+				publicUrl,
+				postStatus,
+				productMode,
+				listUrl,
+				logoUrl,
+			},
+		});
 		container[UNMOUNT_KEY] = () => unmount(app);
 	});
 }
