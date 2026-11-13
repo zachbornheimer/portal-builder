@@ -2,6 +2,7 @@
 	import {
 		BUILTIN_ANONYMIZE_ACK,
 		BUILTIN_ANONYMIZE_ENDPOINT,
+		BUILTIN_GUIDELINES_LINK_LABEL,
 		DEFAULT_TIMEZONE,
 		countLeafFields,
 		dualWritePublish,
@@ -563,6 +564,19 @@
 			oninput={(e) => setOption('guidelinesUrl', emptyToNull(e.currentTarget.value))}
 		/>
 		{#if !options.guidelinesUrl && siteDefaults.guidelinesUrl}
+			<p class="dg-field-help">Using site default</p>
+		{/if}
+		<label class="dg-field-label" for="dg-guidelines-label">Guidelines link label</label>
+		<input
+			id="dg-guidelines-label"
+			type="text"
+			class="dg-input"
+			placeholder={emptyToNull(siteDefaults.guidelinesLinkLabel) ||
+				BUILTIN_GUIDELINES_LINK_LABEL}
+			value={options.guidelinesLinkLabel || ''}
+			oninput={(e) => setOption('guidelinesLinkLabel', emptyToNull(e.currentTarget.value))}
+		/>
+		{#if !options.guidelinesLinkLabel && siteDefaults.guidelinesLinkLabel}
 			<p class="dg-field-help">Using site default</p>
 		{/if}
 	</div>
