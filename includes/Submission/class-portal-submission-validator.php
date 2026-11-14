@@ -12,8 +12,9 @@ if ( ! class_exists( 'Portal_Submission_Validator' ) ) {
 	 */
 	class Portal_Submission_Validator {
 
-		const NAME_PREFIX = 'sub_';
-		const ERROR_CODE  = 'dg_submission_invalid';
+		const NAME_PREFIX      = 'sub_';
+		const ERROR_CODE       = 'dg_submission_invalid';
+		const AGREEMENT_PREFIX = 'sub_agreement_';
 
 		/**
 		 * Validate values + files against a validated definition document.
@@ -41,6 +42,7 @@ if ( ! class_exists( 'Portal_Submission_Validator' ) ) {
 			$errors    = array();
 
 			self::walk_fields( $definition['fields'], $values, $files, $collected, $errors, true );
+			self::require_site_disclaimers( $values, $collected, $errors );
 			self::require_anonymize_ack( $definition, $values, $collected, $errors, $site );
 			self::require_anonymize_config( $definition, $errors, $site );
 
@@ -53,6 +55,68 @@ if ( ! class_exists( 'Portal_Submission_Validator' ) ) {
 			}
 
 			return $collected;
+		}
+
+		/**
+		 * Require each site legal disclaimer (same pattern as anonymize_ack).
+		 *
+		 * Accepts sub_{field_id}, bare field_id, and legacy sub_agreement_{id}.
+		 *
+		 * @param array $values    Raw values.
+		 * @param array $collected Accumulator.
+		 * @param array $errors    Field errors.
+		 * @return void
+		 */
+		private static function require_site_disclaimers( array $values, array &$collected, array &$errors ) {
+			if ( ! class_exists( 'Portal_Legal_Disclaimers' ) ) {
+				return;
+			}
+			foreach ( Portal_Legal_Disclaimers::rows() as $row ) {
+				self::require_site_disclaimer_row( $row, $values, $collected, $errors );
+			}
+		}
+
+		/**
+		 * Require one site disclaimer row.
+		 *
+		 * @param array $row       Parsed disclaimer row.
+		 * @param array $values    Raw values.
+		 * @param array $collected Accumulator.
+		 * @param array $errors    Field errors.
+		 * @return void
+		 */
+		private static function require_site_disclaimer_row( array $row, array $values, array &$collected, array &$errors ) {
+			$field_id = $row['field_id'];
+			if ( self::site_disclaimer_is_checked( $values, $field_id, $row['id'] ) ) {
+				$collected['values'][ $field_id ] = true;
+				return;
+			}
+			$errors[ $field_id ] = sprintf( '"%s" must be accepted.', $row['text'] );
+		}
+
+		/**
+		 * Whether a site disclaimer was posted under the current or legacy name.
+		 *
+		 * @param array  $values    Raw values.
+		 * @param string $field_id  Posted field id (prefix stripped).
+		 * @param string $stored_id Stored Data_Table id.
+		 * @return bool
+		 */
+		private static function site_disclaimer_is_checked( array $values, $field_id, $stored_id ) {
+			$raw = Portal_Submission_Field_Rules::lookup_value( $values, $field_id );
+			if ( Portal_Submission_Field_Rules::is_checked( $raw ) ) {
+				return true;
+			}
+			$legacy = array(
+				self::AGREEMENT_PREFIX . $stored_id,
+				self::AGREEMENT_PREFIX . $field_id,
+			);
+			foreach ( $legacy as $key ) {
+				if ( array_key_exists( $key, $values ) && Portal_Submission_Field_Rules::is_checked( $values[ $key ] ) ) {
+					return true;
+				}
+			}
+			return false;
 		}
 
 		/**

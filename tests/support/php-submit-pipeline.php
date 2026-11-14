@@ -50,6 +50,10 @@ $repo_root = dirname( __DIR__, 2 );
 require_once $repo_root . '/includes/class-portal-options.php';
 require_once $repo_root . '/includes/Definition/class-portal-definition.php';
 require_once $repo_root . '/includes/Definition/class-portal-site-defaults.php';
+$legal_file = $repo_root . '/includes/Definition/class-portal-legal-disclaimers.php';
+if ( is_readable( $legal_file ) ) {
+	require_once $legal_file;
+}
 require_once $repo_root . '/includes/Submission/class-portal-files.php';
 require_once $repo_root . '/includes/Submission/class-portal-test-mode.php';
 require_once $repo_root . '/includes/Submission/class-portal-sheet-store.php';
@@ -170,6 +174,9 @@ $values = isset( $submission['values'] ) && is_array( $submission['values'] )
 $files_in = isset( $submission['files'] ) && is_array( $submission['files'] )
 	? $submission['files']
 	: array();
+if ( isset( $submission['legalDisclaimers'] ) && is_array( $submission['legalDisclaimers'] ) ) {
+	$GLOBALS['dg_test_legal_disclaimers'] = $submission['legalDisclaimers'];
+}
 
 // Resolve relative file paths against repo root.
 $files = array();

@@ -30,16 +30,33 @@ function wp_kses_post( $s ) {
 	return strip_tags( (string) $s, '<p><br><em><strong><a><span><ul><ol><li>' );
 }
 
-require_once dirname( __DIR__, 2 ) . '/includes/Definition/class-portal-definition.php';
-require_once dirname( __DIR__, 2 ) . '/includes/Definition/class-portal-site-defaults.php';
-require_once dirname( __DIR__, 2 ) . '/includes/Definition/class-portal-definition-renderer.php';
+$repo_root = dirname( __DIR__, 2 );
+require_once $repo_root . '/includes/Definition/class-portal-definition.php';
+require_once $repo_root . '/includes/Definition/class-portal-site-defaults.php';
+require_once $repo_root . '/includes/Definition/class-portal-definition-renderer.php';
+$legal_file = $repo_root . '/includes/Definition/class-portal-legal-disclaimers.php';
+if ( is_readable( $legal_file ) ) {
+	require_once $legal_file;
+}
 
 $path = $argv[1] ?? '';
 if ( ! is_readable( $path ) ) {
 	fwrite( STDERR, "unreadable $path\n" );
 	exit( 2 );
 }
-$raw    = file_get_contents( $path );
+$raw     = file_get_contents( $path );
+$payload = json_decode( $raw, true );
+if (
+	is_array( $payload )
+	&& isset( $payload['definition'] )
+	&& is_array( $payload['definition'] )
+	&& array_key_exists( 'legalDisclaimers', $payload )
+) {
+	if ( is_array( $payload['legalDisclaimers'] ) ) {
+		$GLOBALS['dg_test_legal_disclaimers'] = $payload['legalDisclaimers'];
+	}
+	$raw = wp_json_encode( $payload['definition'] );
+}
 $result = Portal_Definition::from_json( $raw );
 if ( is_wp_error( $result ) ) {
 	fwrite( STDERR, $result->code . ': ' . $result->message . "\n" );

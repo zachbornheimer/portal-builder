@@ -58,6 +58,7 @@ if ( ! class_exists( 'Portal_Definition_Renderer' ) ) {
 
 			$inner  = self::render_test_banner( $definition );
 			$inner .= self::render_fields( $definition['fields'] );
+			$inner .= self::render_site_disclaimers();
 			$inner .= self::render_anonymize_ack_if_needed( $definition, $site );
 
 			return sprintf(
@@ -84,6 +85,30 @@ if ( ! class_exists( 'Portal_Definition_Renderer' ) ) {
 				esc_attr( self::TEST_BANNER_CLASS ),
 				esc_html( self::TEST_BANNER_TEXT )
 			);
+		}
+
+		/**
+		 * Required site-wide legal checkboxes from dg_legal_disclaimers.
+		 *
+		 * Honors $GLOBALS['dg_test_legal_disclaimers'] via Portal_Legal_Disclaimers::rows().
+		 *
+		 * @return string
+		 */
+		private static function render_site_disclaimers() {
+			if ( ! class_exists( 'Portal_Legal_Disclaimers' ) ) {
+				return '';
+			}
+			$html = '';
+			foreach ( Portal_Legal_Disclaimers::rows() as $row ) {
+				$html .= self::render_disclaimer(
+					array(
+						'id'       => $row['field_id'],
+						'label'    => $row['text'],
+						'required' => true,
+					)
+				);
+			}
+			return $html;
 		}
 
 		/**
