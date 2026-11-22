@@ -2,9 +2,15 @@
   import ConfirmModal from './ConfirmModal.svelte';
   import { createEventDispatcher } from 'svelte';
   
-  export let isOpen = false;
-  export let itemName = '';
-  export let itemType = 'item';
+  /**
+   * @typedef {Object} Props
+   * @property {boolean} [isOpen]
+   * @property {string} [itemName]
+   * @property {string} [itemType]
+   */
+
+  /** @type {Props} */
+  let { isOpen = false, itemName = '', itemType = 'item' } = $props();
   
   const dispatch = createEventDispatcher();
   
@@ -16,8 +22,8 @@
     dispatch('cancel');
   }
   
-  $: title = `Delete ${itemType}`;
-  $: message = `Are you sure you want to delete "${itemName}"? This action cannot be undone.`;
+  let title = $derived(`Delete ${itemType}`);
+  let message = $derived(`Are you sure you want to delete "${itemName}"? This action cannot be undone.`);
 </script>
 
 <ConfirmModal

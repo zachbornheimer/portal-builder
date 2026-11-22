@@ -1,15 +1,28 @@
 <script>
+
   import { createEventDispatcher, onMount } from 'svelte';
   import Combobox from '../Combobox.svelte';
   import { ContentParser } from '../services/ContentParser.js';
   import { WordPressContentProvider } from '../services/ContentProvider.js';
   import { TagManager } from '../services/TagManager.js';
   
-  export let field;
-  export let value = '';
-  export let sheetManager = null;
-  export let sheetId = null;
-  export let content = '';
+  /**
+   * @typedef {Object} Props
+   * @property {any} field
+   * @property {string} [value]
+   * @property {any} [sheetManager]
+   * @property {any} [sheetId]
+   * @property {string} [content]
+   */
+
+  /** @type {Props} */
+  let {
+    field,
+    value = '',
+    sheetManager = null,
+    sheetId = null,
+    content = ''
+  } = $props();
   
   const dispatch = createEventDispatcher();
   
@@ -18,9 +31,9 @@
   const contentProvider = new WordPressContentProvider();
   const tagManager = new TagManager(sheetManager, sheetId, dispatch, field.key);
   
-  let comboboxRef;
-  let draggedIndex = null;
-  let dragOverIndex = null;
+  let comboboxRef = $state();
+  let draggedIndex = $state(null);
+  let dragOverIndex = $state(null);
   
   onMount(() => {
     // Listen for content changes
@@ -35,7 +48,7 @@
   });
   
   // Parse content to extract pb_* shortcodes
-  $: parsedOptions = (() => {
+  let parsedOptions = $derived((() => {
     const contentToParse = content || contentProvider.getContent();
     if (!contentToParse) {
       console.log('TagsField: No content to parse');
@@ -47,7 +60,7 @@
     const options = contentParser.parse(contentToParse);
     console.log('TagsField: Parsed options:', options);
     return options;
-  })();
+  })());
   
   // Handle combobox selection
   function handleComboboxChange(event) {
@@ -92,10 +105,10 @@
   }
   
   // Reactive tags array - handle Column objects, arrays, and strings
-  let tags = [];
+  let tags = $state([]);
   
   // Update tags when value changes
-  $: {
+  $effect(() => {
     if (Array.isArray(value)) {
       // Handle Column objects or string arrays
       tags = value.map(item => {
@@ -115,25 +128,26 @@
     } else {
       tags = [];
     }
-  }
+  });
   
   // Also listen to sheetManager changes if available
-  $: if (sheetManager && sheetId) {
-    let currentSheets;
-    sheetManager.sheets.subscribe(sheets => currentSheets = sheets)();
-    const currentSheet = currentSheets.find(s => s.id === sheetId);
-    if (currentSheet && currentSheet.columns) {
-      tags = currentSheet.columns.map(col => ({
-        uuid: col.uuid,
-        value: col.value,
-        label: col.label || col.value
-      }));
+  $effect(() => {
+    if (sheetManager && sheetId) {
+      let currentSheets;
+      sheetManager.sheets.subscribe(sheets => currentSheets = sheets)();
+      const currentSheet = currentSheets.find(s => s.id === sheetId);
+      if (currentSheet && currentSheet.columns) {
+        tags = currentSheet.columns.map(col => ({
+          uuid: col.uuid,
+          value: col.value,
+          label: col.label || col.value
+        }));
+      }
     }
-  }
+  });
   
   // Tag removal - work with UUID-based removal
-    // Tag removal - work with UUID-based removal
-    function removeTag(tagToRemove) {
+  function removeTag(tagToRemove) {
     console.log(`🏷️ Removing tag: ${tagToRemove}`);
     tagManager.removeTag(tagToRemove, tags);
   }
@@ -211,7 +225,7 @@
 
 <div class="form-group">
   <label class="block text-sm font-medium text-gray-700 mb-2">{field.label}</label>
-  
+
   <!-- Tags list with divs -->
   <div class="border border-gray-300 rounded-md">
     <!-- Header row -->
@@ -236,11 +250,11 @@
         class="flex items-center border-b border-gray-200 hover:bg-gray-50 px-4 py-3 {dragOverIndex === index ? 'bg-blue-50 border-blue-300' : ''}"
         draggable="true"
         role="listitem"
-        on:dragstart={(e) => handleDragStart(e, index)}
-        on:dragend={handleDragEnd}
-        on:dragover={(e) => handleDragOver(e, index)}
-        on:dragleave={handleDragLeave}
-        on:drop={(e) => handleDrop(e, index)}
+        ondragstart={(e) => handleDragStart(e, index)}
+        ondragend={handleDragEnd}
+        ondragover={(e) => handleDragOver(e, index)}
+        ondragleave={handleDragLeave}
+        ondrop={(e) => handleDrop(e, index)}
       >
         <div class="w-8 flex-shrink-0">
           <div class="flex items-center">
@@ -259,8 +273,8 @@
           <button
             type="button"
             class="text-red-600 hover:text-red-900 text-sm"
-            on:click={() => removeTag(tag.value)}
-            on:keydown={(e) => e.key === 'Enter' && removeTag(tag.value)}
+            onclick={() => removeTag(tag.value)}
+            onkeydown={(e) => e.key === 'Enter' && removeTag(tag.value)}
           >
             Remove<span class="sr-only">, {tag.label || tag.value}</span>
           </button>

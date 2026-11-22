@@ -4,11 +4,23 @@
   import TagsField from './TagsField.svelte';
   import { createEventDispatcher } from 'svelte';
   
-  export let field;
-  export let value = '';
-  export let hasDeleteButton = false;
-  export let sheetManager = null;
-  export let sheetId = null;
+  /**
+   * @typedef {Object} Props
+   * @property {any} field
+   * @property {string} [value]
+   * @property {boolean} [hasDeleteButton]
+   * @property {any} [sheetManager]
+   * @property {any} [sheetId]
+   */
+
+  /** @type {Props} */
+  let {
+    field,
+    value = '',
+    hasDeleteButton = false,
+    sheetManager = null,
+    sheetId = null
+  } = $props();
   
   const dispatch = createEventDispatcher();
   
@@ -19,6 +31,7 @@
   function handleDelete() {
     dispatch('delete');
   }
+
 </script>
 
 {#if field.type === 'text'}

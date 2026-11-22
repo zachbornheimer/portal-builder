@@ -1,9 +1,15 @@
 <script>
   import { createEventDispatcher } from 'svelte';
   
-  export let tabs = [];
-  export let activeSheetId = null;
-  export let sheetManager = null;
+  /**
+   * @typedef {Object} Props
+   * @property {any} [tabs]
+   * @property {any} [activeSheetId]
+   * @property {any} [sheetManager]
+   */
+
+  /** @type {Props} */
+  let { tabs = [], activeSheetId = $bindable(null), sheetManager = null } = $props();
   
   const dispatch = createEventDispatcher();
   
@@ -31,7 +37,7 @@
       <button 
         type="button"
         class="px-4 py-1 text-sm font-medium transition-colors duration-200 rounded-md border-0 outline-none focus:outline-none focus:ring-0 focus:shadow-none cursor-pointer {activeSheetId === tab.value ? 'bg-zysys-blue-200 text-zysys-blue-950' : 'text-gray-700 hover:bg-zysys-blue-50 bg-transparent'}"
-        on:click={() => selectSheet(tab.value)}
+        onclick={() => selectSheet(tab.value)}
       >
         {tab.key}
       </button>
@@ -39,7 +45,7 @@
     <button 
       type="button" 
       class="cursor-pointer px-4 py-1 text-sm font-medium text-gray-700 hover:bg-zysys-blue-50 rounded-md transition-colors duration-200 ml-0 border-0 bg-transparent outline-none focus:outline-none focus:ring-0 focus:shadow-none"
-      on:click={addNew}
+      onclick={addNew}
     >
       Add New
     </button>

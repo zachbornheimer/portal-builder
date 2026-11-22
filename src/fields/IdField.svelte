@@ -1,8 +1,14 @@
 <script>
   import { createEventDispatcher } from 'svelte';
   
-  export let field;
-  export let value = '';
+  /**
+   * @typedef {Object} Props
+   * @property {any} field
+   * @property {string} [value]
+   */
+
+  /** @type {Props} */
+  let { field, value = '' } = $props();
   
   const dispatch = createEventDispatcher();
   
@@ -11,8 +17,8 @@
     dispatch('change', { field: field.key, value: newValue });
   }
   
-  $: hasValue = value && value.trim() !== '';
-  $: linkUrl = hasValue ? field.linkUrl(value) : '';
+  let hasValue = $derived(value && value.trim() !== '');
+  let linkUrl = $derived(hasValue ? field.linkUrl(value) : '');
 </script>
 
 <div class="form-group">
@@ -40,6 +46,6 @@
     name={field.key}
     class="form-control w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-zysys-blue-500"
     {value}
-    on:input={handleInput}
+    oninput={handleInput}
   />
 </div>
