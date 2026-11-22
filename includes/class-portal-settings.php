@@ -303,19 +303,25 @@ if (! class_exists('Portal_Settings')) {
             // Define the columns for the data table
             $columns = array( 'Internal Id', 'Disclaimer' );
 
-            // Define an empty row (used for adding new rows)
-            $sample_row = array_fill(0, count($columns), '');
+            // Get existing data
+            $values = get_option($meta_key, json_encode(array()));
+            if ($values) {
+                $values = json_decode($values, true);
+                if (!is_array($values)) {
+                    $values = array();
+                }
+            } else {
+                $values = array();
+            }
 
-            // Define options (adjust as per your need)
-            $options = array(
-                1 => array( 'tags' => false ),  // Disclaimer column does not require tags
-            );
-
-            // Instantiate the Data_Table class, indicating that it's for options
-            $data_table = new Data_Table($meta_key, $meta_key, $columns, $sample_row, array(), $options, true);
-
-            // Render the data table
-            $data_table->render();
+            // Create container for Svelte columns manager
+            echo '<div data-columns-manager 
+                         data-meta-key="' . esc_attr($meta_key) . '" 
+                         data-is-option="true" 
+                         data-columns=\'' . json_encode($columns) . '\' 
+                         data-initial-data=\'' . json_encode($values) . '\'
+                         data-tag-columns=\'' . json_encode([1]) . '\'>'; // Disclaimer column (index 1) supports tags
+            echo '</div>';
         }
 
         public function render_exiftool_path_field()
@@ -437,6 +443,16 @@ if (! class_exists('Portal_Settings')) {
             wp_enqueue_style('pb-admin-css', plugins_url('../assets/admin.css', __FILE__), array(), PB_VERSION);
             wp_enqueue_script('pb-admin-js', plugins_url('../assets/admin.js', __FILE__), array( 'jquery' ), PB_VERSION, true);
             wp_enqueue_script('pb-url-validation-js', plugins_url('../assets/url-validation.js', __FILE__), array( 'jquery' ), PB_VERSION, true);
+            
+            // Enqueue Svelte columns manager
+            wp_enqueue_script('columns-manager', plugins_url('../assets/dist/columns-manager.js', __FILE__), array(), PB_VERSION, true);
+            // Add type="module" attribute
+            add_filter( 'script_loader_tag', function( $tag, $handle ) {
+                if ( 'columns-manager' === $handle ) {
+                    return str_replace( '<script ', '<script type="module" ', $tag );
+                }
+                return $tag;
+            }, 10, 2 );
 
             // Localize the script with some data for translation or other dynamic values
             wp_localize_script(

@@ -140,16 +140,26 @@ if ( ! class_exists( 'Portal_Meta' ) ) {
 		}
 
 		public function enqueue_scripts() {
-			// Enqueue Tailwind CSS from CDN
-			wp_enqueue_style( 'tailwind-css', 'https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css', array(), '2.2.19' );
+		// Enqueue local Tailwind CSS with custom zysys-blue colors
+		wp_enqueue_style( 'dragongate-portal-css', plugins_url( '../assets/dist/dragongate-portal.css', __FILE__ ), array(), PB_VERSION );
 			
 			// Enqueue Dashicons for trash icon
 			wp_enqueue_style( 'dashicons' );
 			
 			// Enqueue existing styles after Tailwind
-			wp_enqueue_style( 'portal-meta-box-styles', plugins_url( '../assets/portal-meta-box.css', __FILE__ ), array( 'tailwind-css' ), PB_VERSION );
+			wp_enqueue_style( 'portal-meta-box-styles', plugins_url( '../assets/portal-meta-box.css', __FILE__ ), array( 'dragongate-portal-css' ), PB_VERSION );
 			wp_enqueue_script( 'portal-meta-box-script', plugins_url( '../assets/portal-meta-box.js', __FILE__ ), [ 'jquery' ], PB_VERSION, true );
 			wp_enqueue_script( 'pb-url-validation', plugins_url( '../assets/url-validation.js', __FILE__ ), [ 'jquery' ], PB_VERSION, true );
+			
+			// Enqueue Svelte dragongate portal
+			wp_enqueue_script( 'dragongate-portal-js', plugins_url( '../assets/dist/dragongate-portal.js', __FILE__ ), array(), PB_VERSION, true );
+			// Add type="module" attribute
+			add_filter( 'script_loader_tag', function( $tag, $handle ) {
+				if ( 'dragongate-portal-js' === $handle ) {
+					return str_replace( '<script ', '<script type="module" ', $tag );
+				}
+				return $tag;
+			}, 10, 2 );
 		}
 
 		public function validate_url_callback() {
@@ -169,17 +179,55 @@ if ( ! class_exists( 'Portal_Meta' ) ) {
 			}
 		}
 
-		private function render_data_table( $meta_key, $columns, $extraction, $post_id, $options = [], $disclosure = '' ) {
-			$data_table = new Data_Table( $meta_key, $meta_key, $columns, array_fill( 0, count( $columns ), '' ), $extraction, $options, false, $disclosure );
-			$data_table->render( get_post( $post_id ) );
-
-			if ( $options ) {
-				foreach ( $options as $column_index => $column_options ) {
-					if ( isset( $column_options['tags'] ) && $column_options['tags'] === true ) {
-
-					}
+	private function render_data_table( $meta_key, $columns, $extraction, $post_id, $options = [], $disclosure = '' ) {
+		// Wrap everything in the scoped portal-builder class
+		echo '<div class="portal-builder">';
+		
+		// Add segmented control for sheet selection
+		$this->render_sheet_segmented_control( $meta_key, $post_id );
+		
+		// Create a minimal data table container for Svelte to take over
+		echo '<div id="' . esc_attr( $meta_key ) . '" class="data-table">';
+		echo '</div>';
+		
+		// Store the data for Svelte to read
+		$values = get_post_meta( $post_id, $meta_key, true );
+		if ( $values ) {
+			$values = json_decode( $values, true );
+			// Keep decoding until we get an array
+			$max_iterations = 20;
+			$iteration_count = 0;
+			while ( ! is_array( $values ) ) {
+				$values = json_decode( $values, true );
+				++$iteration_count;
+				if ( $iteration_count >= $max_iterations ) {
+					break;
 				}
 			}
 		}
+		
+		// If decoding failed, create empty array
+		if ( ! is_array( $values ) ) {
+			$values = array();
+		}
+		
+		// Hidden input for form submission (Svelte will update this)
+		echo '<input type="hidden" name="' . esc_attr( $meta_key ) . '" id="' . esc_attr( $meta_key ) . '" value="' . esc_attr( json_encode( $values ) ) . '" />';
+		
+		// Close the scoped wrapper
+		echo '</div>';
 	}
+
+	/**
+	 * Render segmented control for sheet selection
+	 *
+	 * @param string $meta_key
+	 * @param int    $post_id
+	 */
+	private function render_sheet_segmented_control( $meta_key, $post_id ) {
+		// Create container for Svelte component
+		echo '<div data-segmented-control data-meta-key="' . esc_attr( $meta_key ) . '" data-post-id="' . esc_attr( $post_id ) . '">';
+		echo '</div>';
+	}
+}
 }
